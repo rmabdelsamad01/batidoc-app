@@ -569,11 +569,129 @@ function openWfPicker(names){
 
 function closeWfPicker(){document.getElementById('wf-picker-modal').style.display='none';}
 
-function applyWfTemplate(id){
+async function applyWfTemplate(id){
   var wf=gedWorkflows.find(function(w){return w.id===id;});
   if(!wf)return;
   closeWfPicker();
-  showToast('Workflow applied: '+wf.name);
+  showToast('Sending notifications…');
+  await sendWorkflowEmails(wf,_wfPickerContext);
+}
+
+async function sendWorkflowEmails(wf,itemNames){
+  var actionLabels={approval:'Approval',review:'Review',info:'For Information'};
+  var actionColors={approval:'#1a9458',review:'#224F93',info:'#8099b0'};
+  var typeLabel=wf.type==='signature'?'Document Signature':'Document Approval';
+  var sender='BatiGED <ged@batimon.com>';
+
+  // Collect all recipients flat: {name, email, action, stepIndex}
+  var recipients=[];
+  if(wf.routing==='custom'){
+    (wf.groups||[]).forEach(function(g,gi){
+      (g.steps||[]).forEach(function(s){
+        (s.recipients||[]).forEach(function(r){
+          if(r.email) recipients.push({name:r.name,email:r.email,action:r.action||'approval',group:gi+1,company:s.company});
+        });
+      });
+    });
+  }else{
+    (wf.steps||[]).forEach(function(s,si){
+      (s.recipients||[]).forEach(function(r){
+        if(r.email) recipients.push({name:r.name,email:r.email,action:r.action||'approval',step:si+1,company:s.company});
+      });
+    });
+  }
+
+  if(recipients.length===0){showToast('No email addresses found in this workflow');return;}
+
+  var sent=0;var failed=0;
+  for(var i=0;i<recipients.length;i++){
+    var r=recipients[i];
+    var actionLabel=actionLabels[r.action]||'Approval';
+    var actionColor=actionColors[r.action]||'#224F93';
+    var subject='[BatiGED] '+typeLabel+' required — '+actionLabel;
+    var html=buildEmailHtml({
+      recipientName:r.name,
+      actionLabel:actionLabel,
+      actionColor:actionColor,
+      typeLabel:typeLabel,
+      itemNames:itemNames||'',
+      wfName:wf.name,
+      company:r.company||'',
+      senderName:(sbProfile&&(sbProfile.full_name||sbProfile.username))||'BatiGED'
+    });
+    var ok=await sendResendEmail(r.email,subject,html,sender);
+    if(ok)sent++;else failed++;
+  }
+
+  if(failed===0) showToast('✓ '+sent+' notification'+(sent>1?'s':'')+' sent successfully');
+  else showToast('Sent: '+sent+' · Failed: '+failed);
+}
+
+async function sendResendEmail(to,subject,html,from){
+  try{
+    var res=await fetch('https://api.resend.com/emails',{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+RESEND_API_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({from:from,to:[to],subject:subject,html:html})
+    });
+    return res.ok;
+  }catch(e){return false;}
+}
+
+function buildEmailHtml(o){
+  return '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>'+
+  '<body style="margin:0;padding:0;background:#f0f4f9;font-family:Barlow,Arial,sans-serif;">'+
+  '<table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f4f9;padding:40px 16px;">'+
+    '<tr><td align="center">'+
+      '<table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 4px 24px rgba(34,79,147,0.10);max-width:100%;">'+
+        // Header
+        '<tr><td style="background:#224F93;padding:28px 36px;text-align:center;">'+
+          '<div style="font-size:22px;font-weight:700;color:#fff;letter-spacing:0.04em;">BatiGED</div>'+
+          '<div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:4px;letter-spacing:0.08em;text-transform:uppercase;">Document Management</div>'+
+        '</td></tr>'+
+        // Action badge
+        '<tr><td style="padding:32px 36px 0;text-align:center;">'+
+          '<span style="display:inline-block;background:'+o.actionColor+';color:#fff;font-size:13px;font-weight:700;padding:6px 20px;border-radius:20px;letter-spacing:0.05em;">'+o.actionLabel+' Required</span>'+
+        '</td></tr>'+
+        // Greeting
+        '<tr><td style="padding:24px 36px 0;">'+
+          '<p style="margin:0;font-size:15px;font-weight:600;color:#1a2a3a;">Hello '+escHtml(o.recipientName)+',</p>'+
+          '<p style="margin:12px 0 0;font-size:14px;color:#4a6080;line-height:1.6;">'+
+            'You have been requested to provide your <strong>'+o.actionLabel+'</strong> for the following document(s):'+
+          '</p>'+
+        '</td></tr>'+
+        // Document box
+        '<tr><td style="padding:16px 36px 0;">'+
+          '<div style="background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:9px;padding:14px 18px;">'+
+            '<div style="font-size:11px;font-weight:700;color:#8099b0;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px;">Document(s)</div>'+
+            '<div style="font-size:13px;font-weight:600;color:#1a2a3a;">'+escHtml(o.itemNames||'—')+'</div>'+
+          '</div>'+
+        '</td></tr>'+
+        // Workflow info
+        '<tr><td style="padding:14px 36px 0;">'+
+          '<div style="display:flex;gap:10px;">'+
+            '<div style="flex:1;background:#f8fafd;border:1px solid rgba(34,79,147,0.1);border-radius:8px;padding:12px 14px;">'+
+              '<div style="font-size:10px;font-weight:700;color:#8099b0;text-transform:uppercase;letter-spacing:0.07em;">Workflow</div>'+
+              '<div style="font-size:12px;font-weight:600;color:#1a2a3a;margin-top:3px;">'+escHtml(o.wfName)+'</div>'+
+            '</div>'+
+            '<div style="flex:1;background:#f8fafd;border:1px solid rgba(34,79,147,0.1);border-radius:8px;padding:12px 14px;">'+
+              '<div style="font-size:10px;font-weight:700;color:#8099b0;text-transform:uppercase;letter-spacing:0.07em;">Type</div>'+
+              '<div style="font-size:12px;font-weight:600;color:#1a2a3a;margin-top:3px;">'+escHtml(o.typeLabel)+'</div>'+
+            '</div>'+
+          '</div>'+
+        '</td></tr>'+
+        // Sent by
+        '<tr><td style="padding:14px 36px 24px;">'+
+          '<p style="margin:0;font-size:13px;color:#8099b0;">Sent by <strong style="color:#4a6080;">'+escHtml(o.senderName)+'</strong> via BatiGED</p>'+
+        '</td></tr>'+
+        // Footer
+        '<tr><td style="background:#f4f8fd;padding:16px 36px;border-top:1px solid rgba(34,79,147,0.08);text-align:center;">'+
+          '<p style="margin:0;font-size:11px;color:#b0bec5;">BatiGED &copy; 2025 Batiglobe &mdash; All rights reserved</p>'+
+        '</td></tr>'+
+      '</table>'+
+    '</td></tr>'+
+  '</table>'+
+  '</body></html>';
 }
 
 // ── user dropdown ────────────────────────────────────────────
