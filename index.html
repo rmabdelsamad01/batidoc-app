@@ -72,6 +72,32 @@ body.bd-iframe .sidebar{display:none!important;}
 body.bd-iframe .app-body{padding:0!important;}
 body.bd-iframe .content{flex:1;overflow:auto;}
 </style>
+<script>
+let _pwaPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _pwaPrompt = e;
+  document.querySelectorAll('.pwa-install-btn').forEach(b => b.style.display = 'flex');
+});
+window.addEventListener('appinstalled', () => {
+  _pwaPrompt = null;
+  document.querySelectorAll('.pwa-install-btn').forEach(b => b.style.display = 'none');
+});
+window._installPWA = async function() {
+  if (_pwaPrompt) {
+    _pwaPrompt.prompt();
+    const { outcome } = await _pwaPrompt.userChoice;
+    if (outcome === 'accepted') _pwaPrompt = null;
+    return;
+  }
+  const isAndroid = /android/i.test(navigator.userAgent);
+  if (isAndroid) {
+    alert('To install:\n1. Tap the 3-dot menu (⋮) in Chrome\n2. Tap "Add to Home screen"\n3. Tap "Add"');
+  } else {
+    alert('To install:\n1. Click the 3-dot menu (…) in Edge\n2. Click "Apps"\n3. Click "Install this site as an app"');
+  }
+};
+</script>
 </head>
 <body>
 
@@ -107,6 +133,22 @@ body.bd-iframe .content{flex:1;overflow:auto;}
       <button onclick="doLogin()"
         style="width:100%;padding:11px;background:#224F93;color:#fff;border:none;border-radius:7px;font-family:'Barlow',sans-serif;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:0.04em;"
         onmouseover="this.style.background='#2d65bd'" onmouseout="this.style.background='#224F93'">Log In</button>
+
+      <div style="display:flex;align-items:center;gap:8px;margin-top:18px;margin-bottom:10px;">
+        <div style="flex:1;height:1px;background:rgba(34,79,147,0.15);"></div>
+        <span style="font-size:11px;font-weight:600;color:#8099b0;letter-spacing:0.05em;white-space:nowrap;">Available on</span>
+        <div style="flex:1;height:1px;background:rgba(34,79,147,0.15);"></div>
+      </div>
+      <div style="display:flex;flex-direction:row;gap:10px;margin-top:0;">
+        <button onclick="_installPWA()" class="pwa-install-btn" style="display:flex;align-items:center;justify-content:center;gap:7px;flex:1;padding:10px;background:#f0f4f9;color:#224F93;border:1px solid rgba(34,79,147,0.2);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;letter-spacing:0.03em;box-sizing:border-box;" onmouseover="this.style.background='#e0eaf5'" onmouseout="this.style.background='#f0f4f9'">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.523 15.341l-1.535-2.661L17.523 10 22 10v5.341h-4.477zM2 10h4.477l1.535 2.68-1.535 2.661H2V10zm3.504 7.404l3.498-6.065L5.504 5.273 7.778 4l3.222 5.582V4h2v5.582L16.222 4l2.274 1.273-3.498 6.066 3.498 6.065L16.222 20l-3.222-5.582V20h-2v-5.582L7.778 20 5.504 17.404z"/></svg>
+          Android
+        </button>
+        <button onclick="_installPWA()" class="pwa-install-btn" style="display:flex;align-items:center;justify-content:center;gap:7px;flex:1;padding:10px;background:#f0f4f9;color:#224F93;border:1px solid rgba(34,79,147,0.2);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;letter-spacing:0.03em;box-sizing:border-box;" onmouseover="this.style.background='#e0eaf5'" onmouseout="this.style.background='#f0f4f9'">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20 3H4a1 1 0 00-1 1v13a1 1 0 001 1h7v2H8v2h8v-2h-3v-2h7a1 1 0 001-1V4a1 1 0 00-1-1zm-1 13H5V5h14v11z"/></svg>
+          Desktop
+        </button>
+      </div>
     </div>
 
     <!-- Signup form -->
