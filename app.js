@@ -391,7 +391,9 @@ function loadStepEmployees(selectEl,preSelected){
         (emp.email?'<div style="font-size:10px;color:#8099b0;">'+escHtml(emp.email)+'</div>':'')+
       '</div>'+
       '<select class="wf-action-select" style="padding:4px 8px;border:1px solid rgba(34,79,147,0.2);border-radius:6px;font-family:\'Barlow\',sans-serif;font-size:11px;font-weight:600;color:#224F93;outline:none;background:#f0f4f9;cursor:pointer;flex-shrink:0;">'+
-        '<option value="approval"'+(action==='approval'?' selected':'')+'>Approval</option>'+
+        (_wfType==='signature'
+          ? '<option value="signature"'+(action==='signature'?' selected':'')+'>Signature</option>'
+          : '<option value="approval"'+(action==='approval'?' selected':'')+'>Approval</option>')+
         '<option value="review"'+(action==='review'?' selected':'')+'>Review</option>'+
         '<option value="info"'+(action==='info'?' selected':'')+'>For Info</option>'+
       '</select>'+
@@ -578,8 +580,8 @@ async function applyWfTemplate(id){
 }
 
 async function sendWorkflowEmails(wf,itemNames){
-  var actionLabels={approval:'Approval',review:'Review',info:'For Information'};
-  var actionColors={approval:'#1a9458',review:'#224F93',info:'#8099b0'};
+  var actionLabels={approval:'Approval',signature:'Signature',review:'Review',info:'For Information'};
+  var actionColors={approval:'#1a9458',signature:'#7c3aed',review:'#224F93',info:'#8099b0'};
   var typeLabel=wf.type==='signature'?'Document Signature':'Document Approval';
   var sender='BatiGED <ged@batimon.com>';
 
@@ -629,10 +631,12 @@ async function sendWorkflowEmails(wf,itemNames){
 
 async function sendResendEmail(to,subject,html,from){
   try{
-    var res=await sb.functions.invoke('send-email',{
-      body:{to:to,subject:subject,html:html,from:from}
+    var res=await fetch('/.netlify/functions/send-email',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({to:to,subject:subject,html:html,from:from})
     });
-    return !res.error;
+    return res.ok;
   }catch(e){return false;}
 }
 
