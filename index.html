@@ -91,10 +91,13 @@ window._installPWA = async function() {
     return;
   }
   const isAndroid = /android/i.test(navigator.userAgent);
+  const isEdge = /edg/i.test(navigator.userAgent);
   if (isAndroid) {
     alert('To install:\n1. Tap the 3-dot menu (⋮) in Chrome\n2. Tap "Add to Home screen"\n3. Tap "Add"');
-  } else {
+  } else if (isEdge) {
     alert('To install:\n1. Click the 3-dot menu (…) in Edge\n2. Click "Apps"\n3. Click "Install this site as an app"');
+  } else {
+    alert('To install:\n1. Click the ⊕ icon in the Chrome address bar (right side)\n2. Click "Install"\n\nIf you don\'t see it, make sure you\'re using Chrome or Edge.');
   }
 };
 </script>
