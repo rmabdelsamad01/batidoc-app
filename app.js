@@ -283,30 +283,42 @@ function renderWorkflows(){
   var typeBg={'approval':'rgba(46,194,126,0.08)','signature':'rgba(34,79,147,0.08)'};
   var routeLabel={'series':'↓ Series','parallel':'⇉ Parallel','custom':'⊞ Custom'};
 
-  function stepPill(s){
-    var label=typeof s==='object'?s.name:s;
-    var email=typeof s==='object'&&s.email?s.email:'';
-    return '<span style="display:inline-flex;flex-direction:column;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:6px;padding:4px 9px;font-size:11px;font-weight:600;color:#4a6080;">'+
-      label+(email?'<span style="font-size:10px;font-weight:400;color:#8099b0;">'+email+'</span>':'')+
-    '</span>';
+  var actionColors={approval:'#1a9458',review:'#224F93',info:'#8099b0'};
+  var actionLabels={approval:'Approval',review:'Review',info:'For Info'};
+
+  function stepBlock(s,sep){
+    if(!s||!s.company)return '';
+    var recs=(s.recipients||[]).map(function(r){
+      return '<span style="display:inline-flex;align-items:center;gap:3px;background:#fff;border:1px solid rgba(34,79,147,0.12);border-radius:5px;padding:2px 7px;font-size:11px;color:#4a6080;">'+
+        escHtml(r.name)+
+        '<span style="font-size:10px;font-weight:700;color:'+actionColors[r.action||'approval']+';">&nbsp;'+actionLabels[r.action||'approval']+'</span>'+
+      '</span>';
+    }).join(sep);
+    return '<div style="display:inline-flex;flex-direction:column;gap:4px;">'+
+      '<span style="font-size:9px;font-weight:700;color:#8099b0;text-transform:uppercase;letter-spacing:0.06em;">'+escHtml(s.company)+'</span>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:4px;">'+recs+'</div>'+
+    '</div>';
   }
 
   list.innerHTML=gedWorkflows.map(function(wf){
     var t=wf.type||'approval';
     var r=wf.routing||'series';
     var flowHtml='';
+    var parallelSep=' <span style="color:#b0bec5;font-size:11px;margin:0 2px;">⇉</span> ';
+    var seriesSep=' <span style="color:#b0bec5;margin:0 4px;">→</span> ';
     if(r==='custom'&&wf.groups){
       flowHtml=wf.groups.map(function(g,gi){
-        var sep=g.routing==='parallel'?' <span style="color:#b0bec5;font-size:11px;">⇉</span> ':' <span style="color:#b0bec5;margin:0 3px;">→</span> ';
-        var members=g.steps.map(stepPill).join(sep);
-        return (gi>0?'<span style="color:#b0bec5;margin:0 6px;font-size:16px;">▶</span>':'')+
-          '<span style="display:inline-flex;align-items:center;background:#fff;border:1px solid rgba(34,79,147,0.15);border-radius:7px;padding:4px 8px;gap:4px;">'+
-            '<span style="font-size:9px;font-weight:700;color:#8099b0;text-transform:uppercase;margin-right:4px;">G'+(gi+1)+'</span>'+members+
-          '</span>';
+        var gSep=g.routing==='parallel'?parallelSep:seriesSep;
+        var members=(g.steps||[]).map(function(s){return stepBlock(s,parallelSep);}).join(gSep);
+        return (gi>0?'<span style="color:#b0bec5;margin:0 8px;font-size:14px;align-self:center;">▶</span>':'')+
+          '<div style="display:inline-flex;flex-direction:column;gap:4px;background:#fff;border:1px solid rgba(34,79,147,0.15);border-radius:8px;padding:7px 10px;">'+
+            '<span style="font-size:9px;font-weight:700;color:#8099b0;text-transform:uppercase;">Group '+(gi+1)+' · '+(g.routing==='parallel'?'Parallel':'Series')+'</span>'+
+            '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;">'+members+'</div>'+
+          '</div>';
       }).join('');
     }else{
-      var sep=r==='parallel'?' <span style="color:#b0bec5;font-size:11px;">⇉</span> ':' <span style="color:#b0bec5;margin:0 3px;">→</span> ';
-      flowHtml=(wf.steps||[]).map(stepPill).join(sep);
+      var sep=r==='parallel'?parallelSep:seriesSep;
+      flowHtml=(wf.steps||[]).map(function(s){return stepBlock(s,parallelSep);}).join(sep);
     }
     return '<div style="background:#fff;border:1px solid rgba(34,79,147,0.12);border-radius:10px;padding:16px 18px;margin-bottom:10px;">'+
       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">'+
@@ -323,22 +335,23 @@ function renderWorkflows(){
   }).join('');
 }
 
-function openNewWorkflowModal(){
+async function openNewWorkflowModal(){
   _editingWfId=null;
+  if(_allContacts.length===0){var {data}=await sb.from('ged_contacts').select('*').order('name');_allContacts=data||[];}
   document.getElementById('wf-modal-title').textContent='New Workflow';
   document.getElementById('wf-name-input').value='';
   document.getElementById('wf-steps-list').innerHTML='';
   document.getElementById('wf-groups-list').innerHTML='';
   selectWfType('approval');
   selectWfRouting('series');
-  addWorkflowStep({name:'Submission',email:''});
-  addWorkflowStep({name:'Approval',email:''});
+  addWorkflowStep();
   document.getElementById('new-workflow-modal').style.display='flex';
 }
 
-function openEditWorkflowModal(id){
+async function openEditWorkflowModal(id){
   var wf=gedWorkflows.find(function(w){return w.id===id;});
   if(!wf)return;
+  if(_allContacts.length===0){var {data}=await sb.from('ged_contacts').select('*').order('name');_allContacts=data||[];}
   _editingWfId=id;
   document.getElementById('wf-modal-title').textContent='Edit Workflow';
   document.getElementById('wf-name-input').value=wf.name;
@@ -346,39 +359,65 @@ function openEditWorkflowModal(id){
   document.getElementById('wf-groups-list').innerHTML='';
   selectWfType(wf.type||'approval');
   selectWfRouting(wf.routing||'series');
-  if(wf.routing==='custom'){
-    (wf.groups||[]).forEach(function(g){addWorkflowGroup(g);});
-  }else{
-    (wf.steps||[]).forEach(function(s){addWorkflowStep(s);});
-  }
+  if(wf.routing==='custom'){(wf.groups||[]).forEach(function(g){addWorkflowGroup(g);});}
+  else{(wf.steps||[]).forEach(function(s){addWorkflowStep(s);});}
   document.getElementById('new-workflow-modal').style.display='flex';
 }
 
 function closeNewWorkflowModal(){document.getElementById('new-workflow-modal').style.display='none';}
 
+function buildCompanyOptions(selected){
+  var seen={};var cos=[];
+  _allContacts.forEach(function(c){if(c.company&&!seen[c.company]){seen[c.company]=1;cos.push(c.company);}});
+  cos.sort();
+  return '<option value="">Select a company…</option>'+cos.map(function(co){return '<option value="'+escHtml(co)+'"'+(co===selected?' selected':'')+'>'+escHtml(co)+'</option>';}).join('');
+}
+
+function loadStepEmployees(selectEl,preSelected){
+  var company=selectEl.value;
+  var card=selectEl.closest('.wf-step-card')||selectEl.closest('.wf-member-card');
+  var empList=card.querySelector('.wf-employees-list');
+  if(!company){empList.innerHTML='';empList.style.display='none';return;}
+  var employees=_allContacts.filter(function(c){return c.company===company;});
+  if(employees.length===0){empList.innerHTML='<div style="font-size:11px;color:#8099b0;padding:6px 0;">No contacts found for this company.</div>';empList.style.display='block';return;}
+  empList.innerHTML=employees.map(function(emp){
+    var preRec=preSelected&&preSelected.find(function(r){return r.email===emp.email||r.name===emp.name;});
+    var checked=preSelected?(preRec?'checked':''):'checked';
+    var action=preRec?preRec.action:'approval';
+    return '<div class="wf-emp-row" style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#fff;border:1px solid rgba(34,79,147,0.08);border-radius:6px;">'+
+      '<input type="checkbox" class="wf-emp-check" '+checked+' data-name="'+escHtml(emp.name)+'" data-email="'+escHtml(emp.email||'')+'" style="accent-color:#224F93;width:14px;height:14px;cursor:pointer;flex-shrink:0;">'+
+      '<div style="flex:1;min-width:0;">'+
+        '<div style="font-size:12px;font-weight:600;color:#1a2a3a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escHtml(emp.name)+'</div>'+
+        (emp.email?'<div style="font-size:10px;color:#8099b0;">'+escHtml(emp.email)+'</div>':'')+
+      '</div>'+
+      '<select class="wf-action-select" style="padding:4px 8px;border:1px solid rgba(34,79,147,0.2);border-radius:6px;font-family:\'Barlow\',sans-serif;font-size:11px;font-weight:600;color:#224F93;outline:none;background:#f0f4f9;cursor:pointer;flex-shrink:0;">'+
+        '<option value="approval"'+(action==='approval'?' selected':'')+'>Approval</option>'+
+        '<option value="review"'+(action==='review'?' selected':'')+'>Review</option>'+
+        '<option value="info"'+(action==='info'?' selected':'')+'>For Info</option>'+
+      '</select>'+
+    '</div>';
+  }).join('');
+  empList.style.display='block';
+}
+
 function addWorkflowStep(value){
   var list=document.getElementById('wf-steps-list');
   var idx=list.children.length+1;
-  var stepName=value?(typeof value==='object'?value.name:value):'';
-  var stepEmail=value&&typeof value==='object'?value.email:'';
+  var company=value&&value.company?value.company:'';
   var div=document.createElement('div');
   div.className='wf-step-card';
-  div.style.cssText='display:flex;flex-direction:column;gap:6px;background:#f8fafd;border:1px solid rgba(34,79,147,0.1);border-radius:8px;padding:10px 12px;';
+  div.style.cssText='background:#f8fafd;border:1px solid rgba(34,79,147,0.12);border-radius:9px;overflow:hidden;';
   div.innerHTML=
-    '<div style="display:flex;align-items:center;gap:8px;">'+
+    '<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;">'+
       '<div class="wf-step-num" style="width:22px;height:22px;background:#224F93;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0;">'+idx+'</div>'+
-      '<input type="text" value="'+stepName+'" placeholder="Step name..." class="wf-step-name"'+
-      ' style="flex:1;padding:7px 10px;border:1px solid rgba(34,79,147,0.25);border-radius:7px;font-family:\'Barlow\',sans-serif;font-size:12px;color:#1a2a3a;outline:none;background:#fff;"'+
-      ' onfocus="this.style.borderColor=\'#224F93\'" onblur="this.style.borderColor=\'rgba(34,79,147,0.25)\'">'+
+      '<select class="wf-company-select" onchange="loadStepEmployees(this)" style="flex:1;padding:7px 10px;border:1px solid rgba(34,79,147,0.2);border-radius:7px;font-family:\'Barlow\',sans-serif;font-size:12px;color:#1a2a3a;outline:none;background:#fff;cursor:pointer;">'+
+        buildCompanyOptions(company)+
+      '</select>'+
       '<button onclick="removeWorkflowStep(this)" style="width:26px;height:26px;flex-shrink:0;background:#fff5f5;border:1px solid rgba(192,32,32,0.2);border-radius:6px;cursor:pointer;color:#c02020;font-size:14px;display:flex;align-items:center;justify-content:center;">✕</button>'+
     '</div>'+
-    '<div class="wf-email-row" style="display:flex;align-items:center;gap:8px;padding-left:30px;">'+
-      '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8099b0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>'+
-      '<input type="email" value="'+stepEmail+'" placeholder="Email to notify..." class="wf-step-email"'+
-      ' style="flex:1;padding:6px 10px;border:1px solid rgba(34,79,147,0.2);border-radius:7px;font-family:\'Barlow\',sans-serif;font-size:12px;color:#1a2a3a;outline:none;background:#fff;"'+
-      ' onfocus="this.style.borderColor=\'#224F93\'" onblur="this.style.borderColor=\'rgba(34,79,147,0.2)\'">'+
-    '</div>';
+    '<div class="wf-employees-list" style="display:none;padding:0 12px 10px 44px;display:flex;flex-direction:column;gap:5px;"></div>';
   list.appendChild(div);
+  if(company&&value&&value.recipients){loadStepEmployees(div.querySelector('.wf-company-select'),value.recipients);}
   renumberWorkflowSteps();
 }
 
@@ -437,25 +476,31 @@ function renumberGroups(){
 
 function addGroupMember(groupCard,value){
   var membersDiv=groupCard.querySelector('.wf-group-members');
-  var stepName=value?(typeof value==='object'?value.name:value):'';
-  var stepEmail=value&&typeof value==='object'?value.email:'';
+  var company=value&&value.company?value.company:'';
   var div=document.createElement('div');
-  div.className='wf-member-row';
-  div.style.cssText='display:flex;flex-direction:column;gap:5px;background:#f8fafd;border:1px solid rgba(34,79,147,0.08);border-radius:7px;padding:8px 10px;';
+  div.className='wf-member-card';
+  div.style.cssText='background:#f8fafd;border:1px solid rgba(34,79,147,0.1);border-radius:8px;overflow:hidden;';
   div.innerHTML=
-    '<div style="display:flex;align-items:center;gap:7px;">'+
-      '<input type="text" value="'+stepName+'" placeholder="Step name..." class="wf-step-name"'+
-      ' style="flex:1;padding:6px 9px;border:1px solid rgba(34,79,147,0.2);border-radius:6px;font-family:\'Barlow\',sans-serif;font-size:12px;color:#1a2a3a;outline:none;background:#fff;"'+
-      ' onfocus="this.style.borderColor=\'#224F93\'" onblur="this.style.borderColor=\'rgba(34,79,147,0.2)\'">'+
-      '<button onclick="this.closest(\'.wf-member-row\').remove()" style="width:24px;height:24px;flex-shrink:0;background:#fff5f5;border:1px solid rgba(192,32,32,0.2);border-radius:5px;cursor:pointer;color:#c02020;font-size:12px;display:flex;align-items:center;justify-content:center;">✕</button>'+
+    '<div style="display:flex;align-items:center;gap:7px;padding:8px 10px;">'+
+      '<select class="wf-company-select" onchange="loadStepEmployees(this)" style="flex:1;padding:6px 9px;border:1px solid rgba(34,79,147,0.2);border-radius:6px;font-family:\'Barlow\',sans-serif;font-size:12px;color:#1a2a3a;outline:none;background:#fff;cursor:pointer;">'+
+        buildCompanyOptions(company)+
+      '</select>'+
+      '<button onclick="this.closest(\'.wf-member-card\').remove()" style="width:24px;height:24px;flex-shrink:0;background:#fff5f5;border:1px solid rgba(192,32,32,0.2);border-radius:5px;cursor:pointer;color:#c02020;font-size:12px;display:flex;align-items:center;justify-content:center;">✕</button>'+
     '</div>'+
-    '<div style="display:flex;align-items:center;gap:7px;padding-left:2px;">'+
-      '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#8099b0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>'+
-      '<input type="email" value="'+stepEmail+'" placeholder="Email to notify..." class="wf-step-email"'+
-      ' style="flex:1;padding:5px 9px;border:1px solid rgba(34,79,147,0.15);border-radius:6px;font-family:\'Barlow\',sans-serif;font-size:11px;color:#1a2a3a;outline:none;background:#fff;"'+
-      ' onfocus="this.style.borderColor=\'#224F93\'" onblur="this.style.borderColor=\'rgba(34,79,147,0.15)\'">'+
-    '</div>';
+    '<div class="wf-employees-list" style="display:none;padding:0 10px 8px 10px;display:flex;flex-direction:column;gap:5px;"></div>';
   membersDiv.appendChild(div);
+  if(company&&value&&value.recipients){loadStepEmployees(div.querySelector('.wf-company-select'),value.recipients);}
+}
+
+function collectStepRecipients(card){
+  var company=card.querySelector('.wf-company-select').value;
+  if(!company)return null;
+  var recipients=[];
+  card.querySelectorAll('.wf-emp-row').forEach(function(row){
+    var check=row.querySelector('.wf-emp-check');
+    if(check&&check.checked) recipients.push({name:check.dataset.name,email:check.dataset.email,action:row.querySelector('.wf-action-select').value});
+  });
+  return recipients.length>0?{company:company,recipients:recipients}:null;
 }
 
 function saveWorkflow(){
@@ -463,43 +508,30 @@ function saveWorkflow(){
   if(!name){showToast('Please enter a workflow name');return;}
   var wfData={name:name,type:_wfType,routing:_wfRouting};
   if(_wfRouting==='custom'){
-    var groupCards=document.querySelectorAll('#wf-groups-list > .wf-group-card');
     var groups=[];
-    groupCards.forEach(function(card){
+    document.querySelectorAll('#wf-groups-list > .wf-group-card').forEach(function(card){
       var seriesBtn=card.querySelector('.wf-grp-btn-series');
       var gRouting=seriesBtn&&seriesBtn.style.background.includes('34')?'series':'parallel';
-      var members=[];
-      card.querySelectorAll('.wf-member-row').forEach(function(row){
-        var n=row.querySelector('.wf-step-name');
-        var e=row.querySelector('.wf-step-email');
-        var nv=n?n.value.trim():'';
-        if(nv) members.push({name:nv,email:e?e.value.trim():''});
-      });
-      if(members.length>0) groups.push({routing:gRouting,steps:members});
+      var steps=[];
+      card.querySelectorAll('.wf-member-card').forEach(function(mc){var s=collectStepRecipients(mc);if(s)steps.push(s);});
+      if(steps.length>0)groups.push({routing:gRouting,steps:steps});
     });
-    if(groups.length<1){showToast('Please add at least one group with members');return;}
+    if(groups.length<1){showToast('Please add at least one group with a company selected');return;}
     wfData.groups=groups;
   }else{
-    var stepDivs=document.querySelectorAll('#wf-steps-list > .wf-step-card');
     var steps=[];
-    stepDivs.forEach(function(div){
-      var n=div.querySelector('.wf-step-name');var e=div.querySelector('.wf-step-email');
-      var nv=n?n.value.trim():'';
-      if(nv) steps.push({name:nv,email:e?e.value.trim():''});
-    });
-    if(steps.length<1){showToast('Please add at least one step');return;}
+    document.querySelectorAll('#wf-steps-list > .wf-step-card').forEach(function(card){var s=collectStepRecipients(card);if(s)steps.push(s);});
+    if(steps.length<1){showToast('Please select at least one company and recipient');return;}
     wfData.steps=steps;
   }
   if(_editingWfId){
     var wf=gedWorkflows.find(function(w){return w.id===_editingWfId;});
-    if(wf){Object.assign(wf,wfData);}
+    if(wf)Object.assign(wf,wfData);
   }else{
     var newId=(typeof crypto!=='undefined'&&crypto.randomUUID)?crypto.randomUUID():(Date.now()+'_'+Math.random().toString(36).slice(2));
     wfData.id=newId;gedWorkflows.push(wfData);
   }
-  saveGedWorkflows();
-  closeNewWorkflowModal();
-  renderWorkflows();
+  saveGedWorkflows();closeNewWorkflowModal();renderWorkflows();
   showToast((_editingWfId?'Workflow updated':'Workflow created')+': '+name);
 }
 
