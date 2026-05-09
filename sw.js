@@ -12,6 +12,9 @@ const SHELL_FILES = [
   '/config.js',
   '/auth.js',
   '/logo.png',
+  '/android-chrome-192x192.png',
+  '/android-chrome-512x512.png',
+  '/apple-touch-icon.png',
   'https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Barlow:wght@400;500;600;700&display=swap'
 ];
 
