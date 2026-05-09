@@ -757,10 +757,10 @@ window._installPWA = async function() {
         <!-- Contacts table -->
         <div style="background:#fff;border:1px solid rgba(34,79,147,0.12);border-radius:12px;overflow:hidden;">
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 80px;align-items:center;padding:0 16px;height:38px;background:#f4f8fd;border-bottom:1px solid rgba(34,79,147,0.1);">
-            <div style="font-size:10px;font-weight:700;color:#8099b0;text-transform:uppercase;letter-spacing:0.07em;">Name</div>
-            <div style="font-size:10px;font-weight:700;color:#8099b0;text-transform:uppercase;letter-spacing:0.07em;">Company</div>
-            <div style="font-size:10px;font-weight:700;color:#8099b0;text-transform:uppercase;letter-spacing:0.07em;">Email</div>
-            <div style="font-size:10px;font-weight:700;color:#8099b0;text-transform:uppercase;letter-spacing:0.07em;">Phone</div>
+            <div onclick="sortContacts('name')" style="display:flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:#8099b0;text-transform:uppercase;letter-spacing:0.07em;cursor:pointer;user-select:none;" onmouseover="this.style.color='#224F93'" onmouseout="this.style.color=''">Name<span id="sort-icon-name" style="font-size:10px;opacity:0.5;"></span></div>
+            <div onclick="sortContacts('company')" style="display:flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:#8099b0;text-transform:uppercase;letter-spacing:0.07em;cursor:pointer;user-select:none;" onmouseover="this.style.color='#224F93'" onmouseout="this.style.color=''">Company<span id="sort-icon-company" style="font-size:10px;opacity:0.5;"></span></div>
+            <div onclick="sortContacts('email')" style="display:flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:#8099b0;text-transform:uppercase;letter-spacing:0.07em;cursor:pointer;user-select:none;" onmouseover="this.style.color='#224F93'" onmouseout="this.style.color=''">Email<span id="sort-icon-email" style="font-size:10px;opacity:0.5;"></span></div>
+            <div onclick="sortContacts('phone')" style="display:flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:#8099b0;text-transform:uppercase;letter-spacing:0.07em;cursor:pointer;user-select:none;" onmouseover="this.style.color='#224F93'" onmouseout="this.style.color=''">Phone<span id="sort-icon-phone" style="font-size:10px;opacity:0.5;"></span></div>
             <div></div>
           </div>
           <div id="contacts-list"></div>

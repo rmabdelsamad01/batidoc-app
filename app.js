@@ -82,6 +82,8 @@ function setPage(page){
 // ── Contacts ──────────────────────────────────────────────────
 var _allContacts=[];
 var _editingContactId=null;
+var _contactSortCol='name';
+var _contactSortAsc=true;
 
 async function loadContacts(){
   var list=document.getElementById('contacts-list');
@@ -90,7 +92,8 @@ async function loadContacts(){
   var {data,error}=await sb.from('ged_contacts').select('*').order('name');
   if(error){list.innerHTML='<div style="padding:24px;text-align:center;color:#c02020;font-size:12px;">Error loading contacts</div>';return;}
   _allContacts=data||[];
-  renderContacts(_allContacts);
+  updateSortIcons();
+  renderContacts(getFilteredSortedContacts());
 }
 
 function renderContacts(contacts){
@@ -124,7 +127,23 @@ function renderContacts(contacts){
   }).join('');
 }
 
-function filterContacts(){
+function sortContacts(col){
+  if(_contactSortCol===col){_contactSortAsc=!_contactSortAsc;}
+  else{_contactSortCol=col;_contactSortAsc=true;}
+  updateSortIcons();
+  filterContacts();
+}
+
+function updateSortIcons(){
+  ['name','company','email','phone'].forEach(function(c){
+    var el=document.getElementById('sort-icon-'+c);
+    if(!el)return;
+    if(c===_contactSortCol){el.textContent=_contactSortAsc?' ▲':' ▼';el.style.opacity='1';}
+    else{el.textContent='';el.style.opacity='0.5';}
+  });
+}
+
+function getFilteredSortedContacts(){
   var q=(document.getElementById('contacts-search').value||'').toLowerCase();
   var filtered=_allContacts.filter(function(c){
     return (c.name||'').toLowerCase().includes(q)||
@@ -132,7 +151,18 @@ function filterContacts(){
            (c.email||'').toLowerCase().includes(q)||
            (c.phone||'').toLowerCase().includes(q);
   });
-  renderContacts(filtered);
+  filtered.sort(function(a,b){
+    var va=(a[_contactSortCol]||'').toLowerCase();
+    var vb=(b[_contactSortCol]||'').toLowerCase();
+    if(va<vb)return _contactSortAsc?-1:1;
+    if(va>vb)return _contactSortAsc?1:-1;
+    return 0;
+  });
+  return filtered;
+}
+
+function filterContacts(){
+  renderContacts(getFilteredSortedContacts());
 }
 
 function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
