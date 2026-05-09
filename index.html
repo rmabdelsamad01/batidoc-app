@@ -1,0 +1,1236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BATIDOC</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Barlow:wght@400;500;600;700&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --blue:#224F93;--blue-lt:#2d65bd;--blue-dim:#1a3d72;
+  --text:#1a2a3a;--text2:#4a6080;--text3:#8099b0;
+  --border:rgba(34,79,147,0.15);--border2:rgba(34,79,147,0.3);
+  --font:'Barlow',sans-serif;--mono:'DM Mono',monospace;
+}
+html,body{height:100%;margin:0;padding:0;}
+body{font-family:var(--font);background:#f0f4f9;color:var(--text);font-size:13px;}
+
+.screen{display:none;position:fixed;inset:0;overflow:hidden;}
+.screen.active{display:flex;}
+
+#auth-screen{background:#f0f4f9;align-items:center;justify-content:center;}
+#project-screen{flex-direction:column;background:#f0f4f9;}
+#main-screen{flex-direction:column;background:#f0f4f9;}
+
+.app-header{display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:64px;background:var(--blue);border-bottom:3px solid var(--blue-dim);flex-shrink:0;}
+.logo-wrap{display:flex;align-items:center;gap:10px;cursor:pointer;}
+.lmark{width:32px;height:32px;background:#fff;border-radius:6px;display:flex;align-items:center;justify-content:center;}
+.ltitle{font-size:16px;font-weight:700;letter-spacing:0.07em;color:#fff;}
+.lsub{font-size:8px;font-weight:500;color:rgba(255,255,255,0.6);letter-spacing:0.12em;text-transform:uppercase;display:block;margin-top:1px;}
+.hbtn{padding:5px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.12);color:#fff;font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer;}
+.hbtn:hover{background:rgba(255,255,255,0.22);}
+
+.app-body{display:flex;flex:1;overflow:hidden;min-height:0;}
+
+.sidebar{width:220px;flex-shrink:0;background:#fff;border-right:1px solid rgba(34,79,147,0.12);display:flex;flex-direction:column;}
+.sb-project{padding:14px 16px 10px;border-bottom:1px solid rgba(34,79,147,0.08);}
+.sb-label{font-size:9px;font-weight:700;letter-spacing:0.14em;color:#8099b0;text-transform:uppercase;margin-bottom:3px;}
+.sb-name{font-size:13px;font-weight:700;color:#1a2a3a;}
+.sb-sub{font-size:10px;color:#8099b0;}
+.sb-nav{flex:1;padding:10px 8px;overflow-y:auto;}
+.sb-item{width:100%;display:flex;align-items:center;gap:10px;padding:9px 10px;border:none;border-radius:7px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;text-align:left;margin-bottom:3px;transition:background 0.15s;color:#4a6080;background:transparent;}
+.sb-item:hover{background:rgba(34,79,147,0.04);}
+.sb-item.active{background:rgba(34,79,147,0.08);color:#224F93;font-weight:700;}
+.sb-icon{width:28px;height:28px;border-radius:6px;background:#f0f4f9;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background 0.15s;}
+.sb-item.active .sb-icon{background:rgba(34,79,147,0.12);}
+.sb-footer{padding:10px 16px;border-top:1px solid rgba(34,79,147,0.08);font-size:9px;color:#b0bec5;}
+
+.content{flex:1;overflow-y:auto;padding:28px 32px;background:#f0f4f9;}
+
+.del-table{background:#fff;border:1px solid rgba(34,79,147,0.12);border-radius:12px;overflow:hidden;}
+.del-head{display:grid;grid-template-columns:36px 1fr 140px 120px 100px;align-items:center;padding:0 14px;height:40px;background:#f4f8fd;border-bottom:1px solid rgba(34,79,147,0.12);}
+.del-hcell{font-size:10px;font-weight:700;color:#8099b0;text-transform:uppercase;letter-spacing:0.07em;}
+.del-hcell.blue{color:#224F93;display:flex;align-items:center;gap:4px;}
+.del-row{display:grid;grid-template-columns:36px 1fr 140px 120px 100px;align-items:center;padding:0 14px;height:46px;border-bottom:1px solid rgba(34,79,147,0.05);transition:background 0.1s;}
+.del-row:last-child{border-bottom:none;}
+.del-row:hover{background:#eef4ff !important;}
+
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+
+/* iframe mode — hide batidoc header and sidebar, show only content */
+body.bd-iframe .app-header{display:none!important;}
+body.bd-iframe .sidebar{display:none!important;}
+body.bd-iframe .app-body{padding:0!important;}
+body.bd-iframe .content{flex:1;overflow:auto;}
+</style>
+</head>
+<body>
+
+<!-- ══ AUTH SCREEN ══ -->
+<div id="auth-screen" class="screen active">
+  <div style="background:#fff;border:1px solid rgba(34,79,147,0.2);border-radius:16px;padding:40px 36px;width:380px;max-width:calc(100vw - 32px);box-shadow:0 20px 60px rgba(34,79,147,0.12);">
+
+    <div style="margin-bottom:5px;">
+      <svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="306px" height="145px" viewBox="-0.5 -0.5 836 340" style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd" xmlns:xlink="http://www.w3.org/1999/xlink">
+      <g><path style="opacity:1" fill="none" d="M -0.5,-0.5 C 278.167,-0.5 556.833,-0.5 835.5,-0.5C 835.5,89.5 835.5,179.5 835.5,269.5C 556.833,269.5 278.167,269.5 -0.5,269.5C -0.5,179.5 -0.5,89.5 -0.5,-0.5 Z"/></g>
+      <g><path style="opacity:1" fill="#284b9a" d="M 13.5,23.5 C 64.1678,23.3333 114.834,23.5 165.5,24C 169.667,25.5 172.5,28.3333 174,32.5C 174.667,97.1667 174.667,161.833 174,226.5C 169.004,238.999 159.838,245.999 146.5,247.5C 101.845,246.687 57.1788,246.187 12.5,246C 8.83451,244.332 6.66784,241.499 6,237.5C 5.33333,168.833 5.33333,100.167 6,31.5C 7.35318,27.6499 9.85318,24.9832 13.5,23.5 Z"/></g>
+      <g><path style="opacity:1" fill="#ffffff" d="M 169.5,82.5 C 169.832,121.67 169.499,160.67 168.5,199.5C 164.772,193.629 159.438,189.796 152.5,188C 134.076,184.959 121.576,192.126 115,209.5C 114.042,216.134 114.542,222.634 116.5,229C 116.355,229.772 116.022,230.439 115.5,231C 118.993,234.327 122.326,237.827 125.5,241.5C 88.5,241.5 51.5,241.5 14.5,241.5C 12.5891,241.426 11.4224,240.426 11,238.5C 10.3333,169.5 10.3333,100.5 11,31.5C 11.8333,30.6667 12.6667,29.8333 13.5,29C 47.165,28.5 80.8317,28.3333 114.5,28.5C 114.18,46.2137 114.514,63.8804 115.5,81.5C 133.488,82.4995 151.488,82.8329 169.5,82.5 Z"/></g>
+      <g><path style="opacity:1" fill="#ffffff" d="M 119.5,28.5 C 135.181,28.1673 150.848,28.5006 166.5,29.5C 167.145,30.646 167.978,31.646 169,32.5C 169.5,47.4963 169.667,62.4963 169.5,77.5C 152.833,77.5 136.167,77.5 119.5,77.5C 119.5,61.1667 119.5,44.8333 119.5,28.5 Z"/></g>
+      <g><path style="opacity:1" fill="#1d498e" d="M 123.5,29.5 C 124.5,29.5 125.5,29.5 126.5,29.5C 126.833,45.1808 126.499,60.8475 125.5,76.5C 124.914,76.2907 124.414,75.9574 124,75.5C 123.5,60.1703 123.333,44.837 123.5,29.5 Z"/></g>
+      <g><path style="opacity:1" fill="#1e4a8e" d="M 137.5,29.5 C 139.5,29.5 141.5,29.5 143.5,29.5C 143.5,45.1667 143.5,60.8333 143.5,76.5C 140.882,76.2208 138.382,75.5541 136,74.5C 135.833,67.1667 135.667,59.8333 135.5,52.5C 135.534,44.5994 136.2,36.9327 137.5,29.5 Z"/></g>
+      <g><path style="opacity:1" fill="#1f4b8f" d="M 155.5,29.5 C 157.833,29.5 160.167,29.5 162.5,29.5C 162.5,45.1667 162.5,60.8333 162.5,76.5C 157.165,75.4995 151.832,74.4995 146.5,73.5C 146.5,59.5 146.5,45.5 146.5,31.5C 149.781,31.5797 152.781,30.913 155.5,29.5 Z"/></g>
+      <g><path style="opacity:1" fill="#6f6f6f" d="M 490.5,61.5 C 461.5,61.5 432.5,61.5 403.5,61.5C 403.5,65.5 403.5,69.5 403.5,73.5C 416.011,73.1714 428.345,73.5048 440.5,74.5C 427.833,74.5 415.167,74.5 402.5,74.5C 402.5,69.8333 402.5,65.1667 402.5,60.5C 432.005,60.1686 461.338,60.5019 490.5,61.5 Z"/></g>
+      <g><path style="opacity:1" fill="#1a1a1a" d="M 643.5,60.5 C 662.836,60.3334 682.17,60.5 701.5,61C 709.333,63.5 714.5,68.6667 717,76.5C 717.667,98.5 717.667,120.5 717,142.5C 715.161,150.026 710.661,155.192 703.5,158C 683.167,158.667 662.833,158.667 642.5,158C 636.074,154.645 631.908,149.479 630,142.5C 629.333,120.5 629.333,98.5 630,76.5C 630.607,72.619 632.274,69.2856 635,66.5C 637.988,64.6009 640.821,62.6009 643.5,60.5 Z"/></g>
+      <g><path style="opacity:1" fill="#1a1a1a" d="M 741.5,60.5 C 765.5,60.5 789.5,60.5 813.5,60.5C 813.5,64.8333 813.5,69.1667 813.5,73.5C 790.164,73.3334 766.831,73.5 743.5,74C 741.652,75.518 740.152,77.3513 739,79.5C 738.333,99.8333 738.333,120.167 739,140.5C 740.509,142.71 742.342,144.543 744.5,146C 767.498,146.5 790.498,146.667 813.5,146.5C 813.5,150.5 813.5,154.5 813.5,158.5C 788.831,158.667 764.164,158.5 739.5,158C 732.879,154.71 728.379,149.543 726,142.5C 725.333,120.5 725.333,98.5 726,76.5C 728.685,68.6498 733.852,63.3165 741.5,60.5 Z"/></g>
+      <g><path style="opacity:1" fill="#1a1a1a" d="M 221.5,60.5 C 246.219,60.0386 270.885,60.5386 295.5,62C 306.541,67.0552 311.208,75.7218 309.5,88C 310.605,96.5846 308.605,104.251 303.5,111C 306.42,113.034 308.253,115.868 309,119.5C 310.125,129.653 309.458,139.653 307,149.5C 303.581,154.259 299.081,157.426 293.5,159C 269.502,159.5 245.502,159.667 221.5,159.5C 221.5,126.5 221.5,93.5 221.5,60.5 Z"/></g>
+      <g><path style="opacity:1" fill="#1a1a1a" d="M 356.5,60.5 C 362.425,60.1918 368.259,60.5251 374,61.5C 387.131,93.7731 400.297,126.106 413.5,158.5C 408.869,159.662 404.202,159.828 399.5,159C 397.056,153.268 394.722,147.435 392.5,141.5C 374.167,140.167 355.833,140.167 337.5,141.5C 335.26,147.39 332.927,153.223 330.5,159C 325.5,159.667 320.5,159.667 315.5,159C 316.85,157.282 318.017,155.448 319,153.5C 331.34,122.364 343.84,91.3637 356.5,60.5 Z"/></g>
+      <g><path style="opacity:1" fill="#1a1a1a" d="M 490.5,61.5 C 490.5,65.5 490.5,69.5 490.5,73.5C 478.322,73.1716 466.322,73.5049 454.5,74.5C 454.5,102.833 454.5,131.167 454.5,159.5C 449.833,159.5 445.167,159.5 440.5,159.5C 440.5,131.167 440.5,102.833 440.5,74.5C 428.345,73.5048 416.011,73.1714 403.5,73.5C 403.5,69.5 403.5,65.5 403.5,61.5C 432.5,61.5 461.5,61.5 490.5,61.5 Z"/></g>
+      <g><path style="opacity:1" fill="#1a1a1a" d="M 600.5,61.5 C 608.562,63.5717 614.062,68.5717 617,76.5C 617.667,98.5 617.667,120.5 617,142.5C 615.521,150.965 610.687,156.465 602.5,159C 579.502,159.5 556.502,159.667 533.5,159.5C 533.5,126.833 533.5,94.1667 533.5,61.5C 555.833,61.5 578.167,61.5 600.5,61.5 Z"/></g>
+      <g><path style="opacity:1" fill="#1a1a1a" d="M 504.5,61.5 C 508.833,61.5 513.167,61.5 517.5,61.5C 517.5,94.1667 517.5,126.833 517.5,159.5C 513.167,159.5 508.833,159.5 504.5,159.5C 504.5,126.833 504.5,94.1667 504.5,61.5 Z"/></g>
+      <g><path style="opacity:1" fill="#3e3e3e" d="M 600.5,61.5 C 578.167,61.5 555.833,61.5 533.5,61.5C 533.5,94.1667 533.5,126.833 533.5,159.5C 532.502,126.671 532.168,93.6709 532.5,60.5C 555.339,60.1692 578.006,60.5025 600.5,61.5 Z"/></g>
+      <g><path style="opacity:1" fill="#636363" d="M 490.5,61.5 C 491.485,65.6344 491.818,69.9677 491.5,74.5C 479.167,74.5 466.833,74.5 454.5,74.5C 466.322,73.5049 478.322,73.1716 490.5,73.5C 490.5,69.5 490.5,65.5 490.5,61.5 Z"/></g>
+      <g><path style="opacity:1" fill="#ffffff" d="M 646.5,73.5 C 664.17,73.3334 681.836,73.5001 699.5,74C 700.981,74.9803 702.315,76.147 703.5,77.5C 704.655,98.4568 704.822,119.457 704,140.5C 703.215,142.286 702.049,143.786 700.5,145C 682.924,146.639 665.258,146.972 647.5,146C 646.315,144.647 644.981,143.48 643.5,142.5C 642.334,120.841 642.167,99.1744 643,77.5C 644.376,76.2949 645.542,74.9616 646.5,73.5 Z"/></g>
+      <g><path style="opacity:1" fill="#ffffff" d="M 287.5,74.5 C 292.104,75.2702 294.937,77.9368 296,82.5C 296.667,86.8333 296.667,91.1667 296,95.5C 295.478,98.496 293.978,100.829 291.5,102.5C 272.845,103.5 254.179,103.833 235.5,103.5C 235.5,93.8333 235.5,84.1667 235.5,74.5C 252.833,74.5 270.167,74.5 287.5,74.5 Z"/></g>
+      <g><path style="opacity:1" fill="#ffffff" d="M 598.5,74.5 C 601.112,75.2775 602.945,76.9441 604,79.5C 604.667,100.167 604.667,120.833 604,141.5C 603.077,142.759 602.243,144.092 601.5,145.5C 582.88,146.487 564.213,146.82 545.5,146.5C 545.456,132.156 545.789,117.822 546.5,103.5C 546.5,93.8333 546.5,84.1667 546.5,74.5C 563.833,74.5 581.167,74.5 598.5,74.5 Z"/></g>
+      <g><path style="opacity:1" fill="#7c7c7c" d="M 287.5,74.5 C 270.167,74.5 252.833,74.5 235.5,74.5C 235.5,84.1667 235.5,93.8333 235.5,103.5C 234.506,93.6806 234.173,83.6806 234.5,73.5C 252.341,73.1699 270.008,73.5033 287.5,74.5 Z"/></g>
+      <g><path style="opacity:1" fill="#f7f7f7" d="M 364.5,74.5 C 365.315,75.4293 366.148,76.4293 367,77.5C 373.292,94.3899 379.792,111.057 386.5,127.5C 372.167,127.5 357.833,127.5 343.5,127.5C 350.273,109.867 357.273,92.2004 364.5,74.5 Z"/></g>
+      <g><path style="opacity:1" fill="#787878" d="M 598.5,74.5 C 581.167,74.5 563.833,74.5 546.5,74.5C 546.5,84.1667 546.5,93.8333 546.5,103.5C 545.506,93.6806 545.173,83.6806 545.5,73.5C 563.341,73.1699 581.008,73.5033 598.5,74.5 Z"/></g>
+      <g><path style="opacity:1" fill="#31569c" d="M 169.5,82.5 C 170.831,121.669 170.831,161.002 169.5,200.5C 168.893,200.376 168.56,200.043 168.5,199.5C 169.499,160.67 169.832,121.67 169.5,82.5 Z"/></g>
+      <g><path style="opacity:1" fill="#3c59a2" d="M 27.5,96.5 C 68.8347,96.3333 110.168,96.5 151.5,97C 152.833,98.3333 152.833,99.6667 151.5,101C 110.5,101.667 69.5,101.667 28.5,101C 27.6198,99.6439 27.2865,98.1439 27.5,96.5 Z"/></g>
+      <g><path style="opacity:1" fill="#999999" d="M 287.5,117.5 C 270.167,117.5 252.833,117.5 235.5,117.5C 235.5,127.167 235.5,136.833 235.5,146.5C 234.506,136.681 234.173,126.681 234.5,116.5C 252.341,116.17 270.008,116.503 287.5,117.5 Z"/></g>
+      <g><path style="opacity:1" fill="#ffffff" d="M 287.5,117.5 C 291.812,118.069 294.646,120.402 296,124.5C 296.736,129.866 296.569,135.2 295.5,140.5C 294.046,142.457 292.38,144.29 290.5,146C 272.17,146.5 253.836,146.667 235.5,146.5C 235.5,136.833 235.5,127.167 235.5,117.5C 252.833,117.5 270.167,117.5 287.5,117.5 Z"/></g>
+      <g><path style="opacity:1" fill="#244a98" d="M 27.5,121.5 C 69.1667,121.5 110.833,121.5 152.5,121.5C 152.67,122.822 152.337,123.989 151.5,125C 110.168,125.5 68.8347,125.667 27.5,125.5C 27.5,124.167 27.5,122.833 27.5,121.5 Z"/></g>
+      <g><path style="opacity:1" fill="#1a4496" d="M 27.5,145.5 C 69.1667,145.5 110.833,145.5 152.5,145.5C 152.5,146.833 152.5,148.167 152.5,149.5C 110.833,149.5 69.1667,149.5 27.5,149.5C 27.5,148.167 27.5,146.833 27.5,145.5 Z"/></g>
+      <g><path style="opacity:1" fill="#ffffff" d="M 161.5,196.5 C 165.7,196.914 166.533,198.914 164,202.5C 156.5,212.667 149,222.833 141.5,233C 140.5,233.667 139.5,233.667 138.5,233C 133.966,228.801 129.799,224.301 126,219.5C 124.746,215.889 125.912,214.389 129.5,215C 132.631,219.133 136.131,222.966 140,226.5C 146.931,216.294 154.098,206.294 161.5,196.5 Z"/></g>
+      
+      <g><text x="221" y="225" font-family="'Barlow',Arial,sans-serif" font-size="33" font-weight="300" fill="#1a1a1a" textLength="614" lengthAdjust="spacingAndGlyphs">Document Management</text></g>
+            <g><path style="opacity:1" fill="#284b9a" d="M 68.5,167.5 C 75.0305,169.013 81.5305,170.68 88,172.5C 92.6495,170.774 97.4829,169.441 102.5,168.5C 107.712,170.009 113.046,171.009 118.5,171.5C 122.39,171.148 126.223,170.481 130,169.5C 137.14,170.369 144.306,170.702 151.5,170.5C 151.5,171.5 151.5,172.5 151.5,173.5C 144.462,173.761 137.462,173.428 130.5,172.5C 120.739,175.25 111.072,174.916 101.5,171.5C 97.172,173.829 92.5053,175.163 87.5,175.5C 81.8946,174.286 76.3946,172.62 71,170.5C 67.5388,172.607 64.0388,174.774 60.5,177C 57.1667,177.667 53.8333,177.667 50.5,177C 46.0458,175.626 41.5458,174.459 37,173.5C 34.0187,173.657 31.352,174.657 29,176.5C 28.5,176 28,175.5 27.5,175C 30.9187,170.857 35.252,169.524 40.5,171C 50.882,176.586 60.2153,175.419 68.5,167.5 Z"/></g>
+      
+      
+      </svg>
+    </div>
+
+    <div style="display:flex;background:#f0f4f9;border-radius:8px;padding:3px;margin-bottom:28px;">
+      <button id="tab-login" onclick="switchTab('login')" style="flex:1;padding:8px;border:none;border-radius:6px;font-family:'Barlow',sans-serif;font-size:13px;font-weight:600;cursor:pointer;background:#224F93;color:#fff;transition:all 0.2s;">Log In</button>
+      <button id="tab-signup" onclick="switchTab('signup')" style="flex:1;padding:8px;border:none;border-radius:6px;font-family:'Barlow',sans-serif;font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:#8099b0;transition:all 0.2s;">Sign Up</button>
+    </div>
+
+    <!-- Login form -->
+    <div id="form-login">
+      <div style="margin-bottom:16px;">
+        <label style="display:block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8099b0;margin-bottom:6px;">Username / Email / Phone</label>
+        <input id="login-user" type="text" placeholder="Enter your username"
+          style="width:100%;padding:10px 12px;border:1px solid rgba(34,79,147,0.25);border-radius:7px;font-family:'Barlow',sans-serif;font-size:13px;color:#1a2a3a;outline:none;background:#f4f8fd;"
+          onfocus="this.style.borderColor='#224F93'" onblur="this.style.borderColor='rgba(34,79,147,0.25)'">
+      </div>
+      <div style="margin-bottom:24px;">
+        <label style="display:block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8099b0;margin-bottom:6px;">Password</label>
+        <input id="login-pass" type="password" placeholder="Enter your password"
+          style="width:100%;padding:10px 12px;border:1px solid rgba(34,79,147,0.25);border-radius:7px;font-family:'Barlow',sans-serif;font-size:13px;color:#1a2a3a;outline:none;background:#f4f8fd;"
+          onfocus="this.style.borderColor='#224F93'" onblur="this.style.borderColor='rgba(34,79,147,0.25)'"
+          onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <div id="login-err" style="display:none;background:rgba(192,32,32,0.07);border:1px solid rgba(192,32,32,0.25);border-radius:6px;padding:9px 12px;font-size:12px;color:#c02020;margin-bottom:16px;"></div>
+      <button onclick="doLogin()"
+        style="width:100%;padding:11px;background:#224F93;color:#fff;border:none;border-radius:7px;font-family:'Barlow',sans-serif;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:0.04em;"
+        onmouseover="this.style.background='#2d65bd'" onmouseout="this.style.background='#224F93'">Log In</button>
+    </div>
+
+    <!-- Signup form -->
+    <div id="form-signup" style="display:none;">
+      <div style="margin-bottom:16px;">
+        <label style="display:block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8099b0;margin-bottom:6px;">Full Name</label>
+        <input id="su-name" type="text" placeholder="Your full name"
+          style="width:100%;padding:10px 12px;border:1px solid rgba(34,79,147,0.25);border-radius:7px;font-family:'Barlow',sans-serif;font-size:13px;color:#1a2a3a;outline:none;background:#f4f8fd;"
+          onfocus="this.style.borderColor='#224F93'" onblur="this.style.borderColor='rgba(34,79,147,0.25)'">
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="display:block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8099b0;margin-bottom:6px;">Username</label>
+        <input id="su-user" type="text" placeholder="Choose a username"
+          style="width:100%;padding:10px 12px;border:1px solid rgba(34,79,147,0.25);border-radius:7px;font-family:'Barlow',sans-serif;font-size:13px;color:#1a2a3a;outline:none;background:#f4f8fd;"
+          onfocus="this.style.borderColor='#224F93'" onblur="this.style.borderColor='rgba(34,79,147,0.25)'">
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="display:block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8099b0;margin-bottom:6px;">Email</label>
+        <input id="su-email" type="email" placeholder="Your email address"
+          style="width:100%;padding:10px 12px;border:1px solid rgba(34,79,147,0.25);border-radius:7px;font-family:'Barlow',sans-serif;font-size:13px;color:#1a2a3a;outline:none;background:#f4f8fd;"
+          onfocus="this.style.borderColor='#224F93'" onblur="this.style.borderColor='rgba(34,79,147,0.25)'">
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="display:block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8099b0;margin-bottom:6px;">Password</label>
+        <input id="su-pass" type="password" placeholder="Create a password"
+          style="width:100%;padding:10px 12px;border:1px solid rgba(34,79,147,0.25);border-radius:7px;font-family:'Barlow',sans-serif;font-size:13px;color:#1a2a3a;outline:none;background:#f4f8fd;"
+          onfocus="this.style.borderColor='#224F93'" onblur="this.style.borderColor='rgba(34,79,147,0.25)'">
+      </div>
+      <div style="margin-bottom:24px;">
+        <label style="display:block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8099b0;margin-bottom:6px;">Confirm Password</label>
+        <input id="su-pass2" type="password" placeholder="Repeat your password"
+          style="width:100%;padding:10px 12px;border:1px solid rgba(34,79,147,0.25);border-radius:7px;font-family:'Barlow',sans-serif;font-size:13px;color:#1a2a3a;outline:none;background:#f4f8fd;"
+          onfocus="this.style.borderColor='#224F93'" onblur="this.style.borderColor='rgba(34,79,147,0.25)'"
+          onkeydown="if(event.key==='Enter')doSignup()">
+      </div>
+      <div id="su-err" style="display:none;background:rgba(192,32,32,0.07);border:1px solid rgba(192,32,32,0.25);border-radius:6px;padding:9px 12px;font-size:12px;color:#c02020;margin-bottom:16px;"></div>
+      <div id="su-ok" style="display:none;background:rgba(46,194,126,0.08);border:1px solid rgba(46,194,126,0.3);border-radius:6px;padding:9px 12px;font-size:12px;color:#1a9458;margin-bottom:16px;"></div>
+      <button onclick="doSignup()"
+        style="width:100%;padding:11px;background:#224F93;color:#fff;border:none;border-radius:7px;font-family:'Barlow',sans-serif;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:0.04em;"
+        onmouseover="this.style.background='#2d65bd'" onmouseout="this.style.background='#224F93'">Request Access</button>
+    </div>
+
+    <div style="text-align:center;margin-top:20px;font-size:11px;color:#b0bec5;">Batiglobe &copy; 2025 &mdash; All rights reserved</div>
+  </div>
+</div>
+
+
+<!-- ══ PROJECT SCREEN ══ -->
+<div id="project-screen" class="screen" style="flex-direction:column;">
+  <div style="background:#224F93;height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;flex-shrink:0;">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="219px" height="71px" viewBox="-0.5 -0.5 836 270" style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g><path style="opacity:1" fill="none" d="M -0.5,-0.5 C 278.167,-0.5 556.833,-0.5 835.5,-0.5C 835.5,89.5 835.5,179.5 835.5,269.5C 556.833,269.5 278.167,269.5 -0.5,269.5C -0.5,179.5 -0.5,89.5 -0.5,-0.5 Z"/></g>
+<g><path style="opacity:1" fill="#ffffff" d="M 13.5,23.5 C 64.1678,23.3333 114.834,23.5 165.5,24C 169.667,25.5 172.5,28.3333 174,32.5C 174.667,97.1667 174.667,161.833 174,226.5C 169.004,238.999 159.838,245.999 146.5,247.5C 101.845,246.687 57.1788,246.187 12.5,246C 8.83451,244.332 6.66784,241.499 6,237.5C 5.33333,168.833 5.33333,100.167 6,31.5C 7.35318,27.6499 9.85318,24.9832 13.5,23.5 Z"/></g>
+<g><path style="opacity:1" fill="#224F93" d="M 169.5,82.5 C 169.832,121.67 169.499,160.67 168.5,199.5C 164.772,193.629 159.438,189.796 152.5,188C 134.076,184.959 121.576,192.126 115,209.5C 114.042,216.134 114.542,222.634 116.5,229C 116.355,229.772 116.022,230.439 115.5,231C 118.993,234.327 122.326,237.827 125.5,241.5C 88.5,241.5 51.5,241.5 14.5,241.5C 12.5891,241.426 11.4224,240.426 11,238.5C 10.3333,169.5 10.3333,100.5 11,31.5C 11.8333,30.6667 12.6667,29.8333 13.5,29C 47.165,28.5 80.8317,28.3333 114.5,28.5C 114.18,46.2137 114.514,63.8804 115.5,81.5C 133.488,82.4995 151.488,82.8329 169.5,82.5 Z"/></g>
+<g><path style="opacity:1" fill="#224F93" d="M 119.5,28.5 C 135.181,28.1673 150.848,28.5006 166.5,29.5C 167.145,30.646 167.978,31.646 169,32.5C 169.5,47.4963 169.667,62.4963 169.5,77.5C 152.833,77.5 136.167,77.5 119.5,77.5C 119.5,61.1667 119.5,44.8333 119.5,28.5 Z"/></g>
+<g><path style="opacity:1" fill="#ffffff" d="M 123.5,29.5 C 124.5,29.5 125.5,29.5 126.5,29.5C 126.833,45.1808 126.499,60.8475 125.5,76.5C 124.914,76.2907 124.414,75.9574 124,75.5C 123.5,60.1703 123.333,44.837 123.5,29.5 Z"/></g>
+<g><path style="opacity:1" fill="#ffffff" d="M 137.5,29.5 C 139.5,29.5 141.5,29.5 143.5,29.5C 143.5,45.1667 143.5,60.8333 143.5,76.5C 140.882,76.2208 138.382,75.5541 136,74.5C 135.833,67.1667 135.667,59.8333 135.5,52.5C 135.534,44.5994 136.2,36.9327 137.5,29.5 Z"/></g>
+<g><path style="opacity:1" fill="#ffffff" d="M 155.5,29.5 C 157.833,29.5 160.167,29.5 162.5,29.5C 162.5,45.1667 162.5,60.8333 162.5,76.5C 157.165,75.4995 151.832,74.4995 146.5,73.5C 146.5,59.5 146.5,45.5 146.5,31.5C 149.781,31.5797 152.781,30.913 155.5,29.5 Z"/></g>
+<g><path style="opacity:1" fill="#224F93" d="M 490.5,61.5 C 461.5,61.5 432.5,61.5 403.5,61.5C 403.5,65.5 403.5,69.5 403.5,73.5C 416.011,73.1714 428.345,73.5048 440.5,74.5C 427.833,74.5 415.167,74.5 402.5,74.5C 402.5,69.8333 402.5,65.1667 402.5,60.5C 432.005,60.1686 461.338,60.5019 490.5,61.5 Z"/></g>
+<g><path style="opacity:1" fill="#ffffff" d="M 643.5,60.5 C 662.836,60.3334 682.17,60.5 701.5,61C 709.333,63.5 714.5,68.6667 717,76.5C 717.667,98.5 717.667,120.5 717,142.5C 715.161,150.026 710.661,155.192 703.5,158C 683.167,158.667 662.833,158.667 642.5,158C 636.074,154.645 631.908,149.479 630,142.5C 629.333,120.5 629.333,98.5 630,76.5C 630.607,72.619 632.274,69.2856 635,66.5C 637.988,64.6009 640.821,62.6009 643.5,60.5 Z"/></g>
+<g><path style="opacity:1" fill="#ffffff" d="M 741.5,60.5 C 765.5,60.5 789.5,60.5 813.5,60.5C 813.5,64.8333 813.5,69.1667 813.5,73.5C 790.164,73.3334 766.831,73.5 743.5,74C 741.652,75.518 740.152,77.3513 739,79.5C 738.333,99.8333 738.333,120.167 739,140.5C 740.509,142.71 742.342,144.543 744.5,146C 767.498,146.5 790.498,146.667 813.5,146.5C 813.5,150.5 813.5,154.5 813.5,158.5C 788.831,158.667 764.164,158.5 739.5,158C 732.879,154.71 728.379,149.543 726,142.5C 725.333,120.5 725.333,98.5 726,76.5C 728.685,68.6498 733.852,63.3165 741.5,60.5 Z"/></g>
+<g><path style="opacity:1" fill="#ffffff" d="M 221.5,60.5 C 246.219,60.0386 270.885,60.5386 295.5,62C 306.541,67.0552 311.208,75.7218 309.5,88C 310.605,96.5846 308.605,104.251 303.5,111C 306.42,113.034 308.253,115.868 309,119.5C 310.125,129.653 309.458,139.653 307,149.5C 303.581,154.259 299.081,157.426 293.5,159C 269.502,159.5 245.502,159.667 221.5,159.5C 221.5,126.5 221.5,93.5 221.5,60.5 Z"/></g>
+<g><path style="opacity:1" fill="#ffffff" d="M 356.5,60.5 C 362.425,60.1918 368.259,60.5251 374,61.5C 387.131,93.7731 400.297,126.106 413.5,158.5C 408.869,159.662 404.202,159.828 399.5,159C 397.056,153.268 394.722,147.435 392.5,141.5C 374.167,140.167 355.833,140.167 337.5,141.5C 335.26,147.39 332.927,153.223 330.5,159C 325.5,159.667 320.5,159.667 315.5,159C 316.85,157.282 318.017,155.448 319,153.5C 331.34,122.364 343.84,91.3637 356.5,60.5 Z"/></g>
+<g><path style="opacity:1" fill="#ffffff" d="M 490.5,61.5 C 490.5,65.5 490.5,69.5 490.5,73.5C 478.322,73.1716 466.322,73.5049 454.5,74.5C 454.5,102.833 454.5,131.167 454.5,159.5C 449.833,159.5 445.167,159.5 440.5,159.5C 440.5,131.167 440.5,102.833 440.5,74.5C 428.345,73.5048 416.011,73.1714 403.5,73.5C 403.5,69.5 403.5,65.5 403.5,61.5C 432.5,61.5 461.5,61.5 490.5,61.5 Z"/></g>
+<g><path style="opacity:1" fill="#ffffff" d="M 600.5,61.5 C 608.562,63.5717 614.062,68.5717 617,76.5C 617.667,98.5 617.667,120.5 617,142.5C 615.521,150.965 610.687,156.465 602.5,159C 579.502,159.5 556.502,159.667 533.5,159.5C 533.5,126.833 533.5,94.1667 533.5,61.5C 555.833,61.5 578.167,61.5 600.5,61.5 Z"/></g>
+<g><path style="opacity:1" fill="#ffffff" d="M 504.5,61.5 C 508.833,61.5 513.167,61.5 517.5,61.5C 517.5,94.1667 517.5,126.833 517.5,159.5C 513.167,159.5 508.833,159.5 504.5,159.5C 504.5,126.833 504.5,94.1667 504.5,61.5 Z"/></g>
+<g><path style="opacity:1" fill="#224F93" d="M 600.5,61.5 C 578.167,61.5 555.833,61.5 533.5,61.5C 533.5,94.1667 533.5,126.833 533.5,159.5C 532.502,126.671 532.168,93.6709 532.5,60.5C 555.339,60.1692 578.006,60.5025 600.5,61.5 Z"/></g>
+<g><path style="opacity:1" fill="#224F93" d="M 490.5,61.5 C 491.485,65.6344 491.818,69.9677 491.5,74.5C 479.167,74.5 466.833,74.5 454.5,74.5C 466.322,73.5049 478.322,73.1716 490.5,73.5C 490.5,69.5 490.5,65.5 490.5,61.5 Z"/></g>
+<g><path style="opacity:1" fill="#224F93" d="M 646.5,73.5 C 664.17,73.3334 681.836,73.5001 699.5,74C 700.981,74.9803 702.315,76.147 703.5,77.5C 704.655,98.4568 704.822,119.457 704,140.5C 703.215,142.286 702.049,143.786 700.5,145C 682.924,146.639 665.258,146.972 647.5,146C 646.315,144.647 644.981,143.48 643.5,142.5C 642.334,120.841 642.167,99.1744 643,77.5C 644.376,76.2949 645.542,74.9616 646.5,73.5 Z"/></g>
+<g><path style="opacity:1" fill="#224F93" d="M 287.5,74.5 C 292.104,75.2702 294.937,77.9368 296,82.5C 296.667,86.8333 296.667,91.1667 296,95.5C 295.478,98.496 293.978,100.829 291.5,102.5C 272.845,103.5 254.179,103.833 235.5,103.5C 235.5,93.8333 235.5,84.1667 235.5,74.5C 252.833,74.5 270.167,74.5 287.5,74.5 Z"/></g>
+<g><path style="opacity:1" fill="#224F93" d="M 598.5,74.5 C 601.112,75.2775 602.945,76.9441 604,79.5C 604.667,100.167 604.667,120.833 604,141.5C 603.077,142.759 602.243,144.092 601.5,145.5C 582.88,146.487 564.213,146.82 545.5,146.5C 545.456,132.156 545.789,117.822 546.5,103.5C 546.5,93.8333 546.5,84.1667 546.5,74.5C 563.833,74.5 581.167,74.5 598.5,74.5 Z"/></g>
+<g><path style="opacity:1" fill="#224F93" d="M 287.5,74.5 C 270.167,74.5 252.833,74.5 235.5,74.5C 235.5,84.1667 235.5,93.8333 235.5,103.5C 234.506,93.6806 234.173,83.6806 234.5,73.5C 252.341,73.1699 270.008,73.5033 287.5,74.5 Z"/></g>
+<g><path style="opacity:1" fill="#224F93" d="M 364.5,74.5 C 365.315,75.4293 366.148,76.4293 367,77.5C 373.292,94.3899 379.792,111.057 386.5,127.5C 372.167,127.5 357.833,127.5 343.5,127.5C 350.273,109.867 357.273,92.2004 364.5,74.5 Z"/></g>
+<g><path style="opacity:1" fill="#224F93" d="M 337.5,140.5 C 355.833,140.167 374.167,140.167 392.5,140.5C 394.722,146.5 397.056,152.5 399.5,158.5C 374.167,158.5 355.833,158.5 337.5,158.5C 335.26,152.5 335.26,146.5 337.5,140.5 Z"/></g>
+<g><path style="opacity:1" fill="#224F93" d="M 337.5,140.5 C 355.833,140.167 374.167,140.167 392.5,140.5C 394.722,146.5 397.056,152.5 399.5,158.5C 374.167,158.5 355.833,158.5 337.5,158.5C 335.26,152.5 335.26,146.5 337.5,140.5 Z"/></g>
+<g><path style="opacity:1" fill="#224F93" d="M 598.5,74.5 C 581.167,74.5 563.833,74.5 546.5,74.5C 546.5,84.1667 546.5,93.8333 546.5,103.5C 545.506,93.6806 545.173,83.6806 545.5,73.5C 563.341,73.1699 581.008,73.5033 598.5,74.5 Z"/></g>
+<g><path style="opacity:1" fill="#224F93" d="M 169.5,82.5 C 170.831,121.669 170.831,161.002 169.5,200.5C 168.893,200.376 168.56,200.043 168.5,199.5C 169.499,160.67 169.832,121.67 169.5,82.5 Z"/></g>
+<g><path style="opacity:1" fill="#ffffff" d="M 27.5,96.5 C 68.8347,96.3333 110.168,96.5 151.5,97C 152.833,98.3333 152.833,99.6667 151.5,101C 110.5,101.667 69.5,101.667 28.5,101C 27.6198,99.6439 27.2865,98.1439 27.5,96.5 Z"/></g>
+<g><path style="opacity:1" fill="#224F93" d="M 287.5,117.5 C 270.167,117.5 252.833,117.5 235.5,117.5C 235.5,127.167 235.5,136.833 235.5,146.5C 234.506,136.681 234.173,126.681 234.5,116.5C 252.341,116.17 270.008,116.503 287.5,117.5 Z"/></g>
+<g><path style="opacity:1" fill="#224F93" d="M 287.5,117.5 C 291.812,118.069 294.646,120.402 296,124.5C 296.736,129.866 296.569,135.2 295.5,140.5C 294.046,142.457 292.38,144.29 290.5,146C 272.17,146.5 253.836,146.667 235.5,146.5C 235.5,136.833 235.5,127.167 235.5,117.5C 252.833,117.5 270.167,117.5 287.5,117.5 Z"/></g>
+<g><path style="opacity:1" fill="#ffffff" d="M 27.5,121.5 C 69.1667,121.5 110.833,121.5 152.5,121.5C 152.67,122.822 152.337,123.989 151.5,125C 110.168,125.5 68.8347,125.667 27.5,125.5C 27.5,124.167 27.5,122.833 27.5,121.5 Z"/></g>
+<g><path style="opacity:1" fill="#ffffff" d="M 27.5,145.5 C 69.1667,145.5 110.833,145.5 152.5,145.5C 152.5,146.833 152.5,148.167 152.5,149.5C 110.833,149.5 69.1667,149.5 27.5,149.5C 27.5,148.167 27.5,146.833 27.5,145.5 Z"/></g>
+<g><path style="opacity:1" fill="#224F93" d="M 161.5,196.5 C 165.7,196.914 166.533,198.914 164,202.5C 156.5,212.667 149,222.833 141.5,233C 140.5,233.667 139.5,233.667 138.5,233C 133.966,228.801 129.799,224.301 126,219.5C 124.746,215.889 125.912,214.389 129.5,215C 132.631,219.133 136.131,222.966 140,226.5C 146.931,216.294 154.098,206.294 161.5,196.5 Z"/></g>
+<g><text x="221" y="225" font-family="'Barlow',Arial,sans-serif" font-size="33" font-weight="300" fill="#ffffff" textLength="614" lengthAdjust="spacingAndGlyphs">Document Management</text></g>
+
+<g><path style="opacity:1" fill="#ffffff" d="M 68.5,167.5 C 75.0305,169.013 81.5305,170.68 88,172.5C 92.6495,170.774 97.4829,169.441 102.5,168.5C 107.712,170.009 113.046,171.009 118.5,171.5C 122.39,171.148 126.223,170.481 130,169.5C 137.14,170.369 144.306,170.702 151.5,170.5C 151.5,171.5 151.5,172.5 151.5,173.5C 144.462,173.761 137.462,173.428 130.5,172.5C 120.739,175.25 111.072,174.916 101.5,171.5C 97.172,173.829 92.5053,175.163 87.5,175.5C 81.8946,174.286 76.3946,172.62 71,170.5C 67.5388,172.607 64.0388,174.774 60.5,177C 57.1667,177.667 53.8333,177.667 50.5,177C 46.0458,175.626 41.5458,174.459 37,173.5C 34.0187,173.657 31.352,174.657 29,176.5C 28.5,176 28,175.5 27.5,175C 30.9187,170.857 35.252,169.524 40.5,171C 50.882,176.586 60.2153,175.419 68.5,167.5 Z"/></g>
+
+<g><path style="opacity:1" fill="#ffffff" d="M 68.5,167.5 C 75.0305,169.013 81.5305,170.68 88,172.5C 92.6495,170.774 97.4829,169.441 102.5,168.5C 107.712,170.009 113.046,171.009 118.5,171.5C 122.39,171.148 126.223,170.481 130,169.5C 137.14,170.369 144.306,170.702 151.5,170.5C 151.5,171.5 151.5,172.5 151.5,173.5C 144.462,173.761 137.462,173.428 130.5,172.5C 120.739,175.25 111.072,174.916 101.5,171.5C 97.172,173.829 92.5053,175.163 87.5,175.5C 81.8946,174.286 76.3946,172.62 71,170.5C 67.5388,172.607 64.0388,174.774 60.5,177C 57.1667,177.667 53.8333,177.667 50.5,177C 46.0458,175.626 41.5458,174.459 37,173.5C 34.0187,173.657 31.352,174.657 29,176.5C 28.5,176 28,175.5 27.5,175C 30.9187,170.857 35.252,169.524 40.5,171C 50.882,176.586 60.2153,175.419 68.5,167.5 Z"/></g>
+</svg>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span id="proj-user" style="font-size:12px;color:rgba(255,255,255,0.75);font-weight:600;"></span>
+      <button onclick="doLogout()" style="padding:5px 14px;border:1px solid rgba(255,255,255,0.3);border-radius:6px;background:rgba(255,255,255,0.1);color:#fff;font-family:'Barlow',sans-serif;font-size:11px;font-weight:600;cursor:pointer;">Log Out</button>
+    </div>
+  </div>
+
+  <div style="flex:1;overflow-y:auto;padding:40px 32px;">
+    <div style="max-width:960px;margin:0 auto;">
+      <div style="margin-bottom:8px;font-size:22px;font-weight:700;color:#1a2a3a;">Select a Project</div>
+      <div style="margin-bottom:32px;font-size:13px;color:#8099b0;">Choose a project to open the document management sheet</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px;">
+
+        <div data-project-id="shift-tower" onclick="openProject('shift-tower')"
+          style="background:#fff;border:2px solid #224F93;border-radius:14px;padding:24px;cursor:pointer;position:relative;overflow:hidden;transition:transform 0.15s,box-shadow 0.15s;"
+          onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 28px rgba(34,79,147,0.18)'"
+          onmouseout="this.style.transform='';this.style.boxShadow=''">
+          <div style="position:absolute;top:14px;right:14px;background:#224F93;color:#fff;font-size:9px;font-weight:700;letter-spacing:0.1em;padding:3px 8px;border-radius:20px;text-transform:uppercase;">Active</div>
+          <div style="width:48px;height:48px;background:rgba(34,79,147,0.08);border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#224F93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          </div>
+          <div style="font-size:17px;font-weight:700;color:#1a2a3a;margin-bottom:14px;">Shift Tower</div>
+          <div style="font-size:10px;font-weight:700;font-family:'DM Mono',monospace;color:#224F93;">Open →</div>
+        </div>
+
+        <div style="background:#fff;border:1px solid rgba(34,79,147,0.12);border-radius:14px;padding:24px;cursor:not-allowed;opacity:0.5;position:relative;">
+          <div style="position:absolute;top:14px;right:14px;background:#b0bec5;color:#fff;font-size:9px;font-weight:700;letter-spacing:0.1em;padding:3px 8px;border-radius:20px;text-transform:uppercase;">Coming soon</div>
+          <div style="width:48px;height:48px;background:#f0f4f9;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#b0bec5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div>
+          <div style="font-size:17px;font-weight:700;color:#8099b0;">Tanger MED</div>
+        </div>
+        <div style="background:#fff;border:1px solid rgba(34,79,147,0.12);border-radius:14px;padding:24px;cursor:not-allowed;opacity:0.5;position:relative;">
+          <div style="position:absolute;top:14px;right:14px;background:#b0bec5;color:#fff;font-size:9px;font-weight:700;letter-spacing:0.1em;padding:3px 8px;border-radius:20px;text-transform:uppercase;">Coming soon</div>
+          <div style="width:48px;height:48px;background:#f0f4f9;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#b0bec5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div>
+          <div style="font-size:17px;font-weight:700;color:#8099b0;">Riad El Andalous</div>
+        </div>
+        <div style="background:#fff;border:1px solid rgba(34,79,147,0.12);border-radius:14px;padding:24px;cursor:not-allowed;opacity:0.5;position:relative;">
+          <div style="position:absolute;top:14px;right:14px;background:#b0bec5;color:#fff;font-size:9px;font-weight:700;letter-spacing:0.1em;padding:3px 8px;border-radius:20px;text-transform:uppercase;">Coming soon</div>
+          <div style="width:48px;height:48px;background:#f0f4f9;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#b0bec5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div>
+          <div style="font-size:17px;font-weight:700;color:#8099b0;">ANP</div>
+        </div>
+        <div style="background:#fff;border:1px solid rgba(34,79,147,0.12);border-radius:14px;padding:24px;cursor:not-allowed;opacity:0.5;position:relative;">
+          <div style="position:absolute;top:14px;right:14px;background:#b0bec5;color:#fff;font-size:9px;font-weight:700;letter-spacing:0.1em;padding:3px 8px;border-radius:20px;text-transform:uppercase;">Coming soon</div>
+          <div style="width:48px;height:48px;background:#f0f4f9;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#b0bec5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div>
+          <div style="font-size:17px;font-weight:700;color:#8099b0;">Taghazout</div>
+        </div>
+        <div style="background:#fff;border:1px solid rgba(34,79,147,0.12);border-radius:14px;padding:24px;cursor:not-allowed;opacity:0.5;position:relative;">
+          <div style="position:absolute;top:14px;right:14px;background:#b0bec5;color:#fff;font-size:9px;font-weight:700;letter-spacing:0.1em;padding:3px 8px;border-radius:20px;text-transform:uppercase;">Coming soon</div>
+          <div style="width:48px;height:48px;background:#f0f4f9;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#b0bec5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div>
+          <div style="font-size:17px;font-weight:700;color:#8099b0;">Casaone</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══ MAIN APP SCREEN ══ -->
+<div id="main-screen" class="screen" style="flex-direction:column;">
+
+  <div class="app-header">
+    <svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="219px" height="71px" viewBox="-0.5 -0.5 836 270" style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <g><path style="opacity:1" fill="none" d="M -0.5,-0.5 C 278.167,-0.5 556.833,-0.5 835.5,-0.5C 835.5,89.5 835.5,179.5 835.5,269.5C 556.833,269.5 278.167,269.5 -0.5,269.5C -0.5,179.5 -0.5,89.5 -0.5,-0.5 Z"/></g>
+    <g><path style="opacity:1" fill="#ffffff" d="M 13.5,23.5 C 64.1678,23.3333 114.834,23.5 165.5,24C 169.667,25.5 172.5,28.3333 174,32.5C 174.667,97.1667 174.667,161.833 174,226.5C 169.004,238.999 159.838,245.999 146.5,247.5C 101.845,246.687 57.1788,246.187 12.5,246C 8.83451,244.332 6.66784,241.499 6,237.5C 5.33333,168.833 5.33333,100.167 6,31.5C 7.35318,27.6499 9.85318,24.9832 13.5,23.5 Z"/></g>
+    <g><path style="opacity:1" fill="#224F93" d="M 169.5,82.5 C 169.832,121.67 169.499,160.67 168.5,199.5C 164.772,193.629 159.438,189.796 152.5,188C 134.076,184.959 121.576,192.126 115,209.5C 114.042,216.134 114.542,222.634 116.5,229C 116.355,229.772 116.022,230.439 115.5,231C 118.993,234.327 122.326,237.827 125.5,241.5C 88.5,241.5 51.5,241.5 14.5,241.5C 12.5891,241.426 11.4224,240.426 11,238.5C 10.3333,169.5 10.3333,100.5 11,31.5C 11.8333,30.6667 12.6667,29.8333 13.5,29C 47.165,28.5 80.8317,28.3333 114.5,28.5C 114.18,46.2137 114.514,63.8804 115.5,81.5C 133.488,82.4995 151.488,82.8329 169.5,82.5 Z"/></g>
+    <g><path style="opacity:1" fill="#224F93" d="M 119.5,28.5 C 135.181,28.1673 150.848,28.5006 166.5,29.5C 167.145,30.646 167.978,31.646 169,32.5C 169.5,47.4963 169.667,62.4963 169.5,77.5C 152.833,77.5 136.167,77.5 119.5,77.5C 119.5,61.1667 119.5,44.8333 119.5,28.5 Z"/></g>
+    <g><path style="opacity:1" fill="#ffffff" d="M 123.5,29.5 C 124.5,29.5 125.5,29.5 126.5,29.5C 126.833,45.1808 126.499,60.8475 125.5,76.5C 124.914,76.2907 124.414,75.9574 124,75.5C 123.5,60.1703 123.333,44.837 123.5,29.5 Z"/></g>
+    <g><path style="opacity:1" fill="#ffffff" d="M 137.5,29.5 C 139.5,29.5 141.5,29.5 143.5,29.5C 143.5,45.1667 143.5,60.8333 143.5,76.5C 140.882,76.2208 138.382,75.5541 136,74.5C 135.833,67.1667 135.667,59.8333 135.5,52.5C 135.534,44.5994 136.2,36.9327 137.5,29.5 Z"/></g>
+    <g><path style="opacity:1" fill="#ffffff" d="M 155.5,29.5 C 157.833,29.5 160.167,29.5 162.5,29.5C 162.5,45.1667 162.5,60.8333 162.5,76.5C 157.165,75.4995 151.832,74.4995 146.5,73.5C 146.5,59.5 146.5,45.5 146.5,31.5C 149.781,31.5797 152.781,30.913 155.5,29.5 Z"/></g>
+    <g><path style="opacity:1" fill="#224F93" d="M 490.5,61.5 C 461.5,61.5 432.5,61.5 403.5,61.5C 403.5,65.5 403.5,69.5 403.5,73.5C 416.011,73.1714 428.345,73.5048 440.5,74.5C 427.833,74.5 415.167,74.5 402.5,74.5C 402.5,69.8333 402.5,65.1667 402.5,60.5C 432.005,60.1686 461.338,60.5019 490.5,61.5 Z"/></g>
+    <g><path style="opacity:1" fill="#ffffff" d="M 643.5,60.5 C 662.836,60.3334 682.17,60.5 701.5,61C 709.333,63.5 714.5,68.6667 717,76.5C 717.667,98.5 717.667,120.5 717,142.5C 715.161,150.026 710.661,155.192 703.5,158C 683.167,158.667 662.833,158.667 642.5,158C 636.074,154.645 631.908,149.479 630,142.5C 629.333,120.5 629.333,98.5 630,76.5C 630.607,72.619 632.274,69.2856 635,66.5C 637.988,64.6009 640.821,62.6009 643.5,60.5 Z"/></g>
+    <g><path style="opacity:1" fill="#ffffff" d="M 741.5,60.5 C 765.5,60.5 789.5,60.5 813.5,60.5C 813.5,64.8333 813.5,69.1667 813.5,73.5C 790.164,73.3334 766.831,73.5 743.5,74C 741.652,75.518 740.152,77.3513 739,79.5C 738.333,99.8333 738.333,120.167 739,140.5C 740.509,142.71 742.342,144.543 744.5,146C 767.498,146.5 790.498,146.667 813.5,146.5C 813.5,150.5 813.5,154.5 813.5,158.5C 788.831,158.667 764.164,158.5 739.5,158C 732.879,154.71 728.379,149.543 726,142.5C 725.333,120.5 725.333,98.5 726,76.5C 728.685,68.6498 733.852,63.3165 741.5,60.5 Z"/></g>
+    <g><path style="opacity:1" fill="#ffffff" d="M 221.5,60.5 C 246.219,60.0386 270.885,60.5386 295.5,62C 306.541,67.0552 311.208,75.7218 309.5,88C 310.605,96.5846 308.605,104.251 303.5,111C 306.42,113.034 308.253,115.868 309,119.5C 310.125,129.653 309.458,139.653 307,149.5C 303.581,154.259 299.081,157.426 293.5,159C 269.502,159.5 245.502,159.667 221.5,159.5C 221.5,126.5 221.5,93.5 221.5,60.5 Z"/></g>
+    <g><path style="opacity:1" fill="#ffffff" d="M 356.5,60.5 C 362.425,60.1918 368.259,60.5251 374,61.5C 387.131,93.7731 400.297,126.106 413.5,158.5C 408.869,159.662 404.202,159.828 399.5,159C 397.056,153.268 394.722,147.435 392.5,141.5C 374.167,140.167 355.833,140.167 337.5,141.5C 335.26,147.39 332.927,153.223 330.5,159C 325.5,159.667 320.5,159.667 315.5,159C 316.85,157.282 318.017,155.448 319,153.5C 331.34,122.364 343.84,91.3637 356.5,60.5 Z"/></g>
+    <g><path style="opacity:1" fill="#ffffff" d="M 490.5,61.5 C 490.5,65.5 490.5,69.5 490.5,73.5C 478.322,73.1716 466.322,73.5049 454.5,74.5C 454.5,102.833 454.5,131.167 454.5,159.5C 449.833,159.5 445.167,159.5 440.5,159.5C 440.5,131.167 440.5,102.833 440.5,74.5C 428.345,73.5048 416.011,73.1714 403.5,73.5C 403.5,69.5 403.5,65.5 403.5,61.5C 432.5,61.5 461.5,61.5 490.5,61.5 Z"/></g>
+    <g><path style="opacity:1" fill="#ffffff" d="M 600.5,61.5 C 608.562,63.5717 614.062,68.5717 617,76.5C 617.667,98.5 617.667,120.5 617,142.5C 615.521,150.965 610.687,156.465 602.5,159C 579.502,159.5 556.502,159.667 533.5,159.5C 533.5,126.833 533.5,94.1667 533.5,61.5C 555.833,61.5 578.167,61.5 600.5,61.5 Z"/></g>
+    <g><path style="opacity:1" fill="#ffffff" d="M 504.5,61.5 C 508.833,61.5 513.167,61.5 517.5,61.5C 517.5,94.1667 517.5,126.833 517.5,159.5C 513.167,159.5 508.833,159.5 504.5,159.5C 504.5,126.833 504.5,94.1667 504.5,61.5 Z"/></g>
+    <g><path style="opacity:1" fill="#224F93" d="M 600.5,61.5 C 578.167,61.5 555.833,61.5 533.5,61.5C 533.5,94.1667 533.5,126.833 533.5,159.5C 532.502,126.671 532.168,93.6709 532.5,60.5C 555.339,60.1692 578.006,60.5025 600.5,61.5 Z"/></g>
+    <g><path style="opacity:1" fill="#224F93" d="M 490.5,61.5 C 491.485,65.6344 491.818,69.9677 491.5,74.5C 479.167,74.5 466.833,74.5 454.5,74.5C 466.322,73.5049 478.322,73.1716 490.5,73.5C 490.5,69.5 490.5,65.5 490.5,61.5 Z"/></g>
+    <g><path style="opacity:1" fill="#224F93" d="M 646.5,73.5 C 664.17,73.3334 681.836,73.5001 699.5,74C 700.981,74.9803 702.315,76.147 703.5,77.5C 704.655,98.4568 704.822,119.457 704,140.5C 703.215,142.286 702.049,143.786 700.5,145C 682.924,146.639 665.258,146.972 647.5,146C 646.315,144.647 644.981,143.48 643.5,142.5C 642.334,120.841 642.167,99.1744 643,77.5C 644.376,76.2949 645.542,74.9616 646.5,73.5 Z"/></g>
+    <g><path style="opacity:1" fill="#224F93" d="M 287.5,74.5 C 292.104,75.2702 294.937,77.9368 296,82.5C 296.667,86.8333 296.667,91.1667 296,95.5C 295.478,98.496 293.978,100.829 291.5,102.5C 272.845,103.5 254.179,103.833 235.5,103.5C 235.5,93.8333 235.5,84.1667 235.5,74.5C 252.833,74.5 270.167,74.5 287.5,74.5 Z"/></g>
+    <g><path style="opacity:1" fill="#224F93" d="M 598.5,74.5 C 601.112,75.2775 602.945,76.9441 604,79.5C 604.667,100.167 604.667,120.833 604,141.5C 603.077,142.759 602.243,144.092 601.5,145.5C 582.88,146.487 564.213,146.82 545.5,146.5C 545.456,132.156 545.789,117.822 546.5,103.5C 546.5,93.8333 546.5,84.1667 546.5,74.5C 563.833,74.5 581.167,74.5 598.5,74.5 Z"/></g>
+    <g><path style="opacity:1" fill="#224F93" d="M 287.5,74.5 C 270.167,74.5 252.833,74.5 235.5,74.5C 235.5,84.1667 235.5,93.8333 235.5,103.5C 234.506,93.6806 234.173,83.6806 234.5,73.5C 252.341,73.1699 270.008,73.5033 287.5,74.5 Z"/></g>
+    <g><path style="opacity:1" fill="#224F93" d="M 364.5,74.5 C 365.315,75.4293 366.148,76.4293 367,77.5C 373.292,94.3899 379.792,111.057 386.5,127.5C 372.167,127.5 357.833,127.5 343.5,127.5C 350.273,109.867 357.273,92.2004 364.5,74.5 Z"/></g>
+    <g><path style="opacity:1" fill="#224F93" d="M 337.5,140.5 C 355.833,140.167 374.167,140.167 392.5,140.5C 394.722,146.5 397.056,152.5 399.5,158.5C 374.167,158.5 355.833,158.5 337.5,158.5C 335.26,152.5 335.26,146.5 337.5,140.5 Z"/></g>
+    <g><path style="opacity:1" fill="#224F93" d="M 337.5,140.5 C 355.833,140.167 374.167,140.167 392.5,140.5C 394.722,146.5 397.056,152.5 399.5,158.5C 374.167,158.5 355.833,158.5 337.5,158.5C 335.26,152.5 335.26,146.5 337.5,140.5 Z"/></g>
+    <g><path style="opacity:1" fill="#224F93" d="M 598.5,74.5 C 581.167,74.5 563.833,74.5 546.5,74.5C 546.5,84.1667 546.5,93.8333 546.5,103.5C 545.506,93.6806 545.173,83.6806 545.5,73.5C 563.341,73.1699 581.008,73.5033 598.5,74.5 Z"/></g>
+    <g><path style="opacity:1" fill="#224F93" d="M 169.5,82.5 C 170.831,121.669 170.831,161.002 169.5,200.5C 168.893,200.376 168.56,200.043 168.5,199.5C 169.499,160.67 169.832,121.67 169.5,82.5 Z"/></g>
+    <g><path style="opacity:1" fill="#ffffff" d="M 27.5,96.5 C 68.8347,96.3333 110.168,96.5 151.5,97C 152.833,98.3333 152.833,99.6667 151.5,101C 110.5,101.667 69.5,101.667 28.5,101C 27.6198,99.6439 27.2865,98.1439 27.5,96.5 Z"/></g>
+    <g><path style="opacity:1" fill="#224F93" d="M 287.5,117.5 C 270.167,117.5 252.833,117.5 235.5,117.5C 235.5,127.167 235.5,136.833 235.5,146.5C 234.506,136.681 234.173,126.681 234.5,116.5C 252.341,116.17 270.008,116.503 287.5,117.5 Z"/></g>
+    <g><path style="opacity:1" fill="#224F93" d="M 287.5,117.5 C 291.812,118.069 294.646,120.402 296,124.5C 296.736,129.866 296.569,135.2 295.5,140.5C 294.046,142.457 292.38,144.29 290.5,146C 272.17,146.5 253.836,146.667 235.5,146.5C 235.5,136.833 235.5,127.167 235.5,117.5C 252.833,117.5 270.167,117.5 287.5,117.5 Z"/></g>
+    <g><path style="opacity:1" fill="#ffffff" d="M 27.5,121.5 C 69.1667,121.5 110.833,121.5 152.5,121.5C 152.67,122.822 152.337,123.989 151.5,125C 110.168,125.5 68.8347,125.667 27.5,125.5C 27.5,124.167 27.5,122.833 27.5,121.5 Z"/></g>
+    <g><path style="opacity:1" fill="#ffffff" d="M 27.5,145.5 C 69.1667,145.5 110.833,145.5 152.5,145.5C 152.5,146.833 152.5,148.167 152.5,149.5C 110.833,149.5 69.1667,149.5 27.5,149.5C 27.5,148.167 27.5,146.833 27.5,145.5 Z"/></g>
+    <g><path style="opacity:1" fill="#224F93" d="M 161.5,196.5 C 165.7,196.914 166.533,198.914 164,202.5C 156.5,212.667 149,222.833 141.5,233C 140.5,233.667 139.5,233.667 138.5,233C 133.966,228.801 129.799,224.301 126,219.5C 124.746,215.889 125.912,214.389 129.5,215C 132.631,219.133 136.131,222.966 140,226.5C 146.931,216.294 154.098,206.294 161.5,196.5 Z"/></g>
+    <g><text x="221" y="225" font-family="'Barlow',Arial,sans-serif" font-size="33" font-weight="300" fill="#ffffff" textLength="614" lengthAdjust="spacingAndGlyphs">Document Management</text></g>
+    
+    <g><path style="opacity:1" fill="#ffffff" d="M 68.5,167.5 C 75.0305,169.013 81.5305,170.68 88,172.5C 92.6495,170.774 97.4829,169.441 102.5,168.5C 107.712,170.009 113.046,171.009 118.5,171.5C 122.39,171.148 126.223,170.481 130,169.5C 137.14,170.369 144.306,170.702 151.5,170.5C 151.5,171.5 151.5,172.5 151.5,173.5C 144.462,173.761 137.462,173.428 130.5,172.5C 120.739,175.25 111.072,174.916 101.5,171.5C 97.172,173.829 92.5053,175.163 87.5,175.5C 81.8946,174.286 76.3946,172.62 71,170.5C 67.5388,172.607 64.0388,174.774 60.5,177C 57.1667,177.667 53.8333,177.667 50.5,177C 46.0458,175.626 41.5458,174.459 37,173.5C 34.0187,173.657 31.352,174.657 29,176.5C 28.5,176 28,175.5 27.5,175C 30.9187,170.857 35.252,169.524 40.5,171C 50.882,176.586 60.2153,175.419 68.5,167.5 Z"/></g>
+    
+    <g><path style="opacity:1" fill="#ffffff" d="M 68.5,167.5 C 75.0305,169.013 81.5305,170.68 88,172.5C 92.6495,170.774 97.4829,169.441 102.5,168.5C 107.712,170.009 113.046,171.009 118.5,171.5C 122.39,171.148 126.223,170.481 130,169.5C 137.14,170.369 144.306,170.702 151.5,170.5C 151.5,171.5 151.5,172.5 151.5,173.5C 144.462,173.761 137.462,173.428 130.5,172.5C 120.739,175.25 111.072,174.916 101.5,171.5C 97.172,173.829 92.5053,175.163 87.5,175.5C 81.8946,174.286 76.3946,172.62 71,170.5C 67.5388,172.607 64.0388,174.774 60.5,177C 57.1667,177.667 53.8333,177.667 50.5,177C 46.0458,175.626 41.5458,174.459 37,173.5C 34.0187,173.657 31.352,174.657 29,176.5C 28.5,176 28,175.5 27.5,175C 30.9187,170.857 35.252,169.524 40.5,171C 50.882,176.586 60.2153,175.419 68.5,167.5 Z"/></g>
+    </svg>
+      
+    <div class="logo-wrap" onclick="goProjects()">
+
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <!-- User dropdown -->
+      <div style="position:relative;" id="user-dropdown-wrap">
+        <button onclick="toggleUserDropdown()" id="user-chip-btn"
+          style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);border-radius:8px;padding:6px 12px;cursor:pointer;transition:background 0.15s;"
+          onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.12)'">
+          <div style="width:26px;height:26px;background:rgba(255,255,255,0.25);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <span id="user-chip" style="font-size:12px;color:#fff;font-weight:600;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <!-- Dropdown -->
+        <div id="user-dropdown" style="display:none;position:absolute;top:calc(100% + 8px);right:0;background:#fff;border:1px solid rgba(34,79,147,0.15);border-radius:10px;box-shadow:0 10px 36px rgba(34,79,147,0.16);min-width:200px;z-index:5000;overflow:hidden;">
+          <!-- User info header -->
+          <div style="padding:14px 16px 10px;border-bottom:1px solid rgba(34,79,147,0.08);">
+            <div style="display:flex;align-items:center;gap:9px;">
+              <div style="width:34px;height:34px;background:rgba(34,79,147,0.1);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#224F93" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </div>
+              <div>
+                <div id="dropdown-user-name" style="font-size:13px;font-weight:700;color:#1a2a3a;"></div>
+                <div style="font-size:10px;color:#8099b0;margin-top:1px;">Shift Tower</div>
+              </div>
+            </div>
+          </div>
+          <!-- Menu items -->
+          <div style="padding:6px;">
+            <button onclick="openMyProfile()" style="width:100%;display:flex;align-items:center;gap:10px;padding:9px 10px;border:none;background:transparent;border-radius:6px;cursor:pointer;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;color:#1a2a3a;text-align:left;" onmouseover="this.style.background='#f4f8fd'" onmouseout="this.style.background='transparent'">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#224F93" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              My Profile
+            </button>
+            <button onclick="openManageAccount()" style="width:100%;display:flex;align-items:center;gap:10px;padding:9px 10px;border:none;background:transparent;border-radius:6px;cursor:pointer;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;color:#1a2a3a;text-align:left;" onmouseover="this.style.background='#f4f8fd'" onmouseout="this.style.background='transparent'">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#224F93" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              Manage My Account
+            </button>
+          </div>
+          <!-- Divider + logout -->
+          <div style="border-top:1px solid rgba(34,79,147,0.08);padding:6px;">
+            <button onclick="doLogout()" style="width:100%;display:flex;align-items:center;gap:10px;padding:9px 10px;border:none;background:transparent;border-radius:6px;cursor:pointer;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;color:#c02020;text-align:left;" onmouseover="this.style.background='#fff5f5'" onmouseout="this.style.background='transparent'">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#c02020" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Log Out
+            </button>
+          </div>
+        </div>
+      </div>
+      <button class="hbtn" onclick="goProjects()">← Projects</button>
+    </div>
+  </div>
+
+  <div class="app-body">
+
+    <div class="sidebar">
+      <div class="sb-project">
+        <div class="sb-label">Current Project</div>
+        <div class="sb-name">Shift Tower</div>
+      </div>
+      <nav class="sb-nav">
+        <button class="sb-item active" id="nav-deliverables" onclick="setPage('deliverables')">
+          <span class="sb-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+            </svg>
+          </span>
+          List of Deliverables
+        </button>
+        <button class="sb-item" id="nav-payments" onclick="setPage('payments')">
+          <span class="sb-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+            </svg>
+          </span>
+          Payments
+        </button>
+      </nav>
+      <div class="sb-footer">BATIDOC &copy; 2025 Batiglobe</div>
+    </div>
+
+    <div class="content">
+
+      <!-- Deliverables -->
+      <div id="page-deliverables">
+
+        <!-- ── LIST VIEW ── -->
+        <div id="view-list">
+          <div style="font-size:18px;font-weight:700;color:#1a2a3a;margin-bottom:4px;">List of Deliverables</div>
+          <div style="font-size:12px;color:#8099b0;margin-bottom:16px;">Shift Tower — all project deliverables</div>
+
+        <!-- Toolbar -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+          <!-- New Folder -->
+          <button onclick="openNewFolderModal()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;background:#224F93;color:#fff;border:none;border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='#2d65bd'" onmouseout="this.style.background='#224F93'">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New Folder
+          </button>
+
+          <!-- Divider -->
+          <div style="width:1px;height:26px;background:rgba(34,79,147,0.15);margin:0 2px;"></div>
+
+          <!-- Rename -->
+          <button id="btn-rename" onclick="openRenameModal()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;background:#fff;color:#4a6080;border:1px solid rgba(34,79,147,0.2);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;opacity:0.45;pointer-events:none;" onmouseover="this.style.background='#f4f8fd'" onmouseout="this.style.background='#fff'">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4a6080" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Rename
+          </button>
+
+          <!-- Duplicate -->
+          <button id="btn-duplicate" onclick="duplicateSelected()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;background:#fff;color:#4a6080;border:1px solid rgba(34,79,147,0.2);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;opacity:0.45;pointer-events:none;" onmouseover="this.style.background='#f4f8fd'" onmouseout="this.style.background='#fff'">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4a6080" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            Duplicate
+          </button>
+
+          <!-- Move -->
+          <button id="btn-move" onclick="openMoveModal()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;background:#fff;color:#4a6080;border:1px solid rgba(34,79,147,0.2);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;opacity:0.45;pointer-events:none;" onmouseover="this.style.background='#f4f8fd'" onmouseout="this.style.background='#fff'">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4a6080" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 9 2 12 5 15"/><polyline points="9 5 12 2 15 5"/><polyline points="15 19 12 22 9 19"/><polyline points="19 9 22 12 19 15"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/></svg>
+            Move
+          </button>
+
+          <!-- Workflow -->
+          <button id="btn-workflow" onclick="openWorkflowModal()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;background:#fff;color:#4a6080;border:1px solid rgba(34,79,147,0.2);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;opacity:0.45;pointer-events:none;" onmouseover="this.style.background='#f4f8fd'" onmouseout="this.style.background='#fff'">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4a6080" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" y1="9" x2="6" y2="21"/></svg>
+            Workflow
+          </button>
+
+          <!-- Download -->
+          <button id="btn-download" onclick="downloadSelected()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;background:#fff;color:#4a6080;border:1px solid rgba(34,79,147,0.2);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;opacity:0.45;pointer-events:none;" onmouseover="this.style.background='#f4f8fd'" onmouseout="this.style.background='#fff'">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4a6080" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download
+          </button>
+
+          <!-- Divider -->
+          <div style="width:1px;height:26px;background:rgba(34,79,147,0.15);margin:0 2px;"></div>
+
+          <!-- Delete -->
+          <button id="btn-delete" onclick="deleteSelected()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;background:#fff;color:#c02020;border:1px solid rgba(192,32,32,0.2);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;opacity:0.45;pointer-events:none;" onmouseover="this.style.background='#fff5f5'" onmouseout="this.style.background='#fff'">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#c02020" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            Delete
+          </button>
+        </div>
+
+        <!-- Table -->
+        <div class="del-table">
+          <div class="del-head">
+            <div style="display:flex;align-items:center;justify-content:center;">
+              <input type="checkbox" id="check-all" onchange="toggleAll(this)" style="width:15px;height:15px;accent-color:#224F93;cursor:pointer;">
+            </div>
+            <div class="del-hcell blue">
+              Name
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#224F93" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="del-hcell" style="text-align:center;">Tags</div>
+            <div class="del-hcell" style="text-align:right;padding-right:4px;">Date</div>
+            <div class="del-hcell" style="display:flex;align-items:center;justify-content:flex-end;gap:5px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#224F93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#b0bec5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+            </div>
+          </div>
+          <div id="deliverables-list"></div>
+        </div>
+        </div><!-- /view-list -->
+
+        <!-- ── FOLDER VIEW ── -->
+        <div id="view-folder" style="display:none;">
+          <!-- Breadcrumb -->
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:16px;">
+            <button onclick="closeFolder()" style="display:flex;align-items:center;gap:5px;background:none;border:none;cursor:pointer;color:#224F93;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;padding:0;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#224F93" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+              List of Deliverables
+            </button>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#b0bec5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            <span id="folder-breadcrumb-name" style="font-size:12px;font-weight:700;color:#1a2a3a;"></span>
+          </div>
+
+          <!-- Folder header -->
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+            <div style="width:44px;height:44px;background:rgba(34,79,147,0.07);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+              <svg width="24" height="20" viewBox="0 0 24 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path fill="#90a4ae" d="M10 2H2C.9 2 0 2.9 0 4v12c0 1.1.9 2 2 2h20c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H12L10 2z"/>
+              </svg>
+            </div>
+            <div style="flex:1;">
+              <div id="folder-view-title" style="font-size:18px;font-weight:700;color:#1a2a3a;"></div>
+              <div id="folder-view-count" style="font-size:12px;color:#8099b0;margin-top:2px;"></div>
+            </div>
+          </div>
+
+          <!-- Folder toolbar -->
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+            <!-- New Subfolder -->
+            <button onclick="openSubfolderModal()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;background:#224F93;color:#fff;border:none;border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;" onmouseover="this.style.background='#2d65bd'" onmouseout="this.style.background='#224F93'">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              New Folder
+            </button>
+
+            <!-- Upload -->
+            <button onclick="document.getElementById('file-input').click()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;background:#fff;color:#224F93;border:1px solid rgba(34,79,147,0.3);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;" onmouseover="this.style.background='#f4f8fd'" onmouseout="this.style.background='#fff'">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#224F93" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+              Upload
+            </button>
+            <input type="file" id="file-input" multiple style="display:none;" onchange="handleFileInput(this)">
+
+            <!-- Divider -->
+            <div style="width:1px;height:26px;background:rgba(34,79,147,0.15);margin:0 2px;"></div>
+
+            <!-- Rename file -->
+            <button id="fbtn-rename" onclick="openFileRenameModal()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;background:#fff;color:#4a6080;border:1px solid rgba(34,79,147,0.2);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;opacity:0.45;pointer-events:none;" onmouseover="this.style.background='#f4f8fd'" onmouseout="this.style.background='#fff'">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4a6080" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              Rename
+            </button>
+
+            <!-- Duplicate file -->
+            <button id="fbtn-duplicate" onclick="duplicateFile()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;background:#fff;color:#4a6080;border:1px solid rgba(34,79,147,0.2);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;opacity:0.45;pointer-events:none;" onmouseover="this.style.background='#f4f8fd'" onmouseout="this.style.background='#fff'">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4a6080" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              Duplicate
+            </button>
+
+            <!-- Move file -->
+            <button id="fbtn-move" onclick="openFileMoveModal()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;background:#fff;color:#4a6080;border:1px solid rgba(34,79,147,0.2);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;opacity:0.45;pointer-events:none;" onmouseover="this.style.background='#f4f8fd'" onmouseout="this.style.background='#fff'">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4a6080" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 9 2 12 5 15"/><polyline points="9 5 12 2 15 5"/><polyline points="15 19 12 22 9 19"/><polyline points="19 9 22 12 19 15"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/></svg>
+              Move
+            </button>
+
+            <!-- Workflow file -->
+            <button id="fbtn-workflow" onclick="openFileWorkflowModal()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;background:#fff;color:#4a6080;border:1px solid rgba(34,79,147,0.2);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;opacity:0.45;pointer-events:none;" onmouseover="this.style.background='#f4f8fd'" onmouseout="this.style.background='#fff'">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4a6080" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" y1="9" x2="6" y2="21"/></svg>
+              Workflow
+            </button>
+
+            <!-- Download file -->
+            <button id="fbtn-download" onclick="downloadFile()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;background:#fff;color:#4a6080;border:1px solid rgba(34,79,147,0.2);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;opacity:0.45;pointer-events:none;" onmouseover="this.style.background='#f4f8fd'" onmouseout="this.style.background='#fff'">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4a6080" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download
+            </button>
+
+            <!-- Divider -->
+            <div style="width:1px;height:26px;background:rgba(34,79,147,0.15);margin:0 2px;"></div>
+
+            <!-- Delete file -->
+            <button id="fbtn-delete" onclick="deleteFile()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;background:#fff;color:#c02020;border:1px solid rgba(192,32,32,0.2);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;opacity:0.45;pointer-events:none;" onmouseover="this.style.background='#fff5f5'" onmouseout="this.style.background='#fff'">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#c02020" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+              Delete
+            </button>
+          </div>
+
+          <!-- File table -->
+          <div class="del-table">
+            <div style="display:grid;grid-template-columns:36px 1fr 100px 120px 44px;align-items:center;padding:0 14px;height:38px;background:#f4f8fd;border-bottom:1px solid rgba(34,79,147,0.12);">
+              <div style="display:flex;align-items:center;justify-content:center;"><input type="checkbox" id="fcheck-all" onchange="toggleAllFiles(this)" style="width:15px;height:15px;accent-color:#224F93;cursor:pointer;"></div>
+              <div class="del-hcell blue">Name</div>
+              <div class="del-hcell">Size</div>
+              <div class="del-hcell">Date</div>
+              <div></div>
+            </div>
+            <div id="folder-file-list">
+              <div style="padding:36px;text-align:center;color:#8099b0;font-size:12px;">No documents yet. Upload a file to get started.</div>
+            </div>
+          </div>
+        </div><!-- /view-folder -->
+
+      </div><!-- /page-deliverables -->
+
+      <!-- Payments -->
+      <div id="page-payments" style="display:none;">
+
+        <!-- ── PAYMENTS LIST VIEW ── -->
+        <div id="pay-view-list">
+          <div style="font-size:18px;font-weight:700;color:#1a2a3a;margin-bottom:4px;">Payments</div>
+          <div style="font-size:12px;color:#8099b0;margin-bottom:16px;">Shift Tower — payment tracking</div>
+
+          <!-- Toolbar -->
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+
+            <!-- New Folder -->
+            <button onclick="openNewPayFolderModal()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;background:#224F93;color:#fff;border:none;border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;" onmouseover="this.style.background='#2d65bd'" onmouseout="this.style.background='#224F93'">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              New Folder
+            </button>
+
+            <!-- Divider -->
+            <div style="width:1px;height:26px;background:rgba(34,79,147,0.15);margin:0 2px;"></div>
+
+            <!-- Rename -->
+            <button id="paybtn-rename" onclick="openPayRenameModal()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;background:#fff;color:#4a6080;border:1px solid rgba(34,79,147,0.2);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;opacity:0.45;pointer-events:none;" onmouseover="this.style.background='#f4f8fd'" onmouseout="this.style.background='#fff'">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4a6080" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              Rename
+            </button>
+
+            <!-- Duplicate -->
+            <button id="paybtn-duplicate" onclick="duplicatePayFolder()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;background:#fff;color:#4a6080;border:1px solid rgba(34,79,147,0.2);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;opacity:0.45;pointer-events:none;" onmouseover="this.style.background='#f4f8fd'" onmouseout="this.style.background='#fff'">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4a6080" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              Duplicate
+            </button>
+
+            <!-- Move -->
+            <button id="paybtn-move" onclick="openPayFolderMoveModal()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;background:#fff;color:#4a6080;border:1px solid rgba(34,79,147,0.2);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;opacity:0.45;pointer-events:none;" onmouseover="this.style.background='#f4f8fd'" onmouseout="this.style.background='#fff'">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4a6080" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 9 2 12 5 15"/><polyline points="9 5 12 2 15 5"/><polyline points="15 19 12 22 9 19"/><polyline points="19 9 22 12 19 15"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/></svg>
+              Move
+            </button>
+
+            <!-- Workflow -->
+            <button id="paybtn-workflow" onclick="openPayFolderWorkflowModal()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;background:#fff;color:#4a6080;border:1px solid rgba(34,79,147,0.2);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;opacity:0.45;pointer-events:none;" onmouseover="this.style.background='#f4f8fd'" onmouseout="this.style.background='#fff'">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4a6080" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" y1="9" x2="6" y2="21"/></svg>
+              Workflow
+            </button>
+
+            <!-- Download -->
+            <button id="paybtn-download" onclick="downloadPayFolder()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;background:#fff;color:#4a6080;border:1px solid rgba(34,79,147,0.2);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;opacity:0.45;pointer-events:none;" onmouseover="this.style.background='#f4f8fd'" onmouseout="this.style.background='#fff'">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4a6080" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download
+            </button>
+
+            <!-- Divider -->
+            <div style="width:1px;height:26px;background:rgba(34,79,147,0.15);margin:0 2px;"></div>
+
+            <!-- Delete -->
+            <button id="paybtn-delete" onclick="deletePayFolder()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;background:#fff;color:#c02020;border:1px solid rgba(192,32,32,0.2);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;opacity:0.45;pointer-events:none;" onmouseover="this.style.background='#fff5f5'" onmouseout="this.style.background='#fff'">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#c02020" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+              Delete
+            </button>
+          </div>
+
+          <!-- Table -->
+          <div class="del-table">
+            <div class="del-head">
+              <div style="display:flex;align-items:center;justify-content:center;">
+                <input type="checkbox" id="pay-check-all" onchange="toggleAllPay(this)" style="width:15px;height:15px;accent-color:#224F93;cursor:pointer;">
+              </div>
+              <div class="del-hcell blue">Name</div>
+              <div class="del-hcell" style="text-align:center;">Tags</div>
+              <div class="del-hcell" style="text-align:right;padding-right:4px;">Date</div>
+              <div class="del-hcell"></div>
+            </div>
+            <div id="pay-folder-list"></div>
+          </div>
+        </div><!-- /pay-view-list -->
+
+        <!-- ── PAYMENT FOLDER VIEW ── -->
+        <div id="pay-view-folder" style="display:none;">
+          <!-- Breadcrumb -->
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:16px;">
+            <button onclick="closePayFolder()" style="display:flex;align-items:center;gap:5px;background:none;border:none;cursor:pointer;color:#224F93;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;padding:0;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#224F93" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+              Payments
+            </button>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#b0bec5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            <span id="pay-folder-breadcrumb" style="font-size:12px;font-weight:700;color:#1a2a3a;"></span>
+          </div>
+
+          <!-- Folder header -->
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+            <div style="width:44px;height:44px;background:rgba(34,79,147,0.07);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+              <svg width="24" height="20" viewBox="0 0 24 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill="#90a4ae" d="M10 2H2C.9 2 0 2.9 0 4v12c0 1.1.9 2 2 2h20c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H12L10 2z"/></svg>
+            </div>
+            <div>
+              <div id="pay-folder-title" style="font-size:18px;font-weight:700;color:#1a2a3a;"></div>
+              <div id="pay-folder-count" style="font-size:12px;color:#8099b0;margin-top:2px;"></div>
+            </div>
+          </div>
+
+          <!-- Folder inner toolbar -->
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+
+            <!-- New Folder -->
+            <button onclick="openNewPaySubFolderModal()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;background:#224F93;color:#fff;border:none;border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;" onmouseover="this.style.background='#2d65bd'" onmouseout="this.style.background='#224F93'">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              New Folder
+            </button>
+
+            <!-- Upload -->
+            <button onclick="document.getElementById('pay-file-input').click()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;background:#fff;color:#224F93;border:1px solid rgba(34,79,147,0.3);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;" onmouseover="this.style.background='#f4f8fd'" onmouseout="this.style.background='#fff'">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#224F93" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+              Upload
+            </button>
+            <input type="file" id="pay-file-input" multiple style="display:none;" onchange="handlePayFileInput(this)">
+
+            <!-- Divider -->
+            <div style="width:1px;height:26px;background:rgba(34,79,147,0.15);margin:0 2px;"></div>
+
+            <!-- Rename -->
+            <button id="payfbtn-rename" onclick="openPayFileRenameModal()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;background:#fff;color:#4a6080;border:1px solid rgba(34,79,147,0.2);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;opacity:0.45;pointer-events:none;" onmouseover="this.style.background='#f4f8fd'" onmouseout="this.style.background='#fff'">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4a6080" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              Rename
+            </button>
+
+            <!-- Duplicate -->
+            <button id="payfbtn-duplicate" onclick="duplicatePayFile()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;background:#fff;color:#4a6080;border:1px solid rgba(34,79,147,0.2);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;opacity:0.45;pointer-events:none;" onmouseover="this.style.background='#f4f8fd'" onmouseout="this.style.background='#fff'">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4a6080" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              Duplicate
+            </button>
+
+            <!-- Move -->
+            <button id="payfbtn-move" onclick="openPayFileMoveModal()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;background:#fff;color:#4a6080;border:1px solid rgba(34,79,147,0.2);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;opacity:0.45;pointer-events:none;" onmouseover="this.style.background='#f4f8fd'" onmouseout="this.style.background='#fff'">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4a6080" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 9 2 12 5 15"/><polyline points="9 5 12 2 15 5"/><polyline points="15 19 12 22 9 19"/><polyline points="19 9 22 12 19 15"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/></svg>
+              Move
+            </button>
+
+            <!-- Workflow -->
+            <button id="payfbtn-workflow" onclick="openPayFileWorkflowModal()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;background:#fff;color:#4a6080;border:1px solid rgba(34,79,147,0.2);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;opacity:0.45;pointer-events:none;" onmouseover="this.style.background='#f4f8fd'" onmouseout="this.style.background='#fff'">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4a6080" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" y1="9" x2="6" y2="21"/></svg>
+              Workflow
+            </button>
+
+            <!-- Download -->
+            <button id="payfbtn-download" onclick="downloadPayFile()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;background:#fff;color:#4a6080;border:1px solid rgba(34,79,147,0.2);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;opacity:0.45;pointer-events:none;" onmouseover="this.style.background='#f4f8fd'" onmouseout="this.style.background='#fff'">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4a6080" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download
+            </button>
+
+            <!-- Divider -->
+            <div style="width:1px;height:26px;background:rgba(34,79,147,0.15);margin:0 2px;"></div>
+
+            <!-- Delete -->
+            <button id="payfbtn-delete" onclick="deletePayFile()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;background:#fff;color:#c02020;border:1px solid rgba(192,32,32,0.2);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;opacity:0.45;pointer-events:none;" onmouseover="this.style.background='#fff5f5'" onmouseout="this.style.background='#fff'">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#c02020" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+              Delete
+            </button>
+          </div>
+
+          <!-- File table -->
+          <div class="del-table">
+            <div style="display:grid;grid-template-columns:36px 1fr 100px 120px 44px;align-items:center;padding:0 14px;height:38px;background:#f4f8fd;border-bottom:1px solid rgba(34,79,147,0.12);">
+              <div style="display:flex;align-items:center;justify-content:center;"><input type="checkbox" id="payf-check-all" onchange="toggleAllPayFiles(this)" style="width:15px;height:15px;accent-color:#224F93;cursor:pointer;"></div>
+              <div class="del-hcell blue">Name</div>
+              <div class="del-hcell">Size</div>
+              <div class="del-hcell">Date</div>
+              <div></div>
+            </div>
+            <div id="pay-file-list">
+              <div style="padding:36px;text-align:center;color:#8099b0;font-size:12px;">No documents yet. Click Upload to add files.</div>
+            </div>
+          </div>
+        </div><!-- /pay-view-folder -->
+
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<!-- Supabase config vars -->
+<script>
+const SUPABASE_URL = 'https://gmrpmyumvotczqbjagfd.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdtcnBteXVtdm90Y3pxYmphZ2ZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NTAyMDcsImV4cCI6MjA5MDAyNjIwN30.Q80FFpwMe3Kj4rNN_85GyEVn1btxLu5ddIXjPWD8hhE';
+</script>
+<script src="https://unpkg.com/@supabase/supabase-js@2.39.3/dist/umd/supabase.js" crossorigin="anonymous"></script>
+<script src="config.js"></script>
+<script src="auth.js"></script>
+<script src="app.js"></script>
+
+
+<!-- ══ NEW FOLDER MODAL ══ -->
+<div id="new-folder-modal" style="display:none;position:fixed;inset:0;background:rgba(20,40,80,0.45);z-index:10001;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;width:400px;max-width:calc(100vw - 32px);padding:28px;box-shadow:0 20px 60px rgba(34,79,147,0.2);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div>
+        <div style="font-size:15px;font-weight:700;color:#1a2a3a;">New Folder</div>
+        <div style="font-size:11px;color:#8099b0;margin-top:2px;">Create a new deliverable folder</div>
+      </div>
+      <button onclick="closeNewFolderModal()" style="width:28px;height:28px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:6px;cursor:pointer;font-size:14px;color:#8099b0;display:flex;align-items:center;justify-content:center;">✕</button>
+    </div>
+    <label style="display:block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8099b0;margin-bottom:6px;">Folder Name</label>
+    <input id="new-folder-input" type="text" placeholder="e.g. Plans d'exécution"
+      style="width:100%;padding:10px 12px;border:1px solid rgba(34,79,147,0.25);border-radius:7px;font-family:'Barlow',sans-serif;font-size:13px;color:#1a2a3a;outline:none;background:#f4f8fd;"
+      onfocus="this.style.borderColor='#224F93'" onblur="this.style.borderColor='rgba(34,79,147,0.25)'"
+      onkeydown="if(event.key==='Enter')confirmNewFolder()">
+    <div id="new-folder-err" style="display:none;font-size:11px;color:#c02020;margin-top:6px;"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px;">
+      <button onclick="closeNewFolderModal()" style="padding:8px 16px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;color:#4a6080;">Cancel</button>
+      <button onclick="confirmNewFolder()" style="padding:8px 18px;background:#224F93;color:#fff;border:none;border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;cursor:pointer;" onmouseover="this.style.background='#2d65bd'" onmouseout="this.style.background='#224F93'">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ RENAME MODAL ══ -->
+<div id="rename-modal" data-id="" style="display:none;position:fixed;inset:0;background:rgba(20,40,80,0.45);z-index:10001;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;width:400px;max-width:calc(100vw - 32px);padding:28px;box-shadow:0 20px 60px rgba(34,79,147,0.2);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div>
+        <div style="font-size:15px;font-weight:700;color:#1a2a3a;">Rename Folder</div>
+        <div style="font-size:11px;color:#8099b0;margin-top:2px;">Enter a new name for this folder</div>
+      </div>
+      <button onclick="closeRenameModal()" style="width:28px;height:28px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:6px;cursor:pointer;font-size:14px;color:#8099b0;display:flex;align-items:center;justify-content:center;">✕</button>
+    </div>
+    <label style="display:block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8099b0;margin-bottom:6px;">New Name</label>
+    <input id="rename-input" type="text" placeholder="Folder name"
+      style="width:100%;padding:10px 12px;border:1px solid rgba(34,79,147,0.25);border-radius:7px;font-family:'Barlow',sans-serif;font-size:13px;color:#1a2a3a;outline:none;background:#f4f8fd;"
+      onfocus="this.style.borderColor='#224F93'" onblur="this.style.borderColor='rgba(34,79,147,0.25)'"
+      onkeydown="if(event.key==='Enter')confirmRename()">
+    <div id="rename-err" style="display:none;font-size:11px;color:#c02020;margin-top:6px;"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px;">
+      <button onclick="closeRenameModal()" style="padding:8px 16px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;color:#4a6080;">Cancel</button>
+      <button onclick="confirmRename()" style="padding:8px 18px;background:#224F93;color:#fff;border:none;border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;cursor:pointer;" onmouseover="this.style.background='#2d65bd'" onmouseout="this.style.background='#224F93'">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DELETE MODAL ══ -->
+<div id="delete-modal" data-ids="[]" style="display:none;position:fixed;inset:0;background:rgba(20,40,80,0.45);z-index:10001;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;width:400px;max-width:calc(100vw - 32px);padding:28px;box-shadow:0 20px 60px rgba(34,79,147,0.2);">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+      <div style="width:42px;height:42px;background:rgba(192,32,32,0.08);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c02020" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+      </div>
+      <div>
+        <div style="font-size:15px;font-weight:700;color:#1a2a3a;">Delete Folder</div>
+        <div style="font-size:11px;color:#8099b0;margin-top:2px;">This action cannot be undone</div>
+      </div>
+    </div>
+    <div style="background:rgba(192,32,32,0.05);border:1px solid rgba(192,32,32,0.15);border-radius:8px;padding:12px 14px;margin-bottom:20px;font-size:12px;color:#4a6080;">
+      Are you sure you want to delete <strong id="delete-names" style="color:#1a2a3a;"></strong>? All uploaded documents inside will also be removed.
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button onclick="closeDeleteModal()" style="padding:8px 16px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;color:#4a6080;">Cancel</button>
+      <button onclick="confirmDelete()" style="padding:8px 18px;background:#c02020;color:#fff;border:none;border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;cursor:pointer;" onmouseover="this.style.background='#a01818'" onmouseout="this.style.background='#c02020'">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DOWNLOAD MODAL ══ -->
+<div id="download-modal" style="display:none;position:fixed;inset:0;background:rgba(20,40,80,0.45);z-index:10001;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;width:420px;max-width:calc(100vw - 32px);padding:28px;box-shadow:0 20px 60px rgba(34,79,147,0.2);">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
+      <div style="width:40px;height:40px;background:rgba(34,79,147,0.07);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#224F93" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </div>
+      <div>
+        <div style="font-size:15px;font-weight:700;color:#1a2a3a;">Download Folders</div>
+        <div style="font-size:11px;color:#8099b0;margin-top:2px;">The following folders will be downloaded</div>
+      </div>
+      <button onclick="closeDownloadModal()" style="margin-left:auto;width:28px;height:28px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:6px;cursor:pointer;font-size:14px;color:#8099b0;display:flex;align-items:center;justify-content:center;">✕</button>
+    </div>
+    <div id="download-names" style="background:#f4f8fd;border:1px solid rgba(34,79,147,0.1);border-radius:8px;padding:8px 12px;margin-bottom:20px;max-height:160px;overflow-y:auto;"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button onclick="closeDownloadModal()" style="padding:8px 16px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;color:#4a6080;">Cancel</button>
+      <button id="download-confirm-btn" onclick="confirmDownload()" style="padding:8px 18px;background:#224F93;color:#fff;border:none;border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;cursor:pointer;" onmouseover="this.style.background='#2d65bd'" onmouseout="this.style.background='#224F93'">Download</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MOVE MODAL ══ -->
+<div id="move-modal" style="display:none;position:fixed;inset:0;background:rgba(20,40,80,0.45);z-index:10001;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;width:420px;max-width:calc(100vw - 32px);padding:28px;box-shadow:0 20px 60px rgba(34,79,147,0.2);">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
+      <div style="width:40px;height:40px;background:rgba(34,79,147,0.07);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#224F93" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 9 2 12 5 15"/><polyline points="9 5 12 2 15 5"/><polyline points="15 19 12 22 9 19"/><polyline points="19 9 22 12 19 15"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/></svg>
+      </div>
+      <div>
+        <div style="font-size:15px;font-weight:700;color:#1a2a3a;">Move Folder</div>
+        <div id="move-item-names" style="font-size:11px;color:#8099b0;margin-top:2px;max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+      </div>
+      <button onclick="closeMoveModal()" style="margin-left:auto;width:28px;height:28px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:6px;cursor:pointer;font-size:14px;color:#8099b0;display:flex;align-items:center;justify-content:center;">✕</button>
+    </div>
+    <label style="display:block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8099b0;margin-bottom:6px;">Destination</label>
+    <input id="move-dest" type="text" placeholder="e.g. Archive / Completed"
+      style="width:100%;padding:10px 12px;border:1px solid rgba(34,79,147,0.25);border-radius:7px;font-family:'Barlow',sans-serif;font-size:13px;color:#1a2a3a;outline:none;background:#f4f8fd;"
+      onfocus="this.style.borderColor='#224F93'" onblur="this.style.borderColor='rgba(34,79,147,0.25)'"
+      onkeydown="if(event.key==='Enter')confirmMove()">
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px;">
+      <button onclick="closeMoveModal()" style="padding:8px 16px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;color:#4a6080;">Cancel</button>
+      <button onclick="confirmMove()" style="padding:8px 18px;background:#224F93;color:#fff;border:none;border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;cursor:pointer;" onmouseover="this.style.background='#2d65bd'" onmouseout="this.style.background='#224F93'">Move</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ WORKFLOW MODAL ══ -->
+<style>
+.wf-card{display:flex;flex-direction:column;align-items:center;gap:7px;padding:14px 10px;border:1.5px solid rgba(34,79,147,0.18);border-radius:10px;cursor:pointer;transition:all 0.15s;text-align:center;flex:1;}
+.wf-card:hover{border-color:rgba(34,79,147,0.4);background:#f4f8fd;}
+.wf-card.wf-sel{border-color:#224F93;background:rgba(34,79,147,0.07);}
+.wf-card-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;}
+.wf-card-label{font-size:11px;font-weight:700;color:#1a2a3a;}
+.wf-card-desc{font-size:9px;color:#8099b0;line-height:1.4;}
+.wf-type-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:10px 8px;border:1.5px solid rgba(34,79,147,0.18);border-radius:8px;cursor:pointer;transition:all 0.15s;background:transparent;font-family:'Barlow',sans-serif;font-size:11px;font-weight:700;color:#4a6080;}
+.wf-type-btn:hover{border-color:rgba(34,79,147,0.4);background:#f4f8fd;color:#224F93;}
+.wf-type-btn.wf-sel{border-color:#224F93;background:rgba(34,79,147,0.07);color:#224F93;}
+.wf-section-title{font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8099b0;margin-bottom:10px;}
+.wf-divider{height:1px;background:rgba(34,79,147,0.08);margin:16px 0;}
+</style>
+<div id="workflow-modal" style="display:none;position:fixed;inset:0;background:rgba(20,40,80,0.45);z-index:10001;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;width:520px;max-width:calc(100vw - 24px);max-height:90vh;overflow-y:auto;padding:28px;box-shadow:0 20px 60px rgba(34,79,147,0.2);">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+      <div style="width:40px;height:40px;background:rgba(34,79,147,0.07);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#224F93" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" y1="9" x2="6" y2="21"/></svg>
+      </div>
+      <div>
+        <div style="font-size:15px;font-weight:700;color:#1a2a3a;">Set Workflow</div>
+        <div id="workflow-item-names" style="font-size:11px;color:#8099b0;margin-top:2px;max-width:340px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+      </div>
+      <button onclick="closeWorkflowModal()" style="margin-left:auto;width:28px;height:28px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:6px;cursor:pointer;font-size:14px;color:#8099b0;display:flex;align-items:center;justify-content:center;">✕</button>
+    </div>
+
+    <!-- Auto-route toggle -->
+    <div style="display:flex;align-items:center;justify-content:space-between;background:#f4f8fd;border:1px solid rgba(34,79,147,0.12);border-radius:9px;padding:12px 14px;margin-bottom:16px;">
+      <div>
+        <div style="font-size:12px;font-weight:700;color:#1a2a3a;">Auto-route uploads to this workflow</div>
+        <div style="font-size:10px;color:#8099b0;margin-top:2px;">Any file uploaded to this folder will be sent automatically</div>
+      </div>
+      <label style="position:relative;display:inline-block;width:40px;height:22px;flex-shrink:0;cursor:pointer;">
+        <input type="checkbox" id="wf-auto-route" style="opacity:0;width:0;height:0;" onchange="toggleWfAutoRoute(this)">
+        <span id="wf-toggle-track" style="position:absolute;inset:0;background:#d0d8e4;border-radius:11px;transition:background 0.2s;"></span>
+        <span id="wf-toggle-thumb" style="position:absolute;top:3px;left:3px;width:16px;height:16px;background:#fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.2);transition:transform 0.2s;"></span>
+      </label>
+    </div>
+
+    <div class="wf-divider"></div>
+
+    <!-- Method of Workflow — content swapped by openWorkflowModal context -->
+    <div class="wf-section-title">Method of Workflow</div>
+
+    <!-- Standard methods (Deliverables) -->
+    <div id="wfm-standard" style="display:flex;gap:8px;margin-bottom:16px;">
+      <div class="wf-card" id="wfm-approval" onclick="selectWfMethod('approval')">
+        <div class="wf-card-icon" style="background:rgba(46,194,126,0.1);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1a9458" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+        <div class="wf-card-label">For Approval</div>
+        <div class="wf-card-desc">Requires sign-off to proceed</div>
+      </div>
+      <div class="wf-card" id="wfm-review" onclick="selectWfMethod('review')">
+        <div class="wf-card-icon" style="background:rgba(74,144,217,0.1);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2d65bd" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <div class="wf-card-label">For Review</div>
+        <div class="wf-card-desc">Comments and feedback only</div>
+      </div>
+      <div class="wf-card" id="wfm-info" onclick="selectWfMethod('info')">
+        <div class="wf-card-icon" style="background:rgba(245,197,24,0.12);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a07800" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="wf-card-label">For Info</div>
+        <div class="wf-card-desc">Notify recipients, no action needed</div>
+      </div>
+    </div>
+
+    <!-- Payment methods (E-Sign only) -->
+    <div id="wfm-payment" style="display:none;gap:8px;margin-bottom:16px;">
+      <div class="wf-card" id="wfm-esign" onclick="selectWfMethod('esign')" style="max-width:180px;">
+        <div class="wf-card-icon" style="background:rgba(124,58,237,0.1);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        </div>
+        <div class="wf-card-label">E-Sign</div>
+        <div class="wf-card-desc">Electronic signature required</div>
+      </div>
+    </div>
+
+    <div class="wf-divider"></div>
+
+    <!-- Type of Workflow -->
+    <div class="wf-section-title">Type of Workflow</div>
+    <div style="display:flex;gap:8px;margin-bottom:8px;">
+
+      <button class="wf-type-btn" id="wft-parallel" onclick="selectWfType('parallel')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        Parallel
+      </button>
+
+      <button class="wf-type-btn" id="wft-series" onclick="selectWfType('series')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Series
+      </button>
+
+      <button class="wf-type-btn" id="wft-custom" onclick="selectWfType('custom')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Custom
+      </button>
+
+    </div>
+
+    <!-- Type description -->
+    <div id="wft-desc" style="font-size:11px;color:#8099b0;min-height:16px;padding:0 2px;margin-bottom:12px;"></div>
+
+    <!-- ── Approvers section (shown when a type is selected) ── -->
+    <div id="wf-approvers-section" style="display:none;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8099b0;">Approvers</div>
+        <span id="wf-type-badge" style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:20px;background:rgba(34,79,147,0.08);color:#224F93;"></span>
+      </div>
+
+      <!-- Add email row -->
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <input id="wf-email-input" type="email" placeholder="Enter email address"
+          style="flex:1;padding:9px 12px;border:1px solid rgba(34,79,147,0.25);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;color:#1a2a3a;outline:none;background:#f4f8fd;"
+          onfocus="this.style.borderColor='#224F93'" onblur="this.style.borderColor='rgba(34,79,147,0.25)'"
+          onkeydown="if(event.key==='Enter'){addWfApprover();event.preventDefault();}">
+        <button onclick="addWfApprover()" style="display:flex;align-items:center;gap:5px;padding:9px 14px;background:#224F93;color:#fff;border:none;border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;" onmouseover="this.style.background='#2d65bd'" onmouseout="this.style.background='#224F93'">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add
+        </button>
+      </div>
+      <div id="wf-email-err" style="display:none;font-size:11px;color:#c02020;margin-bottom:8px;"></div>
+
+      <!-- Approver list -->
+      <div id="wf-approver-list" style="min-height:36px;"></div>
+    </div>
+
+    <div class="wf-divider"></div>
+
+    <!-- Actions -->
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button onclick="closeWorkflowModal()" style="padding:8px 16px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;color:#4a6080;">Cancel</button>
+      <button onclick="confirmWorkflow()" style="padding:8px 18px;background:#224F93;color:#fff;border:none;border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;cursor:pointer;" onmouseover="this.style.background='#2d65bd'" onmouseout="this.style.background='#224F93'">Apply Workflow</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ SUBFOLDER MODAL ══ -->
+<div id="subfolder-modal" style="display:none;position:fixed;inset:0;background:rgba(20,40,80,0.45);z-index:10001;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;width:400px;max-width:calc(100vw - 32px);padding:28px;box-shadow:0 20px 60px rgba(34,79,147,0.2);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div>
+        <div style="font-size:15px;font-weight:700;color:#1a2a3a;">New Folder</div>
+        <div style="font-size:11px;color:#8099b0;margin-top:2px;">Create a subfolder inside this folder</div>
+      </div>
+      <button onclick="closeSubfolderModal()" style="width:28px;height:28px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:6px;cursor:pointer;font-size:14px;color:#8099b0;display:flex;align-items:center;justify-content:center;">✕</button>
+    </div>
+    <label style="display:block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8099b0;margin-bottom:6px;">Folder Name</label>
+    <input id="subfolder-input" type="text" placeholder="e.g. Version 1"
+      style="width:100%;padding:10px 12px;border:1px solid rgba(34,79,147,0.25);border-radius:7px;font-family:'Barlow',sans-serif;font-size:13px;color:#1a2a3a;outline:none;background:#f4f8fd;"
+      onfocus="this.style.borderColor='#224F93'" onblur="this.style.borderColor='rgba(34,79,147,0.25)'"
+      onkeydown="if(event.key==='Enter')confirmSubfolder()">
+    <div id="subfolder-err" style="display:none;font-size:11px;color:#c02020;margin-top:6px;"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px;">
+      <button onclick="closeSubfolderModal()" style="padding:8px 16px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;color:#4a6080;">Cancel</button>
+      <button onclick="confirmSubfolder()" style="padding:8px 18px;background:#224F93;color:#fff;border:none;border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;cursor:pointer;" onmouseover="this.style.background='#2d65bd'" onmouseout="this.style.background='#224F93'">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ NEW PAYMENT FOLDER MODAL ══ -->
+<div id="new-pay-folder-modal" style="display:none;position:fixed;inset:0;background:rgba(20,40,80,0.45);z-index:10001;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;width:400px;max-width:calc(100vw - 32px);padding:28px;box-shadow:0 20px 60px rgba(34,79,147,0.2);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div>
+        <div style="font-size:15px;font-weight:700;color:#1a2a3a;">New Payment Folder</div>
+        <div style="font-size:11px;color:#8099b0;margin-top:2px;">Create a new folder in Payments</div>
+      </div>
+      <button onclick="closeNewPayFolderModal()" style="width:28px;height:28px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:6px;cursor:pointer;font-size:14px;color:#8099b0;display:flex;align-items:center;justify-content:center;">✕</button>
+    </div>
+    <label style="display:block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8099b0;margin-bottom:6px;">Folder Name</label>
+    <input id="new-pay-folder-input" type="text" placeholder="e.g. Decompte 002"
+      style="width:100%;padding:10px 12px;border:1px solid rgba(34,79,147,0.25);border-radius:7px;font-family:'Barlow',sans-serif;font-size:13px;color:#1a2a3a;outline:none;background:#f4f8fd;"
+      onfocus="this.style.borderColor='#224F93'" onblur="this.style.borderColor='rgba(34,79,147,0.25)'"
+      onkeydown="if(event.key==='Enter')confirmNewPayFolder()">
+    <div id="new-pay-folder-err" style="display:none;font-size:11px;color:#c02020;margin-top:6px;"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px;">
+      <button onclick="closeNewPayFolderModal()" style="padding:8px 16px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;color:#4a6080;">Cancel</button>
+      <button onclick="confirmNewPayFolder()" style="padding:8px 18px;background:#224F93;color:#fff;border:none;border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;cursor:pointer;" onmouseover="this.style.background='#2d65bd'" onmouseout="this.style.background='#224F93'">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ NEW PAY SUBFOLDER MODAL ══ -->
+<div id="new-pay-sub-modal" style="display:none;position:fixed;inset:0;background:rgba(20,40,80,0.45);z-index:10001;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;width:400px;max-width:calc(100vw - 32px);padding:28px;box-shadow:0 20px 60px rgba(34,79,147,0.2);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div>
+        <div style="font-size:15px;font-weight:700;color:#1a2a3a;">New Folder</div>
+        <div style="font-size:11px;color:#8099b0;margin-top:2px;">Create a subfolder inside this folder</div>
+      </div>
+      <button onclick="closeNewPaySubFolderModal()" style="width:28px;height:28px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:6px;cursor:pointer;font-size:14px;color:#8099b0;display:flex;align-items:center;justify-content:center;">✕</button>
+    </div>
+    <label style="display:block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8099b0;margin-bottom:6px;">Folder Name</label>
+    <input id="new-pay-sub-input" type="text" placeholder="e.g. Factures"
+      style="width:100%;padding:10px 12px;border:1px solid rgba(34,79,147,0.25);border-radius:7px;font-family:'Barlow',sans-serif;font-size:13px;color:#1a2a3a;outline:none;background:#f4f8fd;"
+      onfocus="this.style.borderColor='#224F93'" onblur="this.style.borderColor='rgba(34,79,147,0.25)'"
+      onkeydown="if(event.key==='Enter')confirmNewPaySubFolder()">
+    <div id="new-pay-sub-err" style="display:none;font-size:11px;color:#c02020;margin-top:6px;"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px;">
+      <button onclick="closeNewPaySubFolderModal()" style="padding:8px 16px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;color:#4a6080;">Cancel</button>
+      <button onclick="confirmNewPaySubFolder()" style="padding:8px 18px;background:#224F93;color:#fff;border:none;border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;cursor:pointer;" onmouseover="this.style.background='#2d65bd'" onmouseout="this.style.background='#224F93'">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MY PROFILE MODAL ══ -->
+<div id="profile-modal" style="display:none;position:fixed;inset:0;background:rgba(20,40,80,0.45);z-index:10002;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;width:400px;max-width:calc(100vw - 32px);padding:28px;box-shadow:0 20px 60px rgba(34,79,147,0.2);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;">
+      <div style="font-size:15px;font-weight:700;color:#1a2a3a;">My Profile</div>
+      <button onclick="closeProfileModal()" style="width:28px;height:28px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:6px;cursor:pointer;font-size:14px;color:#8099b0;display:flex;align-items:center;justify-content:center;">✕</button>
+    </div>
+    <!-- Avatar -->
+    <div style="text-align:center;margin-bottom:22px;">
+      <div style="width:72px;height:72px;background:rgba(34,79,147,0.1);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#224F93" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </div>
+      <div id="profile-name-display" style="font-size:17px;font-weight:700;color:#1a2a3a;"></div>
+      <div id="profile-username-display" style="font-size:12px;color:#8099b0;margin-top:2px;"></div>
+    </div>
+    <!-- Info rows -->
+    <div style="background:#f4f8fd;border:1px solid rgba(34,79,147,0.1);border-radius:8px;overflow:hidden;margin-bottom:20px;">
+      <div style="display:flex;justify-content:space-between;padding:10px 14px;border-bottom:1px solid rgba(34,79,147,0.07);">
+        <span style="font-size:11px;font-weight:700;color:#8099b0;text-transform:uppercase;letter-spacing:0.08em;">Project</span>
+        <span style="font-size:12px;font-weight:600;color:#1a2a3a;">Shift Tower</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:10px 14px;">
+        <span style="font-size:11px;font-weight:700;color:#8099b0;text-transform:uppercase;letter-spacing:0.08em;">Role</span>
+        <span style="font-size:12px;font-weight:600;color:#1a2a3a;">Member</span>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;">
+      <button onclick="closeProfileModal();openManageAccount()" style="padding:8px 16px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;color:#224F93;">Edit Profile</button>
+      <button onclick="closeProfileModal()" style="padding:8px 18px;background:#224F93;color:#fff;border:none;border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;cursor:pointer;" onmouseover="this.style.background='#2d65bd'" onmouseout="this.style.background='#224F93'">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MANAGE ACCOUNT MODAL ══ -->
+<div id="account-modal" style="display:none;position:fixed;inset:0;background:rgba(20,40,80,0.45);z-index:10002;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;width:420px;max-width:calc(100vw - 32px);max-height:90vh;overflow-y:auto;padding:28px;box-shadow:0 20px 60px rgba(34,79,147,0.2);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;">
+      <div>
+        <div style="font-size:15px;font-weight:700;color:#1a2a3a;">Manage My Account</div>
+        <div style="font-size:11px;color:#8099b0;margin-top:2px;">Update your profile information</div>
+      </div>
+      <button onclick="closeAccountModal()" style="width:28px;height:28px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:6px;cursor:pointer;font-size:14px;color:#8099b0;display:flex;align-items:center;justify-content:center;">✕</button>
+    </div>
+
+    <!-- Full Name -->
+    <div style="margin-bottom:14px;">
+      <label style="display:block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8099b0;margin-bottom:6px;">Full Name</label>
+      <input id="acc-name" type="text" placeholder="Your full name"
+        style="width:100%;padding:10px 12px;border:1px solid rgba(34,79,147,0.25);border-radius:7px;font-family:'Barlow',sans-serif;font-size:13px;color:#1a2a3a;outline:none;background:#f4f8fd;"
+        onfocus="this.style.borderColor='#224F93'" onblur="this.style.borderColor='rgba(34,79,147,0.25)'">
+    </div>
+
+    <!-- Username (read-only) -->
+    <div style="margin-bottom:14px;">
+      <label style="display:block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8099b0;margin-bottom:6px;">Username</label>
+      <input id="acc-username" type="text" disabled
+        style="width:100%;padding:10px 12px;border:1px solid rgba(34,79,147,0.12);border-radius:7px;font-family:'Barlow',sans-serif;font-size:13px;color:#8099b0;outline:none;background:#f0f4f9;cursor:not-allowed;">
+    </div>
+
+    <!-- Phone Number -->
+    <div style="margin-bottom:14px;">
+      <label style="display:block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8099b0;margin-bottom:6px;">Phone Number</label>
+      <div style="display:flex;gap:8px;">
+        <select id="acc-phone-code" style="padding:10px 8px;border:1px solid rgba(34,79,147,0.25);border-radius:7px;font-family:'Barlow',sans-serif;font-size:13px;color:#1a2a3a;outline:none;background:#f4f8fd;cursor:pointer;width:110px;flex-shrink:0;">
+          <option value="+212">🇲🇦 +212</option>
+          <option value="+33">🇫🇷 +33</option>
+          <option value="+1">🇺🇸 +1</option>
+          <option value="+44">🇬🇧 +44</option>
+          <option value="+49">🇩🇪 +49</option>
+          <option value="+34">🇪🇸 +34</option>
+          <option value="+39">🇮🇹 +39</option>
+          <option value="+971">🇦🇪 +971</option>
+          <option value="+966">🇸🇦 +966</option>
+          <option value="+216">🇹🇳 +216</option>
+          <option value="+213">🇩🇿 +213</option>
+        </select>
+        <input id="acc-phone" type="tel" placeholder="06 12 34 56 78"
+          style="flex:1;padding:10px 12px;border:1px solid rgba(34,79,147,0.25);border-radius:7px;font-family:'Barlow',sans-serif;font-size:13px;color:#1a2a3a;outline:none;background:#f4f8fd;"
+          onfocus="this.style.borderColor='#224F93'" onblur="this.style.borderColor='rgba(34,79,147,0.25)'">
+      </div>
+    </div>
+
+    <!-- Role -->
+    <div style="margin-bottom:22px;">
+      <label style="display:block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8099b0;margin-bottom:8px;">Role</label>
+      <div style="display:flex;gap:8px;">
+        <label id="role-admin" onclick="selectRole('Admin')" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 8px;border:1.5px solid rgba(34,79,147,0.2);border-radius:9px;cursor:pointer;transition:all 0.15s;text-align:center;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#224F93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <span style="font-size:11px;font-weight:700;color:#1a2a3a;">Admin</span>
+          <span style="font-size:9px;color:#8099b0;line-height:1.3;">Full access</span>
+        </label>
+        <label id="role-editor" onclick="selectRole('Editor')" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 8px;border:1.5px solid rgba(34,79,147,0.2);border-radius:9px;cursor:pointer;transition:all 0.15s;text-align:center;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#224F93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          <span style="font-size:11px;font-weight:700;color:#1a2a3a;">Editor</span>
+          <span style="font-size:9px;color:#8099b0;line-height:1.3;">Can edit content</span>
+        </label>
+        <label id="role-viewer" onclick="selectRole('Viewer')" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 8px;border:1.5px solid rgba(34,79,147,0.2);border-radius:9px;cursor:pointer;transition:all 0.15s;text-align:center;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#224F93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <span style="font-size:11px;font-weight:700;color:#1a2a3a;">Viewer</span>
+          <span style="font-size:9px;color:#8099b0;line-height:1.3;">Read only</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- New Password -->
+    <div style="margin-bottom:22px;">
+      <label style="display:block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8099b0;margin-bottom:6px;">New Password <span style="font-weight:400;text-transform:none;letter-spacing:0;">(leave blank to keep current)</span></label>
+      <input id="acc-pass" type="password" placeholder="New password"
+        style="width:100%;padding:10px 12px;border:1px solid rgba(34,79,147,0.25);border-radius:7px;font-family:'Barlow',sans-serif;font-size:13px;color:#1a2a3a;outline:none;background:#f4f8fd;"
+        onfocus="this.style.borderColor='#224F93'" onblur="this.style.borderColor='rgba(34,79,147,0.25)'">
+    </div>
+
+    <div id="acc-err" style="display:none;background:rgba(192,32,32,0.07);border:1px solid rgba(192,32,32,0.25);border-radius:6px;padding:9px 12px;font-size:12px;color:#c02020;margin-bottom:14px;"></div>
+    <div id="acc-ok" style="display:none;background:rgba(46,194,126,0.08);border:1px solid rgba(46,194,126,0.3);border-radius:6px;padding:9px 12px;font-size:12px;color:#1a9458;margin-bottom:14px;"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button onclick="closeAccountModal()" style="padding:8px 16px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;color:#4a6080;">Cancel</button>
+      <button onclick="saveAccount()" style="padding:8px 18px;background:#224F93;color:#fff;border:none;border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;cursor:pointer;" onmouseover="this.style.background='#2d65bd'" onmouseout="this.style.background='#224F93'">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TOAST ══ -->
+<div id="toast" style="position:fixed;bottom:20px;right:20px;background:#224F93;color:#fff;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;padding:10px 18px;border-radius:8px;box-shadow:0 6px 24px rgba(34,79,147,0.25);z-index:20000;opacity:0;transform:translateY(10px);transition:opacity 0.25s,transform 0.25s;pointer-events:none;"></div>
+
+</body>
+</html>
