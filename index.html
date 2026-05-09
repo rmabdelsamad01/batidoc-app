@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BatiGED</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#224F93">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BatiGED">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Barlow:wght@400;500;600;700&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -1117,6 +1123,14 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 <!-- ══ TOAST ══ -->
 <div id="toast" style="position:fixed;bottom:20px;right:20px;background:#224F93;color:#fff;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;padding:10px 18px;border-radius:8px;box-shadow:0 6px 24px rgba(34,79,147,0.25);z-index:20000;opacity:0;transform:translateY(10px);transition:opacity 0.25s,transform 0.25s;pointer-events:none;"></div>
+
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('/sw.js').catch(function(e){console.warn('SW registration failed:',e);});
+  });
+}
+</script>
 
 </body>
 </html>
