@@ -733,7 +733,7 @@ window._installPWA = async function() {
 
 <!-- ══ NEW / EDIT WORKFLOW MODAL ══ -->
 <div id="new-workflow-modal" style="display:none;position:fixed;inset:0;background:rgba(20,40,80,0.45);z-index:10002;align-items:center;justify-content:center;">
-  <div style="background:#fff;border-radius:14px;width:480px;max-width:calc(100vw - 32px);max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(20,40,80,0.18);">
+  <div style="background:#fff;border-radius:14px;width:520px;max-width:calc(100vw - 32px);max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(20,40,80,0.18);">
     <div style="display:flex;align-items:center;padding:20px 24px 16px;border-bottom:1px solid rgba(34,79,147,0.1);">
       <div>
         <div id="wf-modal-title" style="font-size:15px;font-weight:700;color:#1a2a3a;">New Workflow</div>
@@ -742,20 +742,46 @@ window._installPWA = async function() {
       <button onclick="closeNewWorkflowModal()" style="margin-left:auto;width:28px;height:28px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:6px;cursor:pointer;font-size:14px;color:#8099b0;display:flex;align-items:center;justify-content:center;">✕</button>
     </div>
     <div style="padding:20px 24px;">
+
+      <!-- Name -->
       <div style="margin-bottom:18px;">
         <label style="display:block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8099b0;margin-bottom:6px;">Workflow Name</label>
         <input id="wf-name-input" type="text" placeholder="e.g. Standard Approval"
           style="width:100%;padding:9px 12px;border:1px solid rgba(34,79,147,0.25);border-radius:7px;font-family:'Barlow',sans-serif;font-size:13px;color:#1a2a3a;outline:none;background:#f4f8fd;"
           onfocus="this.style.borderColor='#224F93'" onblur="this.style.borderColor='rgba(34,79,147,0.25)'">
       </div>
+
+      <!-- Type -->
+      <div style="margin-bottom:20px;">
+        <label style="display:block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8099b0;margin-bottom:10px;">Type</label>
+        <div style="display:flex;gap:10px;">
+          <div id="wf-type-approval" onclick="selectWfType('approval')" style="flex:1;border:2px solid #224F93;border-radius:10px;padding:14px 16px;cursor:pointer;background:#f0f4f9;">
+            <div style="display:flex;align-items:center;gap:9px;margin-bottom:5px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#224F93" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              <span style="font-size:12px;font-weight:700;color:#224F93;">Document Approval</span>
+            </div>
+            <div style="font-size:11px;color:#8099b0;">Send for review and approval by email</div>
+          </div>
+          <div id="wf-type-signature" onclick="selectWfType('signature')" style="flex:1;border:2px solid rgba(34,79,147,0.2);border-radius:10px;padding:14px 16px;cursor:pointer;background:#fff;">
+            <div style="display:flex;align-items:center;gap:9px;margin-bottom:5px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8099b0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+              <span style="font-size:12px;font-weight:700;color:#8099b0;">Document Signature</span>
+            </div>
+            <div style="font-size:11px;color:#8099b0;">Collect signatures by email</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Steps -->
       <div>
         <label style="display:block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8099b0;margin-bottom:10px;">Steps</label>
-        <div id="wf-steps-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;"></div>
+        <div id="wf-steps-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:10px;"></div>
         <button onclick="addWorkflowStep()" style="display:flex;align-items:center;gap:6px;padding:7px 12px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.2);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;color:#224F93;">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Add Step
         </button>
       </div>
+
     </div>
     <div style="display:flex;justify-content:flex-end;gap:8px;padding:14px 24px;border-top:1px solid rgba(34,79,147,0.1);">
       <button onclick="closeNewWorkflowModal()" style="padding:8px 16px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;color:#4a6080;">Cancel</button>

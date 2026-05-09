@@ -79,9 +79,37 @@ function setPage(page){
 // ── Workflow Templates ────────────────────────────────────────
 var gedWorkflows=JSON.parse(localStorage.getItem('ged_workflows')||'[]');
 var _editingWfId=null;
-var _wfPickerContext=null; // {names, mode}
+var _wfPickerContext=null;
+var _wfType='approval'; // current type selection in modal
 
 function saveGedWorkflows(){localStorage.setItem('ged_workflows',JSON.stringify(gedWorkflows));}
+
+function selectWfType(type){
+  _wfType=type;
+  var appr=document.getElementById('wf-type-approval');
+  var sign=document.getElementById('wf-type-signature');
+  if(type==='approval'){
+    appr.style.border='2px solid #224F93';appr.style.background='#f0f4f9';
+    appr.querySelector('span').style.color='#224F93';
+    appr.querySelector('svg').setAttribute('stroke','#224F93');
+    sign.style.border='2px solid rgba(34,79,147,0.2)';sign.style.background='#fff';
+    sign.querySelector('span').style.color='#8099b0';
+    sign.querySelector('svg').setAttribute('stroke','#8099b0');
+  }else{
+    sign.style.border='2px solid #224F93';sign.style.background='#f0f4f9';
+    sign.querySelector('span').style.color='#224F93';
+    sign.querySelector('svg').setAttribute('stroke','#224F93');
+    appr.style.border='2px solid rgba(34,79,147,0.2)';appr.style.background='#fff';
+    appr.querySelector('span').style.color='#8099b0';
+    appr.querySelector('svg').setAttribute('stroke','#8099b0');
+  }
+  // re-render steps so email field shows/hides
+  var items=document.querySelectorAll('#wf-steps-list > div');
+  items.forEach(function(item){
+    var emailRow=item.querySelector('.wf-email-row');
+    if(emailRow) emailRow.style.display=(type==='approval'||type==='signature')?'flex':'none';
+  });
+}
 
 function renderWorkflows(){
   var list=document.getElementById('workflow-list');
@@ -93,20 +121,29 @@ function renderWorkflows(){
       '<div style="font-size:12px;">Click "New Workflow" to create your first template</div></div>';
     return;
   }
+  var typeLabel={'approval':'Document Approval','signature':'Document Signature'};
+  var typeColor={'approval':'#1a9458','signature':'#224F93'};
+  var typeBg={'approval':'rgba(46,194,126,0.08)','signature':'rgba(34,79,147,0.08)'};
   list.innerHTML=gedWorkflows.map(function(wf){
     var stepsHtml=wf.steps.map(function(s,i){
+      var label=typeof s==='object'?s.name:s;
+      var email=typeof s==='object'?s.email:'';
       return (i>0?'<span style="color:#b0bec5;margin:0 4px;font-size:13px;">→</span>':'')+
-        '<span style="background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:5px;padding:3px 9px;font-size:11px;font-weight:600;color:#4a6080;">'+s+'</span>';
+        '<span style="display:inline-flex;flex-direction:column;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;color:#4a6080;">'+
+          label+(email?'<span style="font-size:10px;font-weight:400;color:#8099b0;">'+email+'</span>':'')+
+        '</span>';
     }).join('');
+    var t=wf.type||'approval';
     return '<div style="background:#fff;border:1px solid rgba(34,79,147,0.12);border-radius:10px;padding:16px 18px;margin-bottom:10px;">'+
-      '<div style="display:flex;align-items:center;margin-bottom:10px;">'+
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">'+
         '<div style="font-size:13px;font-weight:700;color:#1a2a3a;">'+wf.name+'</div>'+
+        '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:'+typeBg[t]+';color:'+typeColor[t]+';">'+typeLabel[t]+'</span>'+
         '<div style="margin-left:auto;display:flex;gap:6px;">'+
           '<button onclick="openEditWorkflowModal(\''+wf.id+'\')" style="padding:5px 11px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:6px;font-family:\'Barlow\',sans-serif;font-size:11px;font-weight:600;cursor:pointer;color:#4a6080;">Edit</button>'+
           '<button onclick="deleteWorkflow(\''+wf.id+'\')" style="padding:5px 11px;background:#fff5f5;border:1px solid rgba(192,32,32,0.2);border-radius:6px;font-family:\'Barlow\',sans-serif;font-size:11px;font-weight:600;cursor:pointer;color:#c02020;">Delete</button>'+
         '</div>'+
       '</div>'+
-      '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">'+stepsHtml+'</div>'+
+      '<div style="display:flex;align-items:flex-start;flex-wrap:wrap;gap:4px;">'+stepsHtml+'</div>'+
     '</div>';
   }).join('');
 }
@@ -116,8 +153,9 @@ function openNewWorkflowModal(){
   document.getElementById('wf-modal-title').textContent='New Workflow';
   document.getElementById('wf-name-input').value='';
   document.getElementById('wf-steps-list').innerHTML='';
-  addWorkflowStep('Submission');
-  addWorkflowStep('Approval');
+  selectWfType('approval');
+  addWorkflowStep({name:'Submission',email:''});
+  addWorkflowStep({name:'Approval',email:''});
   document.getElementById('new-workflow-modal').style.display='flex';
 }
 
@@ -128,6 +166,7 @@ function openEditWorkflowModal(id){
   document.getElementById('wf-modal-title').textContent='Edit Workflow';
   document.getElementById('wf-name-input').value=wf.name;
   document.getElementById('wf-steps-list').innerHTML='';
+  selectWfType(wf.type||'approval');
   wf.steps.forEach(function(s){addWorkflowStep(s);});
   document.getElementById('new-workflow-modal').style.display='flex';
 }
@@ -137,37 +176,54 @@ function closeNewWorkflowModal(){document.getElementById('new-workflow-modal').s
 function addWorkflowStep(value){
   var list=document.getElementById('wf-steps-list');
   var idx=list.children.length+1;
+  var stepName=value?(typeof value==='object'?value.name:value):'';
+  var stepEmail=value&&typeof value==='object'?value.email:'';
   var div=document.createElement('div');
-  div.style.cssText='display:flex;align-items:center;gap:8px;';
-  div.innerHTML='<div style="width:22px;height:22px;background:#224F93;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0;">'+idx+'</div>'+
-    '<input type="text" value="'+(value||'')+'" placeholder="Step name..."'+
-    ' style="flex:1;padding:8px 11px;border:1px solid rgba(34,79,147,0.25);border-radius:7px;font-family:\'Barlow\',sans-serif;font-size:12px;color:#1a2a3a;outline:none;background:#f4f8fd;"'+
-    ' onfocus="this.style.borderColor=\'#224F93\'" onblur="this.style.borderColor=\'rgba(34,79,147,0.25)\'">'+
-    '<button onclick="removeWorkflowStep(this)" style="width:26px;height:26px;flex-shrink:0;background:#fff5f5;border:1px solid rgba(192,32,32,0.2);border-radius:6px;cursor:pointer;color:#c02020;font-size:14px;display:flex;align-items:center;justify-content:center;">✕</button>';
+  div.style.cssText='display:flex;flex-direction:column;gap:6px;background:#f8fafd;border:1px solid rgba(34,79,147,0.1);border-radius:8px;padding:10px 12px;';
+  div.innerHTML=
+    '<div style="display:flex;align-items:center;gap:8px;">'+
+      '<div class="wf-step-num" style="width:22px;height:22px;background:#224F93;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0;">'+idx+'</div>'+
+      '<input type="text" value="'+stepName+'" placeholder="Step name..." class="wf-step-name"'+
+      ' style="flex:1;padding:7px 10px;border:1px solid rgba(34,79,147,0.25);border-radius:7px;font-family:\'Barlow\',sans-serif;font-size:12px;color:#1a2a3a;outline:none;background:#fff;"'+
+      ' onfocus="this.style.borderColor=\'#224F93\'" onblur="this.style.borderColor=\'rgba(34,79,147,0.25)\'">'+
+      '<button onclick="removeWorkflowStep(this)" style="width:26px;height:26px;flex-shrink:0;background:#fff5f5;border:1px solid rgba(192,32,32,0.2);border-radius:6px;cursor:pointer;color:#c02020;font-size:14px;display:flex;align-items:center;justify-content:center;">✕</button>'+
+    '</div>'+
+    '<div class="wf-email-row" style="display:flex;align-items:center;gap:8px;padding-left:30px;">'+
+      '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8099b0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>'+
+      '<input type="email" value="'+stepEmail+'" placeholder="Email to notify..." class="wf-step-email"'+
+      ' style="flex:1;padding:6px 10px;border:1px solid rgba(34,79,147,0.2);border-radius:7px;font-family:\'Barlow\',sans-serif;font-size:12px;color:#1a2a3a;outline:none;background:#fff;"'+
+      ' onfocus="this.style.borderColor=\'#224F93\'" onblur="this.style.borderColor=\'rgba(34,79,147,0.2)\'">'+
+    '</div>';
   list.appendChild(div);
   renumberWorkflowSteps();
 }
 
-function removeWorkflowStep(btn){btn.parentElement.remove();renumberWorkflowSteps();}
+function removeWorkflowStep(btn){btn.closest('div[style]').remove();renumberWorkflowSteps();}
 
 function renumberWorkflowSteps(){
   var items=document.querySelectorAll('#wf-steps-list > div');
-  items.forEach(function(item,i){var b=item.querySelector('div');if(b)b.textContent=i+1;});
+  items.forEach(function(item,i){var b=item.querySelector('.wf-step-num');if(b)b.textContent=i+1;});
 }
 
 function saveWorkflow(){
   var name=document.getElementById('wf-name-input').value.trim();
   if(!name){showToast('Please enter a workflow name');return;}
-  var inputs=document.querySelectorAll('#wf-steps-list input');
+  var stepDivs=document.querySelectorAll('#wf-steps-list > div');
   var steps=[];
-  inputs.forEach(function(inp){var v=inp.value.trim();if(v)steps.push(v);});
+  stepDivs.forEach(function(div){
+    var nameInp=div.querySelector('.wf-step-name');
+    var emailInp=div.querySelector('.wf-step-email');
+    var n=nameInp?nameInp.value.trim():'';
+    var e=emailInp?emailInp.value.trim():'';
+    if(n) steps.push({name:n,email:e});
+  });
   if(steps.length<1){showToast('Please add at least one step');return;}
   if(_editingWfId){
     var wf=gedWorkflows.find(function(w){return w.id===_editingWfId;});
-    if(wf){wf.name=name;wf.steps=steps;}
+    if(wf){wf.name=name;wf.type=_wfType;wf.steps=steps;}
   }else{
     var newId=(typeof crypto!=='undefined'&&crypto.randomUUID)?crypto.randomUUID():(Date.now()+'_'+Math.random().toString(36).slice(2));
-    gedWorkflows.push({id:newId,name:name,steps:steps});
+    gedWorkflows.push({id:newId,name:name,type:_wfType,steps:steps});
   }
   saveGedWorkflows();
   closeNewWorkflowModal();
