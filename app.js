@@ -334,12 +334,13 @@ function downloadSelected(){
   document.getElementById('download-modal').style.display='flex';
 }
 function closeDownloadModal(){document.getElementById('download-modal').style.display='none';}
-function confirmDownload(){
-  // Simulate download feedback
+async function confirmDownload(){
   var btn=document.getElementById('download-confirm-btn');
-  btn.textContent='Downloading…';
-  btn.style.background='#1a9458';
-  setTimeout(function(){closeDownloadModal();btn.textContent='Download';btn.style.background='#224F93';},1200);
+  btn.textContent='Downloading…';btn.style.background='#1a9458';
+  await gedDownloadFiles(_downloadFileRefs);
+  closeDownloadModal();
+  btn.textContent='Download';btn.style.background='#224F93';
+  _downloadFileRefs=[];
 }
 
 // ── move ─────────────────────────────────────────────────────
@@ -506,31 +507,83 @@ function showToast(msg){
   setTimeout(function(){t.style.opacity='0';t.style.transform='translateY(10px)';},2200);
 }
 
+// ── GED Storage helpers ───────────────────────────────────────
+var GED_BUCKET='ged-documents';
+var _downloadFileRefs=[];
+
+function gedFmtSize(b){return b<1024?b+' B':b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(1)+' MB';}
+
+async function gedLoadFiles(folderId,folderType){
+  var {data,error}=await sb.from('ged_files').select('*').eq('project','batidoc').eq('folder_id',String(folderId)).eq('folder_type',folderType).order('created_at');
+  if(error||!data)return [];
+  return data.map(function(r){var d=new Date(r.created_at);var ds=('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear();return {id:r.id,name:r.name,size:r.size_label||'—',date:ds,storage_path:r.storage_path};});
+}
+
+async function gedUploadFile(file,folderId,folderType){
+  var fileId=(typeof crypto!=='undefined'&&crypto.randomUUID)?crypto.randomUUID():(Date.now()+'_'+Math.random().toString(36).slice(2));
+  var path='batidoc/'+folderType+'/'+String(folderId)+'/'+fileId+'/'+file.name;
+  var {error:upErr}=await sb.storage.from(GED_BUCKET).upload(path,file,{upsert:false});
+  if(upErr){showToast('Upload failed: '+file.name);return null;}
+  var today=new Date();
+  var ds=('0'+today.getDate()).slice(-2)+'/'+('0'+(today.getMonth()+1)).slice(-2)+'/'+today.getFullYear();
+  var {data:row,error:dbErr}=await sb.from('ged_files').insert({project:'batidoc',folder_id:String(folderId),folder_type:folderType,name:file.name,storage_path:path,size_bytes:file.size,size_label:gedFmtSize(file.size),mime_type:file.type||'',uploaded_by:(sbProfile&&(sbProfile.username||sbProfile.full_name))||''}).select().single();
+  if(dbErr){showToast('Save error: '+file.name);return null;}
+  return {id:row.id,name:row.name,size:row.size_label,date:ds,storage_path:row.storage_path};
+}
+
+async function gedDeleteFiles(files){
+  var paths=files.filter(function(f){return f.storage_path;}).map(function(f){return f.storage_path;});
+  var ids=files.filter(function(f){return f.id;}).map(function(f){return f.id;});
+  if(paths.length)await sb.storage.from(GED_BUCKET).remove(paths);
+  if(ids.length)await sb.from('ged_files').delete().in('id',ids);
+}
+
+async function gedDownloadFiles(files){
+  for(var i=0;i<files.length;i++){
+    var f=files[i];if(!f.storage_path)continue;
+    var {data,error}=await sb.storage.from(GED_BUCKET).createSignedUrl(f.storage_path,300);
+    if(data&&data.signedUrl){var a=document.createElement('a');a.href=data.signedUrl;a.download=f.name;document.body.appendChild(a);a.click();document.body.removeChild(a);}
+  }
+}
+
+async function gedDuplicateFile(origFile,folderId,folderType){
+  var {data,error}=await sb.storage.from(GED_BUCKET).createSignedUrl(origFile.storage_path,120);
+  if(!data||!data.signedUrl)return null;
+  var resp=await fetch(data.signedUrl);var blob=await resp.blob();
+  var dot=origFile.name.lastIndexOf('.');
+  var base=dot!==-1?origFile.name.slice(0,dot):origFile.name;
+  var ext=dot!==-1?origFile.name.slice(dot):'';
+  return await gedUploadFile(new File([blob],base+' (copy)'+ext,{type:blob.type}),folderId,folderType);
+}
+
 // ── folder open & upload ─────────────────────────────────────
-var folderFiles={};     // keyed by folderId: array of {name,size,date,type:'file'}
+var folderFiles={};     // keyed by folderId: array of {id,name,size,date,storage_path}
 var folderSubs={};      // keyed by folderId: array of {id,name,date}
 var currentFolderId=null;
 var folderStack=[];     // navigation stack [{id, label}]
 
-function openFolder(id){
+async function openFolder(id){
   var d=deliverables.find(function(x){return x.id===id;});
   if(!d)return;
   var label=d.code?d.id+'. ('+d.code+') '+d.name:d.id+'. '+d.name;
   folderStack=[{id:id,label:label}];
   currentFolderId=id;
   renderBreadcrumb();
-  renderFolderFiles();
   document.getElementById('view-list').style.display='none';
   document.getElementById('view-folder').style.display='block';
+  folderFiles[id]=await gedLoadFiles(id,'deliverable');
+  renderFolderFiles();
 }
 
-function openSubFolder(parentId, subId){
+async function openSubFolder(parentId, subId){
   var subs=folderSubs[parentId]||[];
   var sub=subs.find(function(s){return s.id===subId;});
   if(!sub)return;
-  folderStack.push({id:'sub:'+parentId+':'+subId, label:sub.name});
-  currentFolderId='sub:'+parentId+':'+subId;
+  var key='sub:'+parentId+':'+subId;
+  folderStack.push({id:key, label:sub.name});
+  currentFolderId=key;
   renderBreadcrumb();
+  folderFiles[key]=await gedLoadFiles(key,'deliverable');
   renderFolderFiles();
 }
 
@@ -630,8 +683,10 @@ function renderFolderFiles(){
   updateFileToolbar();
 }
 
-function removeFile(i){
+async function removeFile(i){
   if(!folderFiles[currentFolderId])return;
+  var f=folderFiles[currentFolderId][i];
+  if(f)await gedDeleteFiles([f]);
   folderFiles[currentFolderId].splice(i,1);
   renderFolderFiles();
 }
@@ -710,7 +765,20 @@ function openFileRenameModal(){
   setTimeout(function(){document.getElementById('rename-input').focus();},80);
 }
 
-function duplicateFile(){
+async function duplicateFile(){
+  var files=folderFiles[currentFolderId]||[];
+  var idxs=getCheckedFileIdxs().sort(function(a,b){return b-a;});
+  showToast('Duplicating…');
+  for(var ii=0;ii<idxs.length;ii++){
+    var i=idxs[ii];var f=files[i];if(!f)continue;
+    var rec=await gedDuplicateFile(f,currentFolderId,'deliverable');
+    if(rec)files.splice(i+1,0,rec);
+  }
+  document.getElementById('fcheck-all').checked=false;
+  renderFolderFiles();
+  showToast(idxs.length+' file'+(idxs.length===1?' duplicated':'s duplicated'));
+}
+function _duplicateFile_OLD(){
   var files=folderFiles[currentFolderId]||[];
   var idxs=getCheckedFileIdxs().sort(function(a,b){return b-a;});
   idxs.forEach(function(i){
@@ -745,7 +813,8 @@ function openFileWorkflowModal(){
 function downloadFile(){
   var idxs=getCheckedFileIdxs();
   var files=folderFiles[currentFolderId]||[];
-  var names=idxs.map(function(i){return files[i]?files[i].name:'';}).filter(Boolean);
+  _downloadFileRefs=idxs.map(function(i){return files[i];}).filter(Boolean);
+  var names=_downloadFileRefs.map(function(f){return f.name;});
   document.getElementById('download-names').innerHTML=names.map(function(n){
     return '<div style="display:flex;align-items:center;gap:7px;padding:6px 0;border-bottom:1px solid rgba(34,79,147,0.06);">'
       +'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4a90d9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>'
@@ -754,9 +823,11 @@ function downloadFile(){
   document.getElementById('download-modal').style.display='flex';
 }
 
-function deleteFile(){
+async function deleteFile(){
   var idxs=getCheckedFileIdxs().sort(function(a,b){return b-a;});
   var files=folderFiles[currentFolderId]||[];
+  var toDelete=idxs.map(function(i){return files[i];}).filter(Boolean);
+  await gedDeleteFiles(toDelete);
   idxs.forEach(function(i){files.splice(i,1);});
   document.getElementById('fcheck-all').checked=false;
   renderFolderFiles();
@@ -782,15 +853,16 @@ function handleDragLeave(e){
   e.currentTarget.style.background='rgba(34,79,147,0.02)';
 }
 
-function handleFiles(fileList){
+async function handleFiles(fileList){
   if(!folderFiles[currentFolderId])folderFiles[currentFolderId]=[];
-  var today=new Date();
-  var ds=('0'+today.getDate()).slice(-2)+'/'+('0'+(today.getMonth()+1)).slice(-2)+'/'+today.getFullYear();
-  Array.from(fileList).forEach(function(f){
-    var sz=f.size<1024?f.size+' B':f.size<1048576?(f.size/1024).toFixed(1)+' KB':(f.size/1048576).toFixed(1)+' MB';
-    folderFiles[currentFolderId].push({name:f.name,size:sz,date:ds});
-  });
+  var arr=Array.from(fileList);
+  showToast('Uploading '+arr.length+' file'+(arr.length===1?'':'s')+'…');
+  for(var i=0;i<arr.length;i++){
+    var rec=await gedUploadFile(arr[i],currentFolderId,'deliverable');
+    if(rec)folderFiles[currentFolderId].push(rec);
+  }
   renderFolderFiles();
+  showToast(arr.length+' file'+(arr.length===1?' uploaded':'s uploaded'));
 }
 
 // ── payments folders ──────────────────────────────────────────
@@ -945,15 +1017,16 @@ function deletePayFolder(){
 }
 
 // ── open / close pay folder view ─────────────────────────────
-function openPayFolder(id){
+async function openPayFolder(id){
   currentPayFolderId=id;
   var f=payFolders.find(function(x){return x.id===id;});
   if(!f)return;
   document.getElementById('pay-folder-breadcrumb').textContent=f.name;
   document.getElementById('pay-folder-title').textContent=f.name;
-  renderPayFileList();
   document.getElementById('pay-view-list').style.display='none';
   document.getElementById('pay-view-folder').style.display='block';
+  payFolderFiles[id]=await gedLoadFiles(id,'payment');
+  renderPayFileList();
 }
 function closePayFolder(){
   document.getElementById('pay-view-folder').style.display='none';
@@ -1085,7 +1158,8 @@ function openPayFileWorkflowModal(){
 function downloadPayFile(){
   var idxs=getCheckedPayFileIdxs();
   var files=payFolderFiles[currentPayFolderId]||[];
-  var names=idxs.map(function(i){return files[i]?files[i].name:'';}).filter(Boolean);
+  _downloadFileRefs=idxs.map(function(i){return files[i];}).filter(Boolean);
+  var names=_downloadFileRefs.map(function(f){return f.name;});
   document.getElementById('download-names').innerHTML=names.map(function(n){
     return '<div style="display:flex;align-items:center;gap:7px;padding:6px 0;border-bottom:1px solid rgba(34,79,147,0.06);">'
       +'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4a90d9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>'
@@ -1097,16 +1171,17 @@ function toggleAllPayFiles(cb){
   document.querySelectorAll('.payf-row-check').forEach(function(c){c.checked=cb.checked;});
   updatePayFileToolbar();
 }
-function handlePayFileInput(input){
+async function handlePayFileInput(input){
   if(!payFolderFiles[currentPayFolderId]) payFolderFiles[currentPayFolderId]=[];
-  var today=new Date();
-  var ds=('0'+today.getDate()).slice(-2)+'/'+('0'+(today.getMonth()+1)).slice(-2)+'/'+today.getFullYear();
-  Array.from(input.files).forEach(function(f){
-    var sz=f.size<1024?f.size+' B':f.size<1048576?(f.size/1024).toFixed(1)+' KB':(f.size/1048576).toFixed(1)+' MB';
-    payFolderFiles[currentPayFolderId].push({name:f.name,size:sz,date:ds});
-  });
+  var arr=Array.from(input.files);
   input.value='';
+  showToast('Uploading '+arr.length+' file'+(arr.length===1?'':'s')+'…');
+  for(var i=0;i<arr.length;i++){
+    var rec=await gedUploadFile(arr[i],currentPayFolderId,'payment');
+    if(rec) payFolderFiles[currentPayFolderId].push(rec);
+  }
   renderPayFileList();
+  showToast(arr.length+' file'+(arr.length===1?' uploaded':'s uploaded'));
 }
 
 // ── pay subfolders ────────────────────────────────────────────
@@ -1137,9 +1212,11 @@ function removePayFile(i){
   payFolderFiles[currentPayFolderId].splice(i,1);
   renderPayFileList();
 }
-function deletePayFile(){
+async function deletePayFile(){
   var idxs=Array.from(document.querySelectorAll('.payf-row-check:checked')).map(function(c){return parseInt(c.getAttribute('data-idx'));}).sort(function(a,b){return b-a;});
   var files=payFolderFiles[currentPayFolderId]||[];
+  var toDelete=idxs.map(function(i){return files[i];}).filter(Boolean);
+  await gedDeleteFiles(toDelete);
   idxs.forEach(function(i){files.splice(i,1);});
   document.getElementById('payf-check-all').checked=false;
   renderPayFileList();
@@ -1154,7 +1231,8 @@ confirmRename=function(){
   if(rawId.indexOf('payfile:')===0){
     var idx=parseInt(rawId.replace('payfile:',''));
     var files=payFolderFiles[currentPayFolderId]||[];
-    if(files[idx]) files[idx].name=val;
+    var pf=files[idx];
+    if(pf){pf.name=val;if(pf.id)sb.from('ged_files').update({name:val}).eq('id',pf.id).then(function(){});}
     closeRenameModal();
     renderPayFileList();
   } else if(rawId.indexOf('pay:')===0){
@@ -1166,7 +1244,8 @@ confirmRename=function(){
   } else if(rawId.indexOf('file:')===0){
     var fidx=parseInt(rawId.replace('file:',''));
     var ffiles=folderFiles[currentFolderId]||[];
-    if(ffiles[fidx]) ffiles[fidx].name=val;
+    var ff=ffiles[fidx];
+    if(ff){ff.name=val;if(ff.id)sb.from('ged_files').update({name:val}).eq('id',ff.id).then(function(){});}
     closeRenameModal();
     renderFolderFiles();
   } else {
