@@ -342,6 +342,15 @@ window._installPWA = async function() {
           </span>
           Payments
         </button>
+        <button class="sb-item" id="nav-workflow" onclick="setPage('workflow')">
+          <span class="sb-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="5" cy="12" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="19" cy="19" r="2"/>
+              <line x1="7" y1="11.5" x2="17" y2="6.5"/><line x1="7" y1="12.5" x2="17" y2="17.5"/>
+            </svg>
+          </span>
+          Workflow
+        </button>
       </nav>
       <div class="sb-footer">BatiGED &copy; 2025 Batiglobe</div>
     </div>
@@ -700,12 +709,78 @@ window._installPWA = async function() {
           </div>
         </div><!-- /pay-view-folder -->
 
-      </div>
+      </div><!-- /page-payments -->
+
+      <!-- Workflow -->
+      <div id="page-workflow" style="display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+          <div>
+            <div style="font-size:18px;font-weight:700;color:#1a2a3a;margin-bottom:4px;">Workflows</div>
+            <div style="font-size:12px;color:#8099b0;">Create and manage your workflow templates</div>
+          </div>
+          <button onclick="openNewWorkflowModal()" style="display:flex;align-items:center;gap:6px;padding:8px 14px;background:#224F93;color:#fff;border:none;border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;letter-spacing:0.03em;" onmouseover="this.style.background='#2d65bd'" onmouseout="this.style.background='#224F93'">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New Workflow
+          </button>
+        </div>
+        <div id="workflow-list"></div>
+      </div><!-- /page-workflow -->
 
     </div>
   </div>
 </div>
 
+
+<!-- ══ NEW / EDIT WORKFLOW MODAL ══ -->
+<div id="new-workflow-modal" style="display:none;position:fixed;inset:0;background:rgba(20,40,80,0.45);z-index:10002;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;width:480px;max-width:calc(100vw - 32px);max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(20,40,80,0.18);">
+    <div style="display:flex;align-items:center;padding:20px 24px 16px;border-bottom:1px solid rgba(34,79,147,0.1);">
+      <div>
+        <div id="wf-modal-title" style="font-size:15px;font-weight:700;color:#1a2a3a;">New Workflow</div>
+        <div style="font-size:11px;color:#8099b0;margin-top:2px;">Define a reusable workflow template</div>
+      </div>
+      <button onclick="closeNewWorkflowModal()" style="margin-left:auto;width:28px;height:28px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:6px;cursor:pointer;font-size:14px;color:#8099b0;display:flex;align-items:center;justify-content:center;">✕</button>
+    </div>
+    <div style="padding:20px 24px;">
+      <div style="margin-bottom:18px;">
+        <label style="display:block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8099b0;margin-bottom:6px;">Workflow Name</label>
+        <input id="wf-name-input" type="text" placeholder="e.g. Standard Approval"
+          style="width:100%;padding:9px 12px;border:1px solid rgba(34,79,147,0.25);border-radius:7px;font-family:'Barlow',sans-serif;font-size:13px;color:#1a2a3a;outline:none;background:#f4f8fd;"
+          onfocus="this.style.borderColor='#224F93'" onblur="this.style.borderColor='rgba(34,79,147,0.25)'">
+      </div>
+      <div>
+        <label style="display:block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8099b0;margin-bottom:10px;">Steps</label>
+        <div id="wf-steps-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;"></div>
+        <button onclick="addWorkflowStep()" style="display:flex;align-items:center;gap:6px;padding:7px 12px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.2);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;color:#224F93;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add Step
+        </button>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;padding:14px 24px;border-top:1px solid rgba(34,79,147,0.1);">
+      <button onclick="closeNewWorkflowModal()" style="padding:8px 16px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;color:#4a6080;">Cancel</button>
+      <button onclick="saveWorkflow()" style="padding:8px 18px;background:#224F93;color:#fff;border:none;border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;cursor:pointer;" onmouseover="this.style.background='#2d65bd'" onmouseout="this.style.background='#224F93'">Save Workflow</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ WORKFLOW PICKER MODAL (toolbar button) ══ -->
+<div id="wf-picker-modal" style="display:none;position:fixed;inset:0;background:rgba(20,40,80,0.45);z-index:10002;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;width:460px;max-width:calc(100vw - 32px);max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(20,40,80,0.18);">
+    <div style="display:flex;align-items:center;padding:20px 24px 16px;border-bottom:1px solid rgba(34,79,147,0.1);">
+      <div>
+        <div style="font-size:15px;font-weight:700;color:#1a2a3a;">Apply Workflow</div>
+        <div id="wf-picker-subtitle" style="font-size:11px;color:#8099b0;margin-top:2px;max-width:340px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+      </div>
+      <button onclick="closeWfPicker()" style="margin-left:auto;width:28px;height:28px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:6px;cursor:pointer;font-size:14px;color:#8099b0;display:flex;align-items:center;justify-content:center;">✕</button>
+    </div>
+    <div id="wf-picker-list" style="padding:16px 24px;display:flex;flex-direction:column;gap:8px;"></div>
+    <div style="padding:12px 24px;border-top:1px solid rgba(34,79,147,0.08);display:flex;justify-content:space-between;align-items:center;">
+      <button onclick="setPage('workflow');closeWfPicker();" style="font-family:'Barlow',sans-serif;font-size:11px;font-weight:600;color:#224F93;background:none;border:none;cursor:pointer;padding:0;">+ Manage Workflows</button>
+      <button onclick="closeWfPicker()" style="padding:8px 16px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;color:#4a6080;">Cancel</button>
+    </div>
+  </div>
+</div>
 
 <!-- Supabase config vars -->
 <script>

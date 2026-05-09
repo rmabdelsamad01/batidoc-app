@@ -68,9 +68,152 @@ function setPage(page){
   currentPage=page;
   document.getElementById('page-deliverables').style.display=page==='deliverables'?'block':'none';
   document.getElementById('page-payments').style.display=page==='payments'?'block':'none';
+  document.getElementById('page-workflow').style.display=page==='workflow'?'block':'none';
   document.getElementById('nav-deliverables').classList.toggle('active',page==='deliverables');
   document.getElementById('nav-payments').classList.toggle('active',page==='payments');
+  document.getElementById('nav-workflow').classList.toggle('active',page==='workflow');
   if(page==='payments') renderPayFolders();
+  if(page==='workflow') renderWorkflows();
+}
+
+// ── Workflow Templates ────────────────────────────────────────
+var gedWorkflows=JSON.parse(localStorage.getItem('ged_workflows')||'[]');
+var _editingWfId=null;
+var _wfPickerContext=null; // {names, mode}
+
+function saveGedWorkflows(){localStorage.setItem('ged_workflows',JSON.stringify(gedWorkflows));}
+
+function renderWorkflows(){
+  var list=document.getElementById('workflow-list');
+  if(!list)return;
+  if(gedWorkflows.length===0){
+    list.innerHTML='<div style="text-align:center;padding:56px 24px;color:#8099b0;">'+
+      '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#c0cfe0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto 14px;display:block;"><circle cx="5" cy="12" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="19" cy="19" r="2"/><line x1="7" y1="11.5" x2="17" y2="6.5"/><line x1="7" y1="12.5" x2="17" y2="17.5"/></svg>'+
+      '<div style="font-size:13px;font-weight:600;color:#b0bec5;margin-bottom:6px;">No workflows yet</div>'+
+      '<div style="font-size:12px;">Click "New Workflow" to create your first template</div></div>';
+    return;
+  }
+  list.innerHTML=gedWorkflows.map(function(wf){
+    var stepsHtml=wf.steps.map(function(s,i){
+      return (i>0?'<span style="color:#b0bec5;margin:0 4px;font-size:13px;">→</span>':'')+
+        '<span style="background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:5px;padding:3px 9px;font-size:11px;font-weight:600;color:#4a6080;">'+s+'</span>';
+    }).join('');
+    return '<div style="background:#fff;border:1px solid rgba(34,79,147,0.12);border-radius:10px;padding:16px 18px;margin-bottom:10px;">'+
+      '<div style="display:flex;align-items:center;margin-bottom:10px;">'+
+        '<div style="font-size:13px;font-weight:700;color:#1a2a3a;">'+wf.name+'</div>'+
+        '<div style="margin-left:auto;display:flex;gap:6px;">'+
+          '<button onclick="openEditWorkflowModal(\''+wf.id+'\')" style="padding:5px 11px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:6px;font-family:\'Barlow\',sans-serif;font-size:11px;font-weight:600;cursor:pointer;color:#4a6080;">Edit</button>'+
+          '<button onclick="deleteWorkflow(\''+wf.id+'\')" style="padding:5px 11px;background:#fff5f5;border:1px solid rgba(192,32,32,0.2);border-radius:6px;font-family:\'Barlow\',sans-serif;font-size:11px;font-weight:600;cursor:pointer;color:#c02020;">Delete</button>'+
+        '</div>'+
+      '</div>'+
+      '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">'+stepsHtml+'</div>'+
+    '</div>';
+  }).join('');
+}
+
+function openNewWorkflowModal(){
+  _editingWfId=null;
+  document.getElementById('wf-modal-title').textContent='New Workflow';
+  document.getElementById('wf-name-input').value='';
+  document.getElementById('wf-steps-list').innerHTML='';
+  addWorkflowStep('Submission');
+  addWorkflowStep('Approval');
+  document.getElementById('new-workflow-modal').style.display='flex';
+}
+
+function openEditWorkflowModal(id){
+  var wf=gedWorkflows.find(function(w){return w.id===id;});
+  if(!wf)return;
+  _editingWfId=id;
+  document.getElementById('wf-modal-title').textContent='Edit Workflow';
+  document.getElementById('wf-name-input').value=wf.name;
+  document.getElementById('wf-steps-list').innerHTML='';
+  wf.steps.forEach(function(s){addWorkflowStep(s);});
+  document.getElementById('new-workflow-modal').style.display='flex';
+}
+
+function closeNewWorkflowModal(){document.getElementById('new-workflow-modal').style.display='none';}
+
+function addWorkflowStep(value){
+  var list=document.getElementById('wf-steps-list');
+  var idx=list.children.length+1;
+  var div=document.createElement('div');
+  div.style.cssText='display:flex;align-items:center;gap:8px;';
+  div.innerHTML='<div style="width:22px;height:22px;background:#224F93;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0;">'+idx+'</div>'+
+    '<input type="text" value="'+(value||'')+'" placeholder="Step name..."'+
+    ' style="flex:1;padding:8px 11px;border:1px solid rgba(34,79,147,0.25);border-radius:7px;font-family:\'Barlow\',sans-serif;font-size:12px;color:#1a2a3a;outline:none;background:#f4f8fd;"'+
+    ' onfocus="this.style.borderColor=\'#224F93\'" onblur="this.style.borderColor=\'rgba(34,79,147,0.25)\'">'+
+    '<button onclick="removeWorkflowStep(this)" style="width:26px;height:26px;flex-shrink:0;background:#fff5f5;border:1px solid rgba(192,32,32,0.2);border-radius:6px;cursor:pointer;color:#c02020;font-size:14px;display:flex;align-items:center;justify-content:center;">✕</button>';
+  list.appendChild(div);
+  renumberWorkflowSteps();
+}
+
+function removeWorkflowStep(btn){btn.parentElement.remove();renumberWorkflowSteps();}
+
+function renumberWorkflowSteps(){
+  var items=document.querySelectorAll('#wf-steps-list > div');
+  items.forEach(function(item,i){var b=item.querySelector('div');if(b)b.textContent=i+1;});
+}
+
+function saveWorkflow(){
+  var name=document.getElementById('wf-name-input').value.trim();
+  if(!name){showToast('Please enter a workflow name');return;}
+  var inputs=document.querySelectorAll('#wf-steps-list input');
+  var steps=[];
+  inputs.forEach(function(inp){var v=inp.value.trim();if(v)steps.push(v);});
+  if(steps.length<1){showToast('Please add at least one step');return;}
+  if(_editingWfId){
+    var wf=gedWorkflows.find(function(w){return w.id===_editingWfId;});
+    if(wf){wf.name=name;wf.steps=steps;}
+  }else{
+    var newId=(typeof crypto!=='undefined'&&crypto.randomUUID)?crypto.randomUUID():(Date.now()+'_'+Math.random().toString(36).slice(2));
+    gedWorkflows.push({id:newId,name:name,steps:steps});
+  }
+  saveGedWorkflows();
+  closeNewWorkflowModal();
+  renderWorkflows();
+  showToast((_editingWfId?'Workflow updated':'Workflow created')+': '+name);
+}
+
+function deleteWorkflow(id){
+  var wf=gedWorkflows.find(function(w){return w.id===id;});
+  if(!wf)return;
+  if(!confirm('Delete workflow "'+wf.name+'"?'))return;
+  gedWorkflows=gedWorkflows.filter(function(w){return w.id!==id;});
+  saveGedWorkflows();
+  renderWorkflows();
+  showToast('Workflow deleted');
+}
+
+// ── Workflow Picker (toolbar button) ─────────────────────────
+function openWfPicker(names){
+  _wfPickerContext=names;
+  document.getElementById('wf-picker-subtitle').textContent=names;
+  var list=document.getElementById('wf-picker-list');
+  if(gedWorkflows.length===0){
+    list.innerHTML='<div style="text-align:center;padding:24px;color:#8099b0;font-size:12px;">No workflows yet.<br>Click <b>+ Manage Workflows</b> below to create one.</div>';
+  }else{
+    list.innerHTML=gedWorkflows.map(function(wf){
+      var stepsHtml=wf.steps.map(function(s,i){
+        return (i>0?'<span style="color:#b0bec5;margin:0 3px;font-size:12px;">→</span>':'')+
+          '<span style="font-size:10px;color:#4a6080;">'+s+'</span>';
+      }).join('');
+      return '<div onclick="applyWfTemplate(\''+wf.id+'\')" style="border:1px solid rgba(34,79,147,0.15);border-radius:9px;padding:13px 16px;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background=\'#f0f4f9\'" onmouseout="this.style.background=\'#fff\'">'+
+        '<div style="font-size:13px;font-weight:700;color:#1a2a3a;margin-bottom:6px;">'+wf.name+'</div>'+
+        '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:2px;">'+stepsHtml+'</div>'+
+      '</div>';
+    }).join('');
+  }
+  document.getElementById('wf-picker-modal').style.display='flex';
+}
+
+function closeWfPicker(){document.getElementById('wf-picker-modal').style.display='none';}
+
+function applyWfTemplate(id){
+  var wf=gedWorkflows.find(function(w){return w.id===id;});
+  if(!wf)return;
+  closeWfPicker();
+  showToast('Workflow applied: '+wf.name);
 }
 
 // ── user dropdown ────────────────────────────────────────────
@@ -371,9 +514,7 @@ function openWorkflowModal(){
     var d=deliverables.find(function(x){return x.id===id;});
     return d?(d.code?'('+d.code+') '+d.name:d.name):'';
   }).filter(Boolean).join(', ');
-  document.getElementById('workflow-item-names').textContent=names;
-  // reset
-  resetWorkflowModal();setWorkflowMode('standard');document.getElementById('workflow-modal').style.display='flex';
+  openWfPicker(names);
 }
 function closeWorkflowModal(){document.getElementById('workflow-modal').style.display='none';}
 
@@ -806,8 +947,7 @@ function openFileWorkflowModal(){
   var idxs=getCheckedFileIdxs();
   var files=folderFiles[currentFolderId]||[];
   var names=idxs.map(function(i){return files[i]?files[i].name:'';}).filter(Boolean).join(', ');
-  document.getElementById('workflow-item-names').textContent=names;
-  resetWorkflowModal();setWorkflowMode('standard');document.getElementById('workflow-modal').style.display='flex';
+  openWfPicker(names);
 }
 
 function downloadFile(){
@@ -948,10 +1088,7 @@ function openPayFolderMoveModal(){
 function openPayFolderWorkflowModal(){
   var ids=getCheckedPayFolderIds();
   var names=ids.map(function(id){var f=payFolders.find(function(x){return x.id===id;});return f?f.name:'';}).filter(Boolean).join(', ');
-  document.getElementById('workflow-item-names').textContent=names;
-  resetWorkflowModal();
-  setWorkflowMode('payment');
-  document.getElementById('workflow-modal').style.display='flex';
+  openWfPicker(names);
 }
 
 function downloadPayFolder(){
@@ -1149,10 +1286,7 @@ function openPayFileWorkflowModal(){
   var idxs=getCheckedPayFileIdxs();
   var files=payFolderFiles[currentPayFolderId]||[];
   var names=idxs.map(function(i){return files[i]?files[i].name:'';}).filter(Boolean).join(', ');
-  document.getElementById('workflow-item-names').textContent=names;
-  resetWorkflowModal();
-  setWorkflowMode('payment');
-  document.getElementById('workflow-modal').style.display='flex';
+  openWfPicker(names);
 }
 
 function downloadPayFile(){
