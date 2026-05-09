@@ -351,6 +351,15 @@ window._installPWA = async function() {
           </span>
           Workflow
         </button>
+        <button class="sb-item" id="nav-contacts" onclick="setPage('contacts')">
+          <span class="sb-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </span>
+          Contacts
+        </button>
       </nav>
       <div class="sb-footer">BatiGED &copy; 2025 Batiglobe</div>
     </div>
@@ -726,10 +735,86 @@ window._installPWA = async function() {
         <div id="workflow-list"></div>
       </div><!-- /page-workflow -->
 
+      <!-- Contacts -->
+      <div id="page-contacts" style="display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+          <div>
+            <div style="font-size:18px;font-weight:700;color:#1a2a3a;margin-bottom:4px;">Contacts</div>
+            <div style="font-size:12px;color:#8099b0;">Manage your project contacts</div>
+          </div>
+          <button onclick="openNewContactModal()" style="display:flex;align-items:center;gap:6px;padding:8px 14px;background:#224F93;color:#fff;border:none;border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;letter-spacing:0.03em;" onmouseover="this.style.background='#2d65bd'" onmouseout="this.style.background='#224F93'">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New Contact
+          </button>
+        </div>
+
+        <!-- Search bar -->
+        <div style="position:relative;margin-bottom:16px;max-width:320px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8099b0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input id="contacts-search" type="text" placeholder="Search contacts…" oninput="filterContacts()" style="width:100%;padding:8px 12px 8px 32px;border:1px solid rgba(34,79,147,0.2);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;color:#1a2a3a;outline:none;background:#fff;" onfocus="this.style.borderColor='#224F93'" onblur="this.style.borderColor='rgba(34,79,147,0.2)'">
+        </div>
+
+        <!-- Contacts table -->
+        <div style="background:#fff;border:1px solid rgba(34,79,147,0.12);border-radius:12px;overflow:hidden;">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 80px;align-items:center;padding:0 16px;height:38px;background:#f4f8fd;border-bottom:1px solid rgba(34,79,147,0.1);">
+            <div style="font-size:10px;font-weight:700;color:#8099b0;text-transform:uppercase;letter-spacing:0.07em;">Name</div>
+            <div style="font-size:10px;font-weight:700;color:#8099b0;text-transform:uppercase;letter-spacing:0.07em;">Company</div>
+            <div style="font-size:10px;font-weight:700;color:#8099b0;text-transform:uppercase;letter-spacing:0.07em;">Email</div>
+            <div style="font-size:10px;font-weight:700;color:#8099b0;text-transform:uppercase;letter-spacing:0.07em;">Phone</div>
+            <div></div>
+          </div>
+          <div id="contacts-list"></div>
+        </div>
+      </div><!-- /page-contacts -->
+
     </div>
   </div>
 </div>
 
+
+<!-- ══ NEW / EDIT CONTACT MODAL ══ -->
+<div id="contact-modal" style="display:none;position:fixed;inset:0;background:rgba(20,40,80,0.45);z-index:10002;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;width:440px;max-width:calc(100vw - 32px);box-shadow:0 20px 60px rgba(20,40,80,0.18);">
+    <div style="display:flex;align-items:center;padding:20px 24px 16px;border-bottom:1px solid rgba(34,79,147,0.1);">
+      <div>
+        <div id="contact-modal-title" style="font-size:15px;font-weight:700;color:#1a2a3a;">New Contact</div>
+        <div style="font-size:11px;color:#8099b0;margin-top:2px;">Add a new contact to your project</div>
+      </div>
+      <button onclick="closeContactModal()" style="margin-left:auto;width:28px;height:28px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:6px;cursor:pointer;font-size:14px;color:#8099b0;display:flex;align-items:center;justify-content:center;">✕</button>
+    </div>
+    <div style="padding:20px 24px;display:flex;flex-direction:column;gap:14px;">
+      <div>
+        <label style="display:block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8099b0;margin-bottom:6px;">Full Name <span style="color:#c02020;">*</span></label>
+        <input id="ct-name" type="text" placeholder="e.g. Jean Dupont"
+          style="width:100%;padding:9px 12px;border:1px solid rgba(34,79,147,0.25);border-radius:7px;font-family:'Barlow',sans-serif;font-size:13px;color:#1a2a3a;outline:none;background:#f4f8fd;"
+          onfocus="this.style.borderColor='#224F93'" onblur="this.style.borderColor='rgba(34,79,147,0.25)'">
+      </div>
+      <div>
+        <label style="display:block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8099b0;margin-bottom:6px;">Company</label>
+        <input id="ct-company" type="text" placeholder="e.g. Batiglobe"
+          style="width:100%;padding:9px 12px;border:1px solid rgba(34,79,147,0.25);border-radius:7px;font-family:'Barlow',sans-serif;font-size:13px;color:#1a2a3a;outline:none;background:#f4f8fd;"
+          onfocus="this.style.borderColor='#224F93'" onblur="this.style.borderColor='rgba(34,79,147,0.25)'">
+      </div>
+      <div>
+        <label style="display:block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8099b0;margin-bottom:6px;">Email Address</label>
+        <input id="ct-email" type="email" placeholder="e.g. jean@batiglobe.com"
+          style="width:100%;padding:9px 12px;border:1px solid rgba(34,79,147,0.25);border-radius:7px;font-family:'Barlow',sans-serif;font-size:13px;color:#1a2a3a;outline:none;background:#f4f8fd;"
+          onfocus="this.style.borderColor='#224F93'" onblur="this.style.borderColor='rgba(34,79,147,0.25)'">
+      </div>
+      <div>
+        <label style="display:block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8099b0;margin-bottom:6px;">Phone Number</label>
+        <input id="ct-phone" type="tel" placeholder="e.g. +212 6 00 00 00 00"
+          style="width:100%;padding:9px 12px;border:1px solid rgba(34,79,147,0.25);border-radius:7px;font-family:'Barlow',sans-serif;font-size:13px;color:#1a2a3a;outline:none;background:#f4f8fd;"
+          onfocus="this.style.borderColor='#224F93'" onblur="this.style.borderColor='rgba(34,79,147,0.25)'"
+          onkeydown="if(event.key==='Enter')saveContact()">
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;padding:14px 24px;border-top:1px solid rgba(34,79,147,0.1);">
+      <button onclick="closeContactModal()" style="padding:8px 16px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;color:#4a6080;">Cancel</button>
+      <button onclick="saveContact()" style="padding:8px 18px;background:#224F93;color:#fff;border:none;border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;cursor:pointer;" onmouseover="this.style.background='#2d65bd'" onmouseout="this.style.background='#224F93'">Save Contact</button>
+    </div>
+  </div>
+</div>
 
 <!-- ══ NEW / EDIT WORKFLOW MODAL ══ -->
 <div id="new-workflow-modal" style="display:none;position:fixed;inset:0;background:rgba(20,40,80,0.45);z-index:10002;align-items:center;justify-content:center;">

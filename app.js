@@ -69,11 +69,130 @@ function setPage(page){
   document.getElementById('page-deliverables').style.display=page==='deliverables'?'block':'none';
   document.getElementById('page-payments').style.display=page==='payments'?'block':'none';
   document.getElementById('page-workflow').style.display=page==='workflow'?'block':'none';
+  document.getElementById('page-contacts').style.display=page==='contacts'?'block':'none';
   document.getElementById('nav-deliverables').classList.toggle('active',page==='deliverables');
   document.getElementById('nav-payments').classList.toggle('active',page==='payments');
   document.getElementById('nav-workflow').classList.toggle('active',page==='workflow');
+  document.getElementById('nav-contacts').classList.toggle('active',page==='contacts');
   if(page==='payments') renderPayFolders();
   if(page==='workflow') renderWorkflows();
+  if(page==='contacts') loadContacts();
+}
+
+// ── Contacts ──────────────────────────────────────────────────
+var _allContacts=[];
+var _editingContactId=null;
+
+async function loadContacts(){
+  var list=document.getElementById('contacts-list');
+  if(!list)return;
+  list.innerHTML='<div style="padding:24px;text-align:center;color:#8099b0;font-size:12px;">Loading…</div>';
+  var {data,error}=await sb.from('ged_contacts').select('*').order('name');
+  if(error){list.innerHTML='<div style="padding:24px;text-align:center;color:#c02020;font-size:12px;">Error loading contacts</div>';return;}
+  _allContacts=data||[];
+  renderContacts(_allContacts);
+}
+
+function renderContacts(contacts){
+  var list=document.getElementById('contacts-list');
+  if(!list)return;
+  if(contacts.length===0){
+    list.innerHTML='<div style="text-align:center;padding:48px 24px;color:#8099b0;">'+
+      '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#c0cfe0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto 12px;display:block;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>'+
+      '<div style="font-size:13px;font-weight:600;color:#b0bec5;margin-bottom:4px;">No contacts yet</div>'+
+      '<div style="font-size:12px;">Click "New Contact" to add your first one</div></div>';
+    return;
+  }
+  list.innerHTML=contacts.map(function(c,i){
+    var bg=i%2===0?'#fff':'#fafcff';
+    return '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 80px;align-items:center;padding:0 16px;height:46px;background:'+bg+';border-bottom:1px solid rgba(34,79,147,0.05);" onmouseover="this.style.background=\'#eef4ff\'" onmouseout="this.style.background=\''+bg+'\'">'+
+      '<div style="font-size:12px;font-weight:600;color:#1a2a3a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escHtml(c.name)+'</div>'+
+      '<div style="font-size:12px;color:#4a6080;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escHtml(c.company||'—')+'</div>'+
+      '<div style="font-size:12px;color:#4a6080;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+
+        (c.email?'<a href="mailto:'+escHtml(c.email)+'" style="color:#224F93;text-decoration:none;">'+escHtml(c.email)+'</a>':'—')+
+      '</div>'+
+      '<div style="font-size:12px;color:#4a6080;">'+escHtml(c.phone||'—')+'</div>'+
+      '<div style="display:flex;gap:5px;justify-content:flex-end;">'+
+        '<button onclick="openEditContactModal(\''+c.id+'\')" style="width:28px;height:28px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;" title="Edit">'+
+          '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4a6080" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>'+
+        '</button>'+
+        '<button onclick="deleteContact(\''+c.id+'\')" style="width:28px;height:28px;background:#fff5f5;border:1px solid rgba(192,32,32,0.2);border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;" title="Delete">'+
+          '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#c02020" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>'+
+        '</button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+function filterContacts(){
+  var q=(document.getElementById('contacts-search').value||'').toLowerCase();
+  var filtered=_allContacts.filter(function(c){
+    return (c.name||'').toLowerCase().includes(q)||
+           (c.company||'').toLowerCase().includes(q)||
+           (c.email||'').toLowerCase().includes(q)||
+           (c.phone||'').toLowerCase().includes(q);
+  });
+  renderContacts(filtered);
+}
+
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+function openNewContactModal(){
+  _editingContactId=null;
+  document.getElementById('contact-modal-title').textContent='New Contact';
+  document.getElementById('ct-name').value='';
+  document.getElementById('ct-company').value='';
+  document.getElementById('ct-email').value='';
+  document.getElementById('ct-phone').value='';
+  document.getElementById('contact-modal').style.display='flex';
+  setTimeout(function(){document.getElementById('ct-name').focus();},100);
+}
+
+function openEditContactModal(id){
+  var c=_allContacts.find(function(x){return x.id===id;});
+  if(!c)return;
+  _editingContactId=id;
+  document.getElementById('contact-modal-title').textContent='Edit Contact';
+  document.getElementById('ct-name').value=c.name||'';
+  document.getElementById('ct-company').value=c.company||'';
+  document.getElementById('ct-email').value=c.email||'';
+  document.getElementById('ct-phone').value=c.phone||'';
+  document.getElementById('contact-modal').style.display='flex';
+  setTimeout(function(){document.getElementById('ct-name').focus();},100);
+}
+
+function closeContactModal(){document.getElementById('contact-modal').style.display='none';}
+
+async function saveContact(){
+  var name=document.getElementById('ct-name').value.trim();
+  if(!name){showToast('Please enter a name');return;}
+  var payload={
+    name:name,
+    company:document.getElementById('ct-company').value.trim()||null,
+    email:document.getElementById('ct-email').value.trim()||null,
+    phone:document.getElementById('ct-phone').value.trim()||null,
+    created_by:(sbProfile&&(sbProfile.username||sbProfile.full_name))||''
+  };
+  var error;
+  if(_editingContactId){
+    ({error}=await sb.from('ged_contacts').update(payload).eq('id',_editingContactId));
+  }else{
+    ({error}=await sb.from('ged_contacts').insert(payload));
+  }
+  if(error){showToast('Error saving contact');return;}
+  closeContactModal();
+  showToast((_editingContactId?'Contact updated':'Contact added')+': '+name);
+  loadContacts();
+}
+
+async function deleteContact(id){
+  var c=_allContacts.find(function(x){return x.id===id;});
+  if(!c)return;
+  if(!confirm('Delete contact "'+c.name+'"?'))return;
+  var {error}=await sb.from('ged_contacts').delete().eq('id',id);
+  if(error){showToast('Error deleting contact');return;}
+  showToast('Contact deleted');
+  loadContacts();
 }
 
 // ── Workflow Templates ────────────────────────────────────────
