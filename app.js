@@ -229,7 +229,8 @@ async function deleteContact(id){
 var gedWorkflows=JSON.parse(localStorage.getItem('ged_workflows')||'[]');
 var _editingWfId=null;
 var _wfPickerContext=null;
-var _wfType='approval'; // current type selection in modal
+var _wfType='approval';
+var _wfRouting='series'; // 'series' | 'parallel' | 'custom'
 
 function saveGedWorkflows(){localStorage.setItem('ged_workflows',JSON.stringify(gedWorkflows));}
 
@@ -252,12 +253,19 @@ function selectWfType(type){
     appr.querySelector('span').style.color='#8099b0';
     appr.querySelector('svg').setAttribute('stroke','#8099b0');
   }
-  // re-render steps so email field shows/hides
-  var items=document.querySelectorAll('#wf-steps-list > div');
-  items.forEach(function(item){
-    var emailRow=item.querySelector('.wf-email-row');
-    if(emailRow) emailRow.style.display=(type==='approval'||type==='signature')?'flex':'none';
+}
+
+function selectWfRouting(mode){
+  _wfRouting=mode;
+  var hints={series:'Each person is notified after the previous one completes.',parallel:'All people are notified at the same time.',custom:'Define groups — each group runs in series, members within a group can be series or parallel.'};
+  document.getElementById('wf-route-hint').textContent=hints[mode];
+  ['series','parallel','custom'].forEach(function(m){
+    var btn=document.getElementById('wf-route-'+m);
+    if(m===mode){btn.style.background='#224F93';btn.style.color='#fff';}
+    else{btn.style.background='transparent';btn.style.color='#8099b0';}
   });
+  document.getElementById('wf-steps-simple').style.display=mode==='custom'?'none':'block';
+  document.getElementById('wf-steps-custom').style.display=mode==='custom'?'block':'none';
 }
 
 function renderWorkflows(){
@@ -273,26 +281,44 @@ function renderWorkflows(){
   var typeLabel={'approval':'Document Approval','signature':'Document Signature'};
   var typeColor={'approval':'#1a9458','signature':'#224F93'};
   var typeBg={'approval':'rgba(46,194,126,0.08)','signature':'rgba(34,79,147,0.08)'};
+  var routeLabel={'series':'↓ Series','parallel':'⇉ Parallel','custom':'⊞ Custom'};
+
+  function stepPill(s){
+    var label=typeof s==='object'?s.name:s;
+    var email=typeof s==='object'&&s.email?s.email:'';
+    return '<span style="display:inline-flex;flex-direction:column;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:6px;padding:4px 9px;font-size:11px;font-weight:600;color:#4a6080;">'+
+      label+(email?'<span style="font-size:10px;font-weight:400;color:#8099b0;">'+email+'</span>':'')+
+    '</span>';
+  }
+
   list.innerHTML=gedWorkflows.map(function(wf){
-    var stepsHtml=wf.steps.map(function(s,i){
-      var label=typeof s==='object'?s.name:s;
-      var email=typeof s==='object'?s.email:'';
-      return (i>0?'<span style="color:#b0bec5;margin:0 4px;font-size:13px;">→</span>':'')+
-        '<span style="display:inline-flex;flex-direction:column;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;color:#4a6080;">'+
-          label+(email?'<span style="font-size:10px;font-weight:400;color:#8099b0;">'+email+'</span>':'')+
-        '</span>';
-    }).join('');
     var t=wf.type||'approval';
+    var r=wf.routing||'series';
+    var flowHtml='';
+    if(r==='custom'&&wf.groups){
+      flowHtml=wf.groups.map(function(g,gi){
+        var sep=g.routing==='parallel'?' <span style="color:#b0bec5;font-size:11px;">⇉</span> ':' <span style="color:#b0bec5;margin:0 3px;">→</span> ';
+        var members=g.steps.map(stepPill).join(sep);
+        return (gi>0?'<span style="color:#b0bec5;margin:0 6px;font-size:16px;">▶</span>':'')+
+          '<span style="display:inline-flex;align-items:center;background:#fff;border:1px solid rgba(34,79,147,0.15);border-radius:7px;padding:4px 8px;gap:4px;">'+
+            '<span style="font-size:9px;font-weight:700;color:#8099b0;text-transform:uppercase;margin-right:4px;">G'+(gi+1)+'</span>'+members+
+          '</span>';
+      }).join('');
+    }else{
+      var sep=r==='parallel'?' <span style="color:#b0bec5;font-size:11px;">⇉</span> ':' <span style="color:#b0bec5;margin:0 3px;">→</span> ';
+      flowHtml=(wf.steps||[]).map(stepPill).join(sep);
+    }
     return '<div style="background:#fff;border:1px solid rgba(34,79,147,0.12);border-radius:10px;padding:16px 18px;margin-bottom:10px;">'+
-      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">'+
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">'+
         '<div style="font-size:13px;font-weight:700;color:#1a2a3a;">'+wf.name+'</div>'+
         '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:'+typeBg[t]+';color:'+typeColor[t]+';">'+typeLabel[t]+'</span>'+
+        '<span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;background:#f0f4f9;color:#4a6080;">'+routeLabel[r]+'</span>'+
         '<div style="margin-left:auto;display:flex;gap:6px;">'+
           '<button onclick="openEditWorkflowModal(\''+wf.id+'\')" style="padding:5px 11px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:6px;font-family:\'Barlow\',sans-serif;font-size:11px;font-weight:600;cursor:pointer;color:#4a6080;">Edit</button>'+
           '<button onclick="deleteWorkflow(\''+wf.id+'\')" style="padding:5px 11px;background:#fff5f5;border:1px solid rgba(192,32,32,0.2);border-radius:6px;font-family:\'Barlow\',sans-serif;font-size:11px;font-weight:600;cursor:pointer;color:#c02020;">Delete</button>'+
         '</div>'+
       '</div>'+
-      '<div style="display:flex;align-items:flex-start;flex-wrap:wrap;gap:4px;">'+stepsHtml+'</div>'+
+      '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;">'+flowHtml+'</div>'+
     '</div>';
   }).join('');
 }
@@ -302,7 +328,9 @@ function openNewWorkflowModal(){
   document.getElementById('wf-modal-title').textContent='New Workflow';
   document.getElementById('wf-name-input').value='';
   document.getElementById('wf-steps-list').innerHTML='';
+  document.getElementById('wf-groups-list').innerHTML='';
   selectWfType('approval');
+  selectWfRouting('series');
   addWorkflowStep({name:'Submission',email:''});
   addWorkflowStep({name:'Approval',email:''});
   document.getElementById('new-workflow-modal').style.display='flex';
@@ -315,8 +343,14 @@ function openEditWorkflowModal(id){
   document.getElementById('wf-modal-title').textContent='Edit Workflow';
   document.getElementById('wf-name-input').value=wf.name;
   document.getElementById('wf-steps-list').innerHTML='';
+  document.getElementById('wf-groups-list').innerHTML='';
   selectWfType(wf.type||'approval');
-  wf.steps.forEach(function(s){addWorkflowStep(s);});
+  selectWfRouting(wf.routing||'series');
+  if(wf.routing==='custom'){
+    (wf.groups||[]).forEach(function(g){addWorkflowGroup(g);});
+  }else{
+    (wf.steps||[]).forEach(function(s){addWorkflowStep(s);});
+  }
   document.getElementById('new-workflow-modal').style.display='flex';
 }
 
@@ -328,6 +362,7 @@ function addWorkflowStep(value){
   var stepName=value?(typeof value==='object'?value.name:value):'';
   var stepEmail=value&&typeof value==='object'?value.email:'';
   var div=document.createElement('div');
+  div.className='wf-step-card';
   div.style.cssText='display:flex;flex-direction:column;gap:6px;background:#f8fafd;border:1px solid rgba(34,79,147,0.1);border-radius:8px;padding:10px 12px;';
   div.innerHTML=
     '<div style="display:flex;align-items:center;gap:8px;">'+
@@ -347,32 +382,120 @@ function addWorkflowStep(value){
   renumberWorkflowSteps();
 }
 
-function removeWorkflowStep(btn){btn.closest('div[style]').remove();renumberWorkflowSteps();}
+function removeWorkflowStep(btn){btn.closest('.wf-step-card').remove();renumberWorkflowSteps();}
 
 function renumberWorkflowSteps(){
-  var items=document.querySelectorAll('#wf-steps-list > div');
+  var items=document.querySelectorAll('#wf-steps-list > .wf-step-card');
   items.forEach(function(item,i){var b=item.querySelector('.wf-step-num');if(b)b.textContent=i+1;});
+}
+
+// ── Custom groups ─────────────────────────────────────────────
+function addWorkflowGroup(groupData){
+  var list=document.getElementById('wf-groups-list');
+  var idx=list.children.length+1;
+  var gRouting=(groupData&&groupData.routing)||'series';
+  var div=document.createElement('div');
+  div.className='wf-group-card';
+  div.style.cssText='border:1px solid rgba(34,79,147,0.18);border-radius:10px;overflow:hidden;';
+  div.innerHTML=
+    '<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:#f0f4f9;border-bottom:1px solid rgba(34,79,147,0.1);">'+
+      '<span class="wf-group-num" style="font-size:11px;font-weight:700;color:#224F93;">Group '+idx+'</span>'+
+      '<div style="display:flex;background:#fff;border:1px solid rgba(34,79,147,0.2);border-radius:6px;overflow:hidden;margin-left:4px;">'+
+        '<button class="wf-grp-btn-series" onclick="setGroupRouting(this,\'series\')" style="padding:3px 10px;border:none;font-family:\'Barlow\',sans-serif;font-size:11px;font-weight:600;cursor:pointer;background:'+(gRouting==='series'?'#224F93':'transparent')+';color:'+(gRouting==='series'?'#fff':'#8099b0')+';">Series</button>'+
+        '<button class="wf-grp-btn-parallel" onclick="setGroupRouting(this,\'parallel\')" style="padding:3px 10px;border:none;font-family:\'Barlow\',sans-serif;font-size:11px;font-weight:600;cursor:pointer;background:'+(gRouting==='parallel'?'#224F93':'transparent')+';color:'+(gRouting==='parallel'?'#fff':'#8099b0')+';">Parallel</button>'+
+      '</div>'+
+      '<button onclick="removeWorkflowGroup(this)" style="margin-left:auto;width:22px;height:22px;background:#fff5f5;border:1px solid rgba(192,32,32,0.2);border-radius:5px;cursor:pointer;color:#c02020;font-size:12px;display:flex;align-items:center;justify-content:center;">✕</button>'+
+    '</div>'+
+    '<div class="wf-group-members" style="display:flex;flex-direction:column;gap:8px;padding:10px 12px;"></div>'+
+    '<div style="padding:6px 12px 10px;">'+
+      '<button onclick="addGroupMember(this.closest(\'.wf-group-card\'))" style="display:flex;align-items:center;gap:5px;padding:5px 10px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:6px;font-family:\'Barlow\',sans-serif;font-size:11px;font-weight:600;cursor:pointer;color:#224F93;">'+
+        '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'+
+        'Add Member'+
+      '</button>'+
+    '</div>';
+  list.appendChild(div);
+  // add existing members
+  if(groupData&&groupData.steps) groupData.steps.forEach(function(s){addGroupMember(div,s);});
+  else addGroupMember(div);
+  renumberGroups();
+}
+
+function setGroupRouting(btn,mode){
+  var card=btn.closest('.wf-group-card');
+  card.querySelector('.wf-grp-btn-series').style.background=mode==='series'?'#224F93':'transparent';
+  card.querySelector('.wf-grp-btn-series').style.color=mode==='series'?'#fff':'#8099b0';
+  card.querySelector('.wf-grp-btn-parallel').style.background=mode==='parallel'?'#224F93':'transparent';
+  card.querySelector('.wf-grp-btn-parallel').style.color=mode==='parallel'?'#fff':'#8099b0';
+}
+
+function removeWorkflowGroup(btn){btn.closest('.wf-group-card').remove();renumberGroups();}
+
+function renumberGroups(){
+  var items=document.querySelectorAll('#wf-groups-list > .wf-group-card');
+  items.forEach(function(item,i){var b=item.querySelector('.wf-group-num');if(b)b.textContent='Group '+(i+1);});
+}
+
+function addGroupMember(groupCard,value){
+  var membersDiv=groupCard.querySelector('.wf-group-members');
+  var stepName=value?(typeof value==='object'?value.name:value):'';
+  var stepEmail=value&&typeof value==='object'?value.email:'';
+  var div=document.createElement('div');
+  div.className='wf-member-row';
+  div.style.cssText='display:flex;flex-direction:column;gap:5px;background:#f8fafd;border:1px solid rgba(34,79,147,0.08);border-radius:7px;padding:8px 10px;';
+  div.innerHTML=
+    '<div style="display:flex;align-items:center;gap:7px;">'+
+      '<input type="text" value="'+stepName+'" placeholder="Step name..." class="wf-step-name"'+
+      ' style="flex:1;padding:6px 9px;border:1px solid rgba(34,79,147,0.2);border-radius:6px;font-family:\'Barlow\',sans-serif;font-size:12px;color:#1a2a3a;outline:none;background:#fff;"'+
+      ' onfocus="this.style.borderColor=\'#224F93\'" onblur="this.style.borderColor=\'rgba(34,79,147,0.2)\'">'+
+      '<button onclick="this.closest(\'.wf-member-row\').remove()" style="width:24px;height:24px;flex-shrink:0;background:#fff5f5;border:1px solid rgba(192,32,32,0.2);border-radius:5px;cursor:pointer;color:#c02020;font-size:12px;display:flex;align-items:center;justify-content:center;">✕</button>'+
+    '</div>'+
+    '<div style="display:flex;align-items:center;gap:7px;padding-left:2px;">'+
+      '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#8099b0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>'+
+      '<input type="email" value="'+stepEmail+'" placeholder="Email to notify..." class="wf-step-email"'+
+      ' style="flex:1;padding:5px 9px;border:1px solid rgba(34,79,147,0.15);border-radius:6px;font-family:\'Barlow\',sans-serif;font-size:11px;color:#1a2a3a;outline:none;background:#fff;"'+
+      ' onfocus="this.style.borderColor=\'#224F93\'" onblur="this.style.borderColor=\'rgba(34,79,147,0.15)\'">'+
+    '</div>';
+  membersDiv.appendChild(div);
 }
 
 function saveWorkflow(){
   var name=document.getElementById('wf-name-input').value.trim();
   if(!name){showToast('Please enter a workflow name');return;}
-  var stepDivs=document.querySelectorAll('#wf-steps-list > div');
-  var steps=[];
-  stepDivs.forEach(function(div){
-    var nameInp=div.querySelector('.wf-step-name');
-    var emailInp=div.querySelector('.wf-step-email');
-    var n=nameInp?nameInp.value.trim():'';
-    var e=emailInp?emailInp.value.trim():'';
-    if(n) steps.push({name:n,email:e});
-  });
-  if(steps.length<1){showToast('Please add at least one step');return;}
+  var wfData={name:name,type:_wfType,routing:_wfRouting};
+  if(_wfRouting==='custom'){
+    var groupCards=document.querySelectorAll('#wf-groups-list > .wf-group-card');
+    var groups=[];
+    groupCards.forEach(function(card){
+      var seriesBtn=card.querySelector('.wf-grp-btn-series');
+      var gRouting=seriesBtn&&seriesBtn.style.background.includes('34')?'series':'parallel';
+      var members=[];
+      card.querySelectorAll('.wf-member-row').forEach(function(row){
+        var n=row.querySelector('.wf-step-name');
+        var e=row.querySelector('.wf-step-email');
+        var nv=n?n.value.trim():'';
+        if(nv) members.push({name:nv,email:e?e.value.trim():''});
+      });
+      if(members.length>0) groups.push({routing:gRouting,steps:members});
+    });
+    if(groups.length<1){showToast('Please add at least one group with members');return;}
+    wfData.groups=groups;
+  }else{
+    var stepDivs=document.querySelectorAll('#wf-steps-list > .wf-step-card');
+    var steps=[];
+    stepDivs.forEach(function(div){
+      var n=div.querySelector('.wf-step-name');var e=div.querySelector('.wf-step-email');
+      var nv=n?n.value.trim():'';
+      if(nv) steps.push({name:nv,email:e?e.value.trim():''});
+    });
+    if(steps.length<1){showToast('Please add at least one step');return;}
+    wfData.steps=steps;
+  }
   if(_editingWfId){
     var wf=gedWorkflows.find(function(w){return w.id===_editingWfId;});
-    if(wf){wf.name=name;wf.type=_wfType;wf.steps=steps;}
+    if(wf){Object.assign(wf,wfData);}
   }else{
     var newId=(typeof crypto!=='undefined'&&crypto.randomUUID)?crypto.randomUUID():(Date.now()+'_'+Math.random().toString(36).slice(2));
-    gedWorkflows.push({id:newId,name:name,type:_wfType,steps:steps});
+    wfData.id=newId;gedWorkflows.push(wfData);
   }
   saveGedWorkflows();
   closeNewWorkflowModal();

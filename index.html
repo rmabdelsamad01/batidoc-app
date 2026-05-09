@@ -857,13 +857,34 @@ window._installPWA = async function() {
         </div>
       </div>
 
-      <!-- Steps -->
-      <div>
+      <!-- Routing -->
+      <div style="margin-bottom:18px;">
+        <label style="display:block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8099b0;margin-bottom:8px;">Routing</label>
+        <div style="display:flex;background:#f0f4f9;border-radius:8px;padding:3px;gap:2px;">
+          <button id="wf-route-series" onclick="selectWfRouting('series')" style="flex:1;padding:7px 6px;border:none;border-radius:6px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;background:#224F93;color:#fff;transition:all 0.15s;">↓ Series</button>
+          <button id="wf-route-parallel" onclick="selectWfRouting('parallel')" style="flex:1;padding:7px 6px;border:none;border-radius:6px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;background:transparent;color:#8099b0;transition:all 0.15s;">⇉ Parallel</button>
+          <button id="wf-route-custom" onclick="selectWfRouting('custom')" style="flex:1;padding:7px 6px;border:none;border-radius:6px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;background:transparent;color:#8099b0;transition:all 0.15s;">⊞ Custom</button>
+        </div>
+        <div id="wf-route-hint" style="font-size:11px;color:#8099b0;margin-top:6px;">Each person is notified after the previous one completes.</div>
+      </div>
+
+      <!-- Steps — Series / Parallel -->
+      <div id="wf-steps-simple">
         <label style="display:block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8099b0;margin-bottom:10px;">Steps</label>
         <div id="wf-steps-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:10px;"></div>
         <button onclick="addWorkflowStep()" style="display:flex;align-items:center;gap:6px;padding:7px 12px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.2);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;color:#224F93;">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Add Step
+        </button>
+      </div>
+
+      <!-- Groups — Custom -->
+      <div id="wf-steps-custom" style="display:none;">
+        <label style="display:block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8099b0;margin-bottom:10px;">Groups</label>
+        <div id="wf-groups-list" style="display:flex;flex-direction:column;gap:12px;margin-bottom:10px;"></div>
+        <button onclick="addWorkflowGroup()" style="display:flex;align-items:center;gap:6px;padding:7px 12px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.2);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;color:#224F93;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add Group
         </button>
       </div>
 
