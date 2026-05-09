@@ -236,34 +236,33 @@ function saveGedWorkflows(){localStorage.setItem('ged_workflows',JSON.stringify(
 
 function selectWfType(type){
   _wfType=type;
-  var appr=document.getElementById('wf-type-approval');
-  var sign=document.getElementById('wf-type-signature');
-  if(type==='approval'){
-    appr.style.border='2px solid #224F93';appr.style.background='#f0f4f9';
-    appr.querySelector('span').style.color='#224F93';
-    appr.querySelector('svg').setAttribute('stroke','#224F93');
-    sign.style.border='2px solid rgba(34,79,147,0.2)';sign.style.background='#fff';
-    sign.querySelector('span').style.color='#8099b0';
-    sign.querySelector('svg').setAttribute('stroke','#8099b0');
-  }else{
-    sign.style.border='2px solid #224F93';sign.style.background='#f0f4f9';
-    sign.querySelector('span').style.color='#224F93';
-    sign.querySelector('svg').setAttribute('stroke','#224F93');
-    appr.style.border='2px solid rgba(34,79,147,0.2)';appr.style.background='#fff';
-    appr.querySelector('span').style.color='#8099b0';
-    appr.querySelector('svg').setAttribute('stroke','#8099b0');
-  }
+  var isAppr=type==='approval';
+  var activeColor='#224F93';var inactiveColor='#8099b0';
+  var activeBorder='2px solid #224F93';var inactiveBorder='2px solid rgba(34,79,147,0.2)';
+
+  var apprCard=document.getElementById('wf-type-approval');
+  var signCard=document.getElementById('wf-type-signature');
+  var apprLabel=document.getElementById('wf-type-approval-label');
+  var signLabel=document.getElementById('wf-type-signature-label');
+  var apprIcon=document.getElementById('wf-type-approval-icon');
+  var signIcon=document.getElementById('wf-type-signature-icon');
+
+  if(apprCard){apprCard.style.border=isAppr?activeBorder:inactiveBorder;apprCard.style.background=isAppr?'#f0f4f9':'#fff';}
+  if(signCard){signCard.style.border=isAppr?inactiveBorder:activeBorder;signCard.style.background=isAppr?'#fff':'#f0f4f9';}
+  if(apprLabel){apprLabel.style.color=isAppr?activeColor:inactiveColor;}
+  if(signLabel){signLabel.style.color=isAppr?inactiveColor:activeColor;}
+  if(apprIcon){apprIcon.setAttribute('stroke',isAppr?activeColor:inactiveColor);}
+  if(signIcon){signIcon.setAttribute('stroke',isAppr?inactiveColor:activeColor);}
+
   // Refresh all action dropdowns already on screen
-  var firstOptionValue=type==='signature'?'signature':'approval';
-  var firstOptionLabel=type==='signature'?'Signature':'Approval';
+  var firstVal=isAppr?'approval':'signature';
+  var firstText=isAppr?'Approval':'Signature';
   document.querySelectorAll('.wf-action-select').forEach(function(sel){
-    var currentVal=sel.value;
     var firstOpt=sel.options[0];
     if(firstOpt&&(firstOpt.value==='approval'||firstOpt.value==='signature')){
-      firstOpt.value=firstOptionValue;
-      firstOpt.text=firstOptionLabel;
-      // If was set to old first-option value, switch to new one
-      if(currentVal==='approval'||currentVal==='signature') sel.value=firstOptionValue;
+      var wasFirst=sel.value===firstOpt.value;
+      firstOpt.value=firstVal;firstOpt.text=firstText;
+      if(wasFirst) sel.value=firstVal;
     }
   });
 }

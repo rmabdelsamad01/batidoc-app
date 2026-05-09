@@ -840,19 +840,19 @@ window._installPWA = async function() {
       <div style="margin-bottom:20px;">
         <label style="display:block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8099b0;margin-bottom:10px;">Type</label>
         <div style="display:flex;gap:10px;">
-          <div id="wf-type-approval" onclick="selectWfType('approval')" style="flex:1;border:2px solid #224F93;border-radius:10px;padding:14px 16px;cursor:pointer;background:#f0f4f9;">
-            <div style="display:flex;align-items:center;gap:9px;margin-bottom:5px;">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#224F93" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-              <span style="font-size:12px;font-weight:700;color:#224F93;">Document Approval</span>
+          <div id="wf-type-approval" onclick="selectWfType('approval')" style="flex:1;border:2px solid #224F93;border-radius:10px;padding:14px 16px;cursor:pointer;background:#f0f4f9;user-select:none;">
+            <div style="display:flex;align-items:center;gap:9px;margin-bottom:5px;pointer-events:none;">
+              <svg id="wf-type-approval-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#224F93" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              <span id="wf-type-approval-label" style="font-size:12px;font-weight:700;color:#224F93;">Document Approval</span>
             </div>
-            <div style="font-size:11px;color:#8099b0;">Send for review and approval by email</div>
+            <div style="font-size:11px;color:#8099b0;pointer-events:none;">Send for review and approval by email</div>
           </div>
-          <div id="wf-type-signature" onclick="selectWfType('signature')" style="flex:1;border:2px solid rgba(34,79,147,0.2);border-radius:10px;padding:14px 16px;cursor:pointer;background:#fff;">
-            <div style="display:flex;align-items:center;gap:9px;margin-bottom:5px;">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8099b0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
-              <span style="font-size:12px;font-weight:700;color:#8099b0;">Document Signature</span>
+          <div id="wf-type-signature" onclick="selectWfType('signature')" style="flex:1;border:2px solid rgba(34,79,147,0.2);border-radius:10px;padding:14px 16px;cursor:pointer;background:#fff;user-select:none;">
+            <div style="display:flex;align-items:center;gap:9px;margin-bottom:5px;pointer-events:none;">
+              <svg id="wf-type-signature-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8099b0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+              <span id="wf-type-signature-label" style="font-size:12px;font-weight:700;color:#8099b0;">Document Signature</span>
             </div>
-            <div style="font-size:11px;color:#8099b0;">Collect signatures by email</div>
+            <div style="font-size:11px;color:#8099b0;pointer-events:none;">Collect signatures by email</div>
           </div>
         </div>
       </div>
