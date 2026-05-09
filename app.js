@@ -253,6 +253,19 @@ function selectWfType(type){
     appr.querySelector('span').style.color='#8099b0';
     appr.querySelector('svg').setAttribute('stroke','#8099b0');
   }
+  // Refresh all action dropdowns already on screen
+  var firstOptionValue=type==='signature'?'signature':'approval';
+  var firstOptionLabel=type==='signature'?'Signature':'Approval';
+  document.querySelectorAll('.wf-action-select').forEach(function(sel){
+    var currentVal=sel.value;
+    var firstOpt=sel.options[0];
+    if(firstOpt&&(firstOpt.value==='approval'||firstOpt.value==='signature')){
+      firstOpt.value=firstOptionValue;
+      firstOpt.text=firstOptionLabel;
+      // If was set to old first-option value, switch to new one
+      if(currentVal==='approval'||currentVal==='signature') sel.value=firstOptionValue;
+    }
+  });
 }
 
 function selectWfRouting(mode){
