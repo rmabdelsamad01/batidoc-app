@@ -629,12 +629,10 @@ async function sendWorkflowEmails(wf,itemNames){
 
 async function sendResendEmail(to,subject,html,from){
   try{
-    var res=await fetch('https://api.resend.com/emails',{
-      method:'POST',
-      headers:{'Authorization':'Bearer '+RESEND_API_KEY,'Content-Type':'application/json'},
-      body:JSON.stringify({from:from,to:[to],subject:subject,html:html})
+    var res=await sb.functions.invoke('send-email',{
+      body:{to:to,subject:subject,html:html,from:from}
     });
-    return res.ok;
+    return !res.error;
   }catch(e){return false;}
 }
 
