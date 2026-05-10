@@ -236,8 +236,18 @@ function saveGedWorkflows(){localStorage.setItem('ged_workflows',JSON.stringify(
 
 function selectWfType(type){
   _wfType=type;
-  var sel=document.getElementById('wf-type-select');
-  if(sel&&sel.value!==type) sel.value=type;
+  var appr=document.getElementById('wf-type-approval');
+  var sign=document.getElementById('wf-type-signature');
+  if(appr){
+    appr.style.background=type==='approval'?'#224F93':'#fff';
+    appr.style.color=type==='approval'?'#fff':'#8099b0';
+    appr.style.border=type==='approval'?'2px solid #224F93':'2px solid rgba(34,79,147,0.2)';
+  }
+  if(sign){
+    sign.style.background=type==='signature'?'#224F93':'#fff';
+    sign.style.color=type==='signature'?'#fff':'#8099b0';
+    sign.style.border=type==='signature'?'2px solid #224F93':'2px solid rgba(34,79,147,0.2)';
+  }
   // Refresh action dropdowns already on screen
   var firstVal=type==='signature'?'signature':'approval';
   var firstText=type==='signature'?'Signature':'Approval';
