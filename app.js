@@ -76,7 +76,7 @@ function setPage(page){
   document.getElementById('nav-workflow').classList.toggle('active',page==='workflow');
   document.getElementById('nav-contacts').classList.toggle('active',page==='contacts');
   if(page==='payments') renderPayFolders();
-  if(page==='workflow') renderWorkflows();
+  if(page==='workflow') loadGedWorkflows().then(renderWorkflows);
   if(page==='contacts') loadContacts();
 }
 
