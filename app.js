@@ -234,7 +234,7 @@ var _wfRouting='series'; // 'series' | 'parallel' | 'custom'
 
 function saveGedWorkflows(){localStorage.setItem('ged_workflows',JSON.stringify(gedWorkflows));}
 
-function selectWfType(type){
+function selectDocType(type){
   _wfType=type;
   var appr=document.getElementById('wf-type-approval');
   var sign=document.getElementById('wf-type-signature');
@@ -348,7 +348,7 @@ async function openNewWorkflowModal(){
   document.getElementById('wf-name-input').value='';
   document.getElementById('wf-steps-list').innerHTML='';
   document.getElementById('wf-groups-list').innerHTML='';
-  selectWfType('approval');
+  selectDocType('approval');
   selectWfRouting('series');
   addWorkflowStep();
   document.getElementById('new-workflow-modal').style.display='flex';
@@ -363,7 +363,7 @@ async function openEditWorkflowModal(id){
   document.getElementById('wf-name-input').value=wf.name;
   document.getElementById('wf-steps-list').innerHTML='';
   document.getElementById('wf-groups-list').innerHTML='';
-  selectWfType(wf.type||'approval');
+  selectDocType(wf.type||'approval');
   selectWfRouting(wf.routing||'series');
   if(wf.routing==='custom'){(wf.groups||[]).forEach(function(g){addWorkflowGroup(g);});}
   else{(wf.steps||[]).forEach(function(s){addWorkflowStep(s);});}
