@@ -838,22 +838,10 @@ window._installPWA = async function() {
 
       <!-- Type -->
       <div style="margin-bottom:20px;">
-        <label style="display:block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8099b0;margin-bottom:10px;">Type</label>
-        <div style="display:flex;gap:10px;">
-          <button id="wf-type-approval" onclick="selectWfType('approval')" type="button" style="flex:1;border:2px solid #224F93;border-radius:10px;padding:14px 16px;cursor:pointer;background:#f0f4f9;text-align:left;font-family:'Barlow',sans-serif;">
-            <div style="display:flex;align-items:center;gap:9px;margin-bottom:5px;">
-              <svg id="wf-type-approval-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#224F93" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-              <span id="wf-type-approval-label" style="font-size:12px;font-weight:700;color:#224F93;">Document Approval</span>
-            </div>
-            <div style="font-size:11px;color:#8099b0;">Send for review and approval by email</div>
-          </button>
-          <button id="wf-type-signature" onclick="selectWfType('signature')" type="button" style="flex:1;border:2px solid rgba(34,79,147,0.2);border-radius:10px;padding:14px 16px;cursor:pointer;background:#fff;text-align:left;font-family:'Barlow',sans-serif;">
-            <div style="display:flex;align-items:center;gap:9px;margin-bottom:5px;">
-              <svg id="wf-type-signature-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8099b0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
-              <span id="wf-type-signature-label" style="font-size:12px;font-weight:700;color:#8099b0;">Document Signature</span>
-            </div>
-            <div style="font-size:11px;color:#8099b0;">Collect signatures by email</div>
-          </button>
+        <label style="display:block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8099b0;margin-bottom:8px;">Type</label>
+        <div style="display:flex;background:#f0f4f9;border-radius:8px;padding:3px;gap:2px;">
+          <button id="wf-type-approval" type="button" onclick="selectWfType('approval')" style="flex:1;padding:7px 6px;border:none;border-radius:6px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;background:#224F93;color:#fff;transition:all 0.15s;">✔ Approval</button>
+          <button id="wf-type-signature" type="button" onclick="selectWfType('signature')" style="flex:1;padding:7px 6px;border:none;border-radius:6px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;background:transparent;color:#8099b0;transition:all 0.15s;">✎ Signature</button>
         </div>
       </div>
 

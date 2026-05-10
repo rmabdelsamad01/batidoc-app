@@ -236,27 +236,13 @@ function saveGedWorkflows(){localStorage.setItem('ged_workflows',JSON.stringify(
 
 function selectWfType(type){
   _wfType=type;
-  var isAppr=type==='approval';
-  var activeColor='#224F93';var inactiveColor='#8099b0';
-  var activeBorder='2px solid #224F93';var inactiveBorder='2px solid rgba(34,79,147,0.2)';
-
-  var apprCard=document.getElementById('wf-type-approval');
-  var signCard=document.getElementById('wf-type-signature');
-  var apprLabel=document.getElementById('wf-type-approval-label');
-  var signLabel=document.getElementById('wf-type-signature-label');
-  var apprIcon=document.getElementById('wf-type-approval-icon');
-  var signIcon=document.getElementById('wf-type-signature-icon');
-
-  if(apprCard){apprCard.style.border=isAppr?activeBorder:inactiveBorder;apprCard.style.background=isAppr?'#f0f4f9':'#fff';}
-  if(signCard){signCard.style.border=isAppr?inactiveBorder:activeBorder;signCard.style.background=isAppr?'#fff':'#f0f4f9';}
-  if(apprLabel){apprLabel.style.color=isAppr?activeColor:inactiveColor;}
-  if(signLabel){signLabel.style.color=isAppr?inactiveColor:activeColor;}
-  if(apprIcon){apprIcon.setAttribute('stroke',isAppr?activeColor:inactiveColor);}
-  if(signIcon){signIcon.setAttribute('stroke',isAppr?inactiveColor:activeColor);}
-
-  // Refresh all action dropdowns already on screen
-  var firstVal=isAppr?'approval':'signature';
-  var firstText=isAppr?'Approval':'Signature';
+  var appr=document.getElementById('wf-type-approval');
+  var sign=document.getElementById('wf-type-signature');
+  if(appr){appr.style.background=type==='approval'?'#224F93':'transparent';appr.style.color=type==='approval'?'#fff':'#8099b0';}
+  if(sign){sign.style.background=type==='signature'?'#224F93':'transparent';sign.style.color=type==='signature'?'#fff':'#8099b0';}
+  // Refresh action dropdowns already on screen
+  var firstVal=type==='signature'?'signature':'approval';
+  var firstText=type==='signature'?'Signature':'Approval';
   document.querySelectorAll('.wf-action-select').forEach(function(sel){
     var firstOpt=sel.options[0];
     if(firstOpt&&(firstOpt.value==='approval'||firstOpt.value==='signature')){
