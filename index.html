@@ -839,10 +839,10 @@ window._installPWA = async function() {
       <!-- Type -->
       <div style="margin-bottom:20px;">
         <label style="display:block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8099b0;margin-bottom:8px;">Type</label>
-        <div style="display:flex;background:#f0f4f9;border-radius:8px;padding:3px;gap:2px;">
-          <button id="wf-type-approval" type="button" onclick="selectWfType('approval')" style="flex:1;padding:7px 6px;border:none;border-radius:6px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;background:#224F93;color:#fff;transition:all 0.15s;">✔ Approval</button>
-          <button id="wf-type-signature" type="button" onclick="selectWfType('signature')" style="flex:1;padding:7px 6px;border:none;border-radius:6px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;background:transparent;color:#8099b0;transition:all 0.15s;">✎ Signature</button>
-        </div>
+        <select id="wf-type-select" onchange="selectWfType(this.value)" style="width:100%;padding:9px 12px;border:1px solid rgba(34,79,147,0.25);border-radius:7px;font-family:'Barlow',sans-serif;font-size:13px;font-weight:600;color:#224F93;outline:none;background:#f4f8fd;cursor:pointer;">
+          <option value="approval">✔ Document Approval</option>
+          <option value="signature">✎ Document Signature</option>
+        </select>
       </div>
 
       <!-- Routing -->

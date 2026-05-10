@@ -236,19 +236,17 @@ function saveGedWorkflows(){localStorage.setItem('ged_workflows',JSON.stringify(
 
 function selectWfType(type){
   _wfType=type;
-  var appr=document.getElementById('wf-type-approval');
-  var sign=document.getElementById('wf-type-signature');
-  if(appr){appr.style.background=type==='approval'?'#224F93':'transparent';appr.style.color=type==='approval'?'#fff':'#8099b0';}
-  if(sign){sign.style.background=type==='signature'?'#224F93':'transparent';sign.style.color=type==='signature'?'#fff':'#8099b0';}
+  var sel=document.getElementById('wf-type-select');
+  if(sel&&sel.value!==type) sel.value=type;
   // Refresh action dropdowns already on screen
   var firstVal=type==='signature'?'signature':'approval';
   var firstText=type==='signature'?'Signature':'Approval';
-  document.querySelectorAll('.wf-action-select').forEach(function(sel){
-    var firstOpt=sel.options[0];
+  document.querySelectorAll('.wf-action-select').forEach(function(s){
+    var firstOpt=s.options[0];
     if(firstOpt&&(firstOpt.value==='approval'||firstOpt.value==='signature')){
-      var wasFirst=sel.value===firstOpt.value;
+      var wasFirst=s.value===firstOpt.value;
       firstOpt.value=firstVal;firstOpt.text=firstText;
-      if(wasFirst) sel.value=firstVal;
+      if(wasFirst) s.value=firstVal;
     }
   });
 }
