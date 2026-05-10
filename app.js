@@ -21,6 +21,7 @@ async function loadDeliv(){
 function initApp(){
   setPage('deliverables');
   loadDeliv();
+  loadGedWorkflows();
 }
 
 function setUserName(name){
@@ -226,13 +227,18 @@ async function deleteContact(id){
 }
 
 // ── Workflow Templates ────────────────────────────────────────
-var gedWorkflows=JSON.parse(localStorage.getItem('ged_workflows')||'[]');
+var gedWorkflows=[];
 var _editingWfId=null;
 var _wfPickerContext=null;
 var _wfType='approval';
 var _wfRouting='series'; // 'series' | 'parallel' | 'custom'
 
-function saveGedWorkflows(){localStorage.setItem('ged_workflows',JSON.stringify(gedWorkflows));}
+async function loadGedWorkflows(){
+  try{
+    var {data,error}=await sb.from('ged_workflows').select('*').order('created_at');
+    if(!error&&data){gedWorkflows=data;}
+  }catch(e){console.error('loadGedWorkflows',e);}
+}
 
 function selectDocType(type){
   _wfType=type;
@@ -511,7 +517,7 @@ function collectStepRecipients(card){
   return recipients.length>0?{company:company,recipients:recipients}:null;
 }
 
-function saveWorkflow(){
+async function saveWorkflow(){
   var name=document.getElementById('wf-name-input').value.trim();
   if(!name){showToast('Please enter a workflow name');return;}
   var wfData={name:name,type:_wfType,routing:_wfRouting};
@@ -533,22 +539,24 @@ function saveWorkflow(){
     wfData.steps=steps;
   }
   if(_editingWfId){
-    var wf=gedWorkflows.find(function(w){return w.id===_editingWfId;});
-    if(wf)Object.assign(wf,wfData);
+    wfData.id=_editingWfId;
   }else{
-    var newId=(typeof crypto!=='undefined'&&crypto.randomUUID)?crypto.randomUUID():(Date.now()+'_'+Math.random().toString(36).slice(2));
-    wfData.id=newId;gedWorkflows.push(wfData);
+    wfData.id=(typeof crypto!=='undefined'&&crypto.randomUUID)?crypto.randomUUID():(Date.now()+'_'+Math.random().toString(36).slice(2));
   }
-  saveGedWorkflows();closeNewWorkflowModal();renderWorkflows();
+  var {error}=await sb.from('ged_workflows').upsert(wfData);
+  if(error){showToast('Error saving workflow');console.error(error);return;}
+  await loadGedWorkflows();
+  closeNewWorkflowModal();renderWorkflows();
   showToast((_editingWfId?'Workflow updated':'Workflow created')+': '+name);
 }
 
-function deleteWorkflow(id){
+async function deleteWorkflow(id){
   var wf=gedWorkflows.find(function(w){return w.id===id;});
   if(!wf)return;
   if(!confirm('Delete workflow "'+wf.name+'"?'))return;
-  gedWorkflows=gedWorkflows.filter(function(w){return w.id!==id;});
-  saveGedWorkflows();
+  var {error}=await sb.from('ged_workflows').delete().eq('id',id);
+  if(error){showToast('Error deleting workflow');console.error(error);return;}
+  await loadGedWorkflows();
   renderWorkflows();
   showToast('Workflow deleted');
 }
