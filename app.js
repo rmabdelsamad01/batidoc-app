@@ -645,12 +645,10 @@ async function sendWorkflowEmails(wf,itemNames){
 
 async function sendResendEmail(to,subject,html,from){
   try{
-    var res=await fetch('/send-email',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({to:to,subject:subject,html:html,from:from})
+    var res=await sb.functions.invoke('send-email',{
+      body:{to:to,subject:subject,html:html,from:from}
     });
-    return res.ok;
+    return !res.error;
   }catch(e){return false;}
 }
 
