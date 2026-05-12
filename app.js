@@ -645,10 +645,12 @@ async function sendWorkflowEmails(wf,itemNames){
 
 async function sendResendEmail(to,subject,html,from){
   try{
-    var res=await sb.functions.invoke('send-email',{
-      body:{to:to,subject:subject,html:html,from:from}
+    var res=await fetch('https://batidoc-email.rmabdelsamad01.workers.dev',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({to:to,subject:subject,html:html,from:from})
     });
-    return !res.error;
+    return res.ok;
   }catch(e){return false;}
 }
 
