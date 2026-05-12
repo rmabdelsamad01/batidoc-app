@@ -1281,7 +1281,7 @@ function gedFmtSize(b){return b<1024?b+' B':b<1048576?(b/1024).toFixed(1)+' KB':
 async function gedLoadFiles(folderId,folderType){
   var {data,error}=await sb.from('ged_files').select('*').eq('project','batidoc').eq('folder_id',String(folderId)).eq('folder_type',folderType).order('created_at');
   if(error||!data)return [];
-  return data.map(function(r){var d=new Date(r.created_at);var ds=('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear();return {id:r.id,name:r.name,size:r.size_label||'—',date:ds,storage_path:r.storage_path};});
+  return data.map(function(r){var d=new Date(r.created_at);var ds=('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear();return {id:r.id,name:r.name,size:r.size_label||'—',date:ds,storage_path:r.storage_path,created_at:r.created_at};});
 }
 
 async function gedUploadFile(file,folderId,folderType){
@@ -1293,7 +1293,7 @@ async function gedUploadFile(file,folderId,folderType){
   var ds=('0'+today.getDate()).slice(-2)+'/'+('0'+(today.getMonth()+1)).slice(-2)+'/'+today.getFullYear();
   var {data:row,error:dbErr}=await sb.from('ged_files').insert({project:'batidoc',folder_id:String(folderId),folder_type:folderType,name:file.name,storage_path:path,size_bytes:file.size,size_label:gedFmtSize(file.size),mime_type:file.type||'',uploaded_by:(sbProfile&&(sbProfile.username||sbProfile.full_name))||''}).select().single();
   if(dbErr){showToast('Save error: '+file.name);return null;}
-  return {id:row.id,name:row.name,size:row.size_label,date:ds,storage_path:row.storage_path};
+  return {id:row.id,name:row.name,size:row.size_label,date:ds,storage_path:row.storage_path,created_at:row.created_at};
 }
 
 async function gedDeleteFiles(files){
@@ -1581,12 +1581,15 @@ async function openFileStatusModal(){
   var idxs=getCheckedFileIdxs();
   var files=folderFiles[currentFolderId]||[];
   if(idxs.length!==1)return;
-  var fileName=files[idxs[0]]?files[idxs[0]].name:'';
+  var file=files[idxs[0]];
+  var fileName=file?file.name:'';
   document.getElementById('status-modal-subtitle').textContent=fileName;
   document.getElementById('status-modal-body').innerHTML='<p style="font-size:12px;color:#8099b0;">Loading…</p>';
   document.getElementById('status-modal').style.display='flex';
 
-  var {data:instances}=await sb.from('ged_workflow_instances').select('*').ilike('document_names','%'+fileName+'%').order('applied_at',{ascending:false});
+  var q=sb.from('ged_workflow_instances').select('*').ilike('document_names','%'+fileName+'%');
+  if(file&&file.created_at) q=q.gte('applied_at',file.created_at);
+  var {data:instances}=await q.order('applied_at',{ascending:false});
   if(!instances||instances.length===0){
     document.getElementById('status-modal-body').innerHTML='<p style="font-size:13px;color:#8099b0;text-align:center;padding:24px 0;">No workflow has been applied to this file yet.</p>';
     return;
@@ -1961,11 +1964,14 @@ async function openPayFileStatusModal(){
   var idxs=getCheckedPayFileIdxs();
   if(idxs.length!==1)return;
   var files=payFolderFiles[currentPayFolderId]||[];
-  var fileName=files[idxs[0]]?files[idxs[0]].name:'';
+  var file=files[idxs[0]];
+  var fileName=file?file.name:'';
   document.getElementById('status-modal-subtitle').textContent=fileName;
   document.getElementById('status-modal-body').innerHTML='<p style="font-size:13px;color:#8099b0;text-align:center;padding:24px 0;">Loading…</p>';
   document.getElementById('status-modal').style.display='flex';
-  var {data:instances}=await sb.from('ged_workflow_instances').select('*').ilike('document_names','%'+fileName+'%').order('applied_at',{ascending:false});
+  var q=sb.from('ged_workflow_instances').select('*').ilike('document_names','%'+fileName+'%');
+  if(file&&file.created_at) q=q.gte('applied_at',file.created_at);
+  var {data:instances}=await q.order('applied_at',{ascending:false});
   if(!instances||instances.length===0){
     document.getElementById('status-modal-body').innerHTML='<p style="font-size:13px;color:#8099b0;text-align:center;padding:24px 0;">No workflow has been applied to this file yet.</p>';
     return;
