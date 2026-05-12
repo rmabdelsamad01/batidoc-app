@@ -609,10 +609,13 @@ async function deleteWorkflow(id){
 }
 
 // ── Workflow Picker (toolbar button) ─────────────────────────
-function openWfPicker(names){
+async function openWfPicker(names){
   _wfPickerContext=names;
   document.getElementById('wf-picker-subtitle').textContent=names;
   var list=document.getElementById('wf-picker-list');
+  list.innerHTML='<div style="text-align:center;padding:24px;color:#8099b0;font-size:12px;">Loading…</div>';
+  document.getElementById('wf-picker-modal').style.display='flex';
+  await loadGedWorkflows();
   if(gedWorkflows.length===0){
     list.innerHTML='<div style="text-align:center;padding:24px;color:#8099b0;font-size:12px;">No workflows yet.<br>Click <b>+ Manage Workflows</b> below to create one.</div>';
   }else{
@@ -627,7 +630,6 @@ function openWfPicker(names){
       '</div>';
     }).join('');
   }
-  document.getElementById('wf-picker-modal').style.display='flex';
 }
 
 function closeWfPicker(){document.getElementById('wf-picker-modal').style.display='none';}
