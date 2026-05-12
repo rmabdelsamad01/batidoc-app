@@ -912,6 +912,7 @@ function updateToolbar(){
   setBtn('btn-duplicate',any);
   setBtn('btn-move',     any);
   setBtn('btn-workflow', any);
+  setBtn('btn-status',   one);
   setBtn('btn-download', any);
   setBtn('btn-delete',   any);
 }
@@ -1059,6 +1060,65 @@ function openMoveModal(){
   document.getElementById('move-modal').style.display='flex';
 }
 function closeMoveModal(){document.getElementById('move-modal').style.display='none';}
+
+function closeStatusModal(){document.getElementById('status-modal').style.display='none';}
+
+async function openStatusModal(){
+  var checked=document.querySelectorAll('.row-check:checked');
+  if(checked.length!==1)return;
+  var id=parseInt(checked[0].getAttribute('data-id'));
+  var d=deliverables.find(function(x){return x.id===id;});
+  var docName=d?(d.code?'('+d.code+') '+d.name:d.name):'';
+  document.getElementById('status-modal-subtitle').textContent=docName;
+  document.getElementById('status-modal-body').innerHTML='<p style="font-size:12px;color:#8099b0;">Loading…</p>';
+  document.getElementById('status-modal').style.display='flex';
+
+  // Find instances where document_names contains this document
+  var {data:instances}=await sb.from('ged_workflow_instances').select('*').ilike('document_names','%'+docName+'%').order('applied_at',{ascending:false});
+  if(!instances||instances.length===0){
+    document.getElementById('status-modal-body').innerHTML='<p style="font-size:13px;color:#8099b0;text-align:center;padding:24px 0;">No workflow has been applied to this document yet.</p>';
+    return;
+  }
+
+  var ids=instances.map(function(i){return i.id;});
+  var {data:allRecips}=await sb.from('ged_workflow_recipients').select('*').in('instance_id',ids);
+
+  var statusColors={pending:'#f59e0b',completed:'#1a9458',rejected:'#e53e3e'};
+  var statusLabels={pending:'In Progress',completed:'Completed',rejected:'Rejected'};
+  var recipStatusColors={pending:'#8099b0',approved:'#1a9458',rejected:'#e53e3e',noted:'#224F93'};
+  var recipIcons={pending:'⏳',approved:'✅',rejected:'❌',noted:'✓'};
+
+  document.getElementById('status-modal-body').innerHTML=instances.map(function(inst){
+    var recips=(allRecips||[]).filter(function(r){return r.instance_id===inst.id;});
+    var statusColor=statusColors[inst.status]||'#8099b0';
+    var statusLabel=statusLabels[inst.status]||inst.status;
+    var date=inst.applied_at?new Date(inst.applied_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+    var recipHtml=recips.map(function(r){
+      var sc=recipStatusColors[r.status]||'#8099b0';
+      var icon=recipIcons[r.status]||'⏳';
+      var respondedDate=r.responded_at?new Date(r.responded_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'';
+      return '<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#fff;border:1px solid rgba(34,79,147,0.08);border-radius:7px;">'+
+        '<span style="font-size:16px;">'+icon+'</span>'+
+        '<div style="flex:1;min-width:0;">'+
+          '<div style="font-size:12px;font-weight:600;color:#1a2a3a;">'+escHtml(r.name)+'</div>'+
+          '<div style="font-size:10px;color:#8099b0;">'+escHtml(r.company||'')+(r.action?' · '+escHtml(r.action):'')+(respondedDate?' · '+respondedDate:'')+'</div>'+
+          (r.comment?'<div style="font-size:11px;color:#4a6080;margin-top:2px;font-style:italic;">"'+escHtml(r.comment)+'"</div>':'')+
+        '</div>'+
+        '<span style="font-size:11px;font-weight:700;color:'+sc+';">'+escHtml(r.status.charAt(0).toUpperCase()+r.status.slice(1))+'</span>'+
+      '</div>';
+    }).join('');
+    return '<div style="margin-bottom:16px;">'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">'+
+        '<div>'+
+          '<div style="font-size:12px;font-weight:700;color:#1a2a3a;">'+escHtml(inst.workflow_name||'Workflow')+'</div>'+
+          '<div style="font-size:10px;color:#8099b0;">'+escHtml(inst.applied_by||'')+(date?' · '+date:'')+'</div>'+
+        '</div>'+
+        '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:'+statusColor+'1a;color:'+statusColor+';">'+statusLabel+'</span>'+
+      '</div>'+
+      '<div style="display:flex;flex-direction:column;gap:6px;">'+recipHtml+'</div>'+
+    '</div>';
+  }).join('');
+}
 function confirmMove(){
   var dest=document.getElementById('move-dest').value.trim();
   if(!dest){document.getElementById('move-dest').style.borderColor='#c02020';return;}

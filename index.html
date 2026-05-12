@@ -409,6 +409,12 @@ window._installPWA = async function() {
             Workflow
           </button>
 
+          <!-- Status -->
+          <button id="btn-status" onclick="openStatusModal()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;background:#fff;color:#4a6080;border:1px solid rgba(34,79,147,0.2);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;opacity:0.45;pointer-events:none;" onmouseover="this.style.background='#f4f8fd'" onmouseout="this.style.background='#fff'">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4a6080" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            Status
+          </button>
+
           <!-- Download -->
           <button id="btn-download" onclick="downloadSelected()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;background:#fff;color:#4a6080;border:1px solid rgba(34,79,147,0.2);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;opacity:0.45;pointer-events:none;" onmouseover="this.style.background='#f4f8fd'" onmouseout="this.style.background='#fff'">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4a6080" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -905,6 +911,20 @@ window._installPWA = async function() {
       <button onclick="setPage('workflow');closeWfPicker();" style="font-family:'Barlow',sans-serif;font-size:11px;font-weight:600;color:#224F93;background:none;border:none;cursor:pointer;padding:0;">+ Manage Workflows</button>
       <button onclick="closeWfPicker()" style="padding:8px 16px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;color:#4a6080;">Cancel</button>
     </div>
+  </div>
+</div>
+
+<!-- ══ STATUS MODAL ══ -->
+<div id="status-modal" style="display:none;position:fixed;inset:0;background:rgba(20,40,80,0.45);z-index:10002;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;width:500px;max-width:calc(100vw - 32px);max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(20,40,80,0.18);">
+    <div style="display:flex;align-items:center;padding:20px 24px 16px;border-bottom:1px solid rgba(34,79,147,0.1);position:sticky;top:0;background:#fff;z-index:1;">
+      <div>
+        <div style="font-size:15px;font-weight:700;color:#1a2a3a;">Workflow Status</div>
+        <div id="status-modal-subtitle" style="font-size:11px;color:#8099b0;margin-top:2px;"></div>
+      </div>
+      <button onclick="closeStatusModal()" style="margin-left:auto;width:28px;height:28px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:6px;cursor:pointer;font-size:14px;color:#8099b0;display:flex;align-items:center;justify-content:center;">✕</button>
+    </div>
+    <div id="status-modal-body" style="padding:16px 24px;"></div>
   </div>
 </div>
 
