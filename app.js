@@ -875,7 +875,8 @@ function renderDeliverables(){
   var list=document.getElementById('deliverables-list');
   if(!list)return;
   list.innerHTML=deliverables.map(function(d,i){
-    var label=d.code?d.id+'. ('+d.code+') '+d.name:d.id+'. '+d.name;
+    var dn=d.num||d.id;
+    var label=d.code?dn+'. ('+d.code+') '+d.name:dn+'. '+d.name;
     var bg=i%2===0?'#ffffff':'#fafcff';
     return '<div class="del-row" style="background:'+bg+';"'
       +' onmouseover="this.style.background=\'#eef4ff\'"'
@@ -935,7 +936,8 @@ function confirmNewFolder(){
   var today=new Date();
   var ds=('0'+today.getDate()).slice(-2)+'/'+('0'+(today.getMonth()+1)).slice(-2)+'/'+today.getFullYear();
   var newId=Date.now();
-  deliverables.push({id:newId,code:'',name:val,blue:false,date:ds});
+  var newNum=deliverables.length?Math.max.apply(null,deliverables.map(function(d){return d.num||0;}))+1:1;
+  deliverables.push({id:newId,num:newNum,code:'',name:val,blue:false,date:ds});
   closeNewFolderModal();
   renderDeliverables();
   saveDeliv();
@@ -984,7 +986,7 @@ function deleteSelected(){
   var checked=document.querySelectorAll('.row-check:checked');
   if(!checked.length)return;
   var ids=Array.from(checked).map(function(c){return parseInt(c.getAttribute('data-id'));});
-  var names=ids.map(function(id){var d=deliverables.find(function(x){return x.id===id;});return d?'"'+(d.code?d.id+'.('+d.code+') '+d.name:d.id+'. '+d.name)+'"':'';}).join(', ');
+  var names=ids.map(function(id){var d=deliverables.find(function(x){return x.id===id;});if(!d)return '';var dn=d.num||d.id;return '"'+(d.code?dn+'.('+d.code+') '+d.name:dn+'. '+d.name)+'"';}).join(', ');
   document.getElementById('delete-names').textContent=ids.length===1?names:ids.length+' folders selected';
   document.getElementById('delete-modal').setAttribute('data-ids',JSON.stringify(ids));
   document.getElementById('delete-modal').style.display='flex';
@@ -1012,7 +1014,8 @@ function duplicateSelected(){
     var d=deliverables.find(function(x){return x.id===id;});
     if(!d)return;
     var newId=Date.now();
-    var copy=Object.assign({},d,{id:newId,name:d.name+' (copy)',date:ds});
+    var newNum=Math.max.apply(null,deliverables.map(function(x){return x.num||0;}))+1;
+    var copy=Object.assign({},d,{id:newId,num:newNum,name:d.name+' (copy)',date:ds});
     // also duplicate files
     if(folderFiles[id]) folderFiles[newId]=folderFiles[id].slice();
     var idx=deliverables.indexOf(d);
@@ -1030,7 +1033,7 @@ function downloadSelected(){
   var names=Array.from(checked).map(function(cb){
     var id=parseInt(cb.getAttribute('data-id'));
     var d=deliverables.find(function(x){return x.id===id;});
-    return d?(d.code?d.id+'.('+d.code+') '+d.name:d.id+'. '+d.name):'';
+    if(!d)return '';var dn=d.num||d.id;return d.code?dn+'.('+d.code+') '+d.name:dn+'. '+d.name;
   }).filter(Boolean);
   document.getElementById('download-names').innerHTML=names.map(function(n){
     return '<div style="display:flex;align-items:center;gap:7px;padding:6px 0;border-bottom:1px solid rgba(34,79,147,0.06);">'
@@ -1327,7 +1330,8 @@ var folderStack=[];     // navigation stack [{id, label}]
 async function openFolder(id){
   var d=deliverables.find(function(x){return x.id===id;});
   if(!d)return;
-  var label=d.code?d.id+'. ('+d.code+') '+d.name:d.id+'. '+d.name;
+  var dn=d.num||d.id;
+  var label=d.code?dn+'. ('+d.code+') '+d.name:dn+'. '+d.name;
   folderStack=[{id:id,label:label}];
   currentFolderId=id;
   renderBreadcrumb();
