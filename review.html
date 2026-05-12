@@ -129,9 +129,21 @@ async function respond(status){
   var {data:allRecips}=await sb.from('ged_workflow_recipients').select('status').eq('instance_id',_recipient.instance_id);
   if(allRecips){
     var allDone=allRecips.every(function(r){return r.status!=='pending';});
-    var anyRejected=allRecips.some(function(r){return r.status==='rejected';});
     if(allDone){
-      await sb.from('ged_workflow_instances').update({status:anyRejected?'rejected':'completed'}).eq('id',_recipient.instance_id);
+      var anyRejected=allRecips.some(function(r){return r.status==='rejected';});
+      var finalStatus;
+      if(anyRejected){
+        finalStatus='rejected';
+      }else{
+        var allNoted=allRecips.every(function(r){return r.status==='noted';});
+        if(allNoted){
+          finalStatus='noted';
+        }else{
+          var wfType=_instance?(_instance.workflow_type||'approval'):'approval';
+          finalStatus=wfType==='signature'?'signed':'approved';
+        }
+      }
+      await sb.from('ged_workflow_instances').update({status:finalStatus}).eq('id',_recipient.instance_id);
     }
   }
 

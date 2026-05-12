@@ -354,8 +354,8 @@ async function loadWorkflowInstances(){
   var {data:instances,error}=await sb.from('ged_workflow_instances').select('*').order('applied_at',{ascending:false}).limit(20);
   if(error||!instances||instances.length===0){el.innerHTML='<p style="font-size:12px;color:#8099b0;">No workflows sent yet.</p>';return;}
 
-  var statusColors={pending:'#f59e0b',completed:'#1a9458',rejected:'#e53e3e'};
-  var statusLabels={pending:'In Progress',completed:'Completed',rejected:'Rejected'};
+  var statusColors={pending:'#f59e0b',completed:'#1a9458',approved:'#1a9458',signed:'#7c3aed',noted:'#224F93',rejected:'#e53e3e'};
+  var statusLabels={pending:'In Progress',completed:'Completed',approved:'Approved',signed:'Signed',noted:'Acknowledged',rejected:'Rejected'};
   var recipStatusColors={pending:'#8099b0',approved:'#1a9458',rejected:'#e53e3e',noted:'#224F93'};
   var recipStatusLabels={pending:'Pending',approved:'Approved',rejected:'Rejected',noted:'Acknowledged'};
 
@@ -1069,8 +1069,8 @@ function closeMoveModal(){document.getElementById('move-modal').style.display='n
 function closeStatusModal(){document.getElementById('status-modal').style.display='none';}
 
 function renderStatusInstances(instances,allRecips){
-  var statusColors={pending:'#f59e0b',completed:'#1a9458',rejected:'#e53e3e'};
-  var statusLabels={pending:'In Progress',completed:'Completed',rejected:'Rejected'};
+  var statusColors={pending:'#f59e0b',completed:'#1a9458',approved:'#1a9458',signed:'#7c3aed',noted:'#224F93',rejected:'#e53e3e'};
+  var statusLabels={pending:'In Progress',completed:'Completed',approved:'Approved',signed:'Signed',noted:'Acknowledged',rejected:'Rejected'};
   var recipStatusColors={pending:'#8099b0',approved:'#1a9458',rejected:'#e53e3e',noted:'#224F93'};
   var recipIcons={pending:'⏳',approved:'✅',rejected:'❌',noted:'✓'};
   return instances.map(function(inst){
