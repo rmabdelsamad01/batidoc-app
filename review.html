@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BatiGED – Document Response</title>
+<link rel="icon" type="image/png" href="/favicon-32x32.png">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL='https://gmrpmyumvotczqbjagfd.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdtcnBteXVtdm90Y3pxYmphZ2ZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI2NTY4MDIsImV4cCI6MjA1ODIzMjgwMn0.p3T0RHhBfpkFKHMvkbBgMWvVkBpHm0AYblFOLpwbwtI';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#f0f4f9;font-family:'Barlow',Arial,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+.card{background:#fff;border-radius:16px;box-shadow:0 8px 40px rgba(34,79,147,0.12);width:100%;max-width:480px;overflow:hidden;}
+.header{background:#224F93;padding:24px 32px;text-align:center;}
+.header h1{color:#fff;font-size:20px;font-weight:700;letter-spacing:0.04em;}
+.header p{color:rgba(255,255,255,0.7);font-size:11px;margin-top:3px;text-transform:uppercase;letter-spacing:0.08em;}
+.body{padding:28px 32px;}
+.badge{display:inline-block;color:#fff;font-size:12px;font-weight:700;padding:5px 16px;border-radius:20px;margin-bottom:20px;}
+.label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#8099b0;margin-bottom:5px;}
+.value{font-size:14px;font-weight:600;color:#1a2a3a;}
+.info-box{background:#f4f8fd;border:1px solid rgba(34,79,147,0.12);border-radius:9px;padding:14px 18px;margin-bottom:14px;}
+.comment-area{width:100%;padding:10px 12px;border:1px solid rgba(34,79,147,0.25);border-radius:8px;font-family:'Barlow',Arial,sans-serif;font-size:13px;color:#1a2a3a;outline:none;resize:vertical;min-height:80px;margin-top:14px;}
+.comment-area:focus{border-color:#224F93;}
+.btn-row{display:flex;gap:10px;margin-top:20px;}
+.btn{flex:1;padding:13px;border:none;border-radius:9px;font-family:'Barlow',Arial,sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:opacity 0.15s;}
+.btn:hover{opacity:0.88;}
+.btn-approve{background:#1a9458;color:#fff;}
+.btn-reject{background:#e53e3e;color:#fff;}
+.btn-info{background:#224F93;color:#fff;}
+.success{text-align:center;padding:40px 32px;}
+.success-icon{font-size:48px;margin-bottom:16px;}
+.success h2{font-size:20px;font-weight:700;color:#1a2a3a;margin-bottom:8px;}
+.success p{font-size:14px;color:#8099b0;}
+.error-state{text-align:center;padding:40px 32px;}
+.error-state h2{font-size:18px;font-weight:700;color:#1a2a3a;margin-bottom:8px;}
+.error-state p{font-size:13px;color:#8099b0;}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <h1>BatiGED</h1>
+    <p>Document Management</p>
+  </div>
+  <div id="content" class="body">
+    <p style="color:#8099b0;font-size:14px;">Loading…</p>
+  </div>
+</div>
+
+<script>
+var _token=null;
+var _recipient=null;
+var _instance=null;
+
+async function init(){
+  var params=new URLSearchParams(window.location.search);
+  _token=params.get('token');
+  if(!_token){showError('Invalid link','This link is missing the required token.');return;}
+
+  var {data:rec,error}=await sb.from('ged_workflow_recipients').select('*').eq('token',_token).single();
+  if(error||!rec){showError('Link not found','This link may have expired or is invalid.');return;}
+  _recipient=rec;
+
+  var {data:inst}=await sb.from('ged_workflow_instances').select('*').eq('id',rec.instance_id).single();
+  _instance=inst;
+
+  if(rec.status!=='pending'){showAlreadyResponded(rec);return;}
+  showForm(rec,inst);
+}
+
+function showForm(rec,inst){
+  var actionColors={approval:'#1a9458',signature:'#7c3aed',review:'#224F93',info:'#8099b0'};
+  var actionLabels={approval:'Approval Required',signature:'Signature Required',review:'Review Required',info:'For Information'};
+  var color=actionColors[rec.action]||'#224F93';
+  var label=actionLabels[rec.action]||'Response Required';
+  var isInfo=rec.action==='info';
+
+  document.getElementById('content').innerHTML=
+    '<span class="badge" style="background:'+color+'">'+label+'</span>'+
+    '<div class="info-box">'+
+      '<div class="label">Document(s)</div>'+
+      '<div class="value">'+(inst?escHtml(inst.document_names):'—')+'</div>'+
+    '</div>'+
+    '<div style="display:flex;gap:10px;margin-bottom:4px;">'+
+      '<div class="info-box" style="flex:1;margin-bottom:0;">'+
+        '<div class="label">Workflow</div>'+
+        '<div class="value">'+(inst?escHtml(inst.workflow_name):'—')+'</div>'+
+      '</div>'+
+      '<div class="info-box" style="flex:1;margin-bottom:0;">'+
+        '<div class="label">Sent by</div>'+
+        '<div class="value">'+(inst?escHtml(inst.applied_by):'—')+'</div>'+
+      '</div>'+
+    '</div>'+
+    '<div style="margin-top:14px;">'+
+      '<div class="label">Hello, '+escHtml(rec.name)+'</div>'+
+      '<p style="font-size:13px;color:#4a6080;margin-top:4px;line-height:1.5;">'+
+        (isInfo?'Please acknowledge receipt of the document(s) listed above.':'Please review the document(s) above and submit your response below.')+
+      '</p>'+
+    '</div>'+
+    '<textarea class="comment-area" id="comment-input" placeholder="Add a comment (optional)…"></textarea>'+
+    '<div class="btn-row">'+
+      (isInfo
+        ? '<button class="btn btn-info" onclick="respond(\'noted\')">✓ Acknowledge</button>'
+        : '<button class="btn btn-approve" onclick="respond(\'approved\')">✓ '+(rec.action==='signature'?'Sign':'Approve')+'</button>'+
+          '<button class="btn btn-reject" onclick="respond(\'rejected\')">✕ Reject</button>'
+      )+
+    '</div>';
+}
+
+async function respond(status){
+  var comment=document.getElementById('comment-input')?document.getElementById('comment-input').value.trim():'';
+  document.querySelector('.btn-row').innerHTML='<p style="color:#8099b0;font-size:13px;">Submitting…</p>';
+
+  var {error}=await sb.from('ged_workflow_recipients').update({
+    status:status,comment:comment,responded_at:new Date().toISOString()
+  }).eq('token',_token);
+
+  if(error){
+    document.getElementById('content').innerHTML='<div class="error-state"><h2>Error</h2><p>Could not save your response. Please try again.</p></div>';
+    return;
+  }
+
+  // Check if all recipients responded → update instance status
+  var {data:allRecips}=await sb.from('ged_workflow_recipients').select('status').eq('instance_id',_recipient.instance_id);
+  if(allRecips){
+    var allDone=allRecips.every(function(r){return r.status!=='pending';});
+    var anyRejected=allRecips.some(function(r){return r.status==='rejected';});
+    if(allDone){
+      await sb.from('ged_workflow_instances').update({status:anyRejected?'rejected':'completed'}).eq('id',_recipient.instance_id);
+    }
+  }
+
+  showSuccess(status);
+}
+
+function showSuccess(status){
+  var icons={approved:'✅',rejected:'❌',noted:'✓'};
+  var messages={approved:'Your approval has been recorded.',rejected:'Your rejection has been recorded.',noted:'Your acknowledgement has been recorded.'};
+  document.getElementById('content').innerHTML=
+    '<div class="success">'+
+      '<div class="success-icon">'+(icons[status]||'✓')+'</div>'+
+      '<h2>Response submitted</h2>'+
+      '<p>'+(messages[status]||'Your response has been recorded.')+'</p>'+
+      '<p style="margin-top:8px;font-size:12px;">You may now close this page.</p>'+
+    '</div>';
+}
+
+function showAlreadyResponded(rec){
+  var labels={approved:'Approved',rejected:'Rejected',noted:'Acknowledged'};
+  document.getElementById('content').innerHTML=
+    '<div class="success">'+
+      '<div class="success-icon">ℹ️</div>'+
+      '<h2>Already responded</h2>'+
+      '<p>You already submitted your response: <strong>'+(labels[rec.status]||rec.status)+'</strong></p>'+
+      '<p style="margin-top:8px;font-size:12px;">You may now close this page.</p>'+
+    '</div>';
+}
+
+function showError(title,msg){
+  document.getElementById('content').innerHTML=
+    '<div class="error-state">'+
+      '<div style="font-size:40px;margin-bottom:16px;">⚠️</div>'+
+      '<h2>'+title+'</h2><p>'+msg+'</p>'+
+    '</div>';
+}
+
+function escHtml(s){if(!s)return '';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+init();
+</script>
+</body>
+</html>

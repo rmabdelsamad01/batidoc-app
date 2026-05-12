@@ -598,14 +598,15 @@ async function sendWorkflowEmails(wf,itemNames){
   var actionColors={approval:'#1a9458',signature:'#7c3aed',review:'#224F93',info:'#8099b0'};
   var typeLabel=wf.type==='signature'?'Document Signature':'Document Approval';
   var sender='BatiGED <ged@batimon.com>';
+  var senderName=(sbProfile&&(sbProfile.full_name||sbProfile.username))||'BatiGED';
 
-  // Collect all recipients flat: {name, email, action, stepIndex}
+  // Collect all recipients flat
   var recipients=[];
   if(wf.routing==='custom'){
     (wf.groups||[]).forEach(function(g,gi){
       (g.steps||[]).forEach(function(s){
         (s.recipients||[]).forEach(function(r){
-          if(r.email) recipients.push({name:r.name,email:r.email,action:r.action||'approval',group:gi+1,company:s.company});
+          if(r.email) recipients.push({name:r.name,email:r.email,action:r.action||'approval',step:gi+1,company:s.company});
         });
       });
     });
@@ -616,29 +617,39 @@ async function sendWorkflowEmails(wf,itemNames){
       });
     });
   }
-
   if(recipients.length===0){showToast('No email addresses found in this workflow');return;}
+
+  // Create workflow instance in DB
+  var {data:instance,error:instErr}=await sb.from('ged_workflow_instances').insert({
+    workflow_id:wf.id,workflow_name:wf.name,workflow_type:wf.type||'approval',
+    document_names:itemNames||'',applied_by:senderName,status:'pending'
+  }).select().single();
+  if(instErr){console.error(instErr);}
+
+  // Create recipient records with tokens
+  var recipRows=recipients.map(function(r){
+    return {instance_id:instance?instance.id:null,name:r.name,email:r.email,
+      action:r.action,company:r.company||'',step_index:r.step,status:'pending'};
+  });
+  var {data:savedRecips}=await sb.from('ged_workflow_recipients').insert(recipRows).select();
 
   var sent=0;var failed=0;
   for(var i=0;i<recipients.length;i++){
     var r=recipients[i];
+    var saved=savedRecips&&savedRecips[i];
+    var token=saved?saved.token:null;
+    var respondUrl=token?'https://ged.batimon.com/review?token='+token:null;
     var actionLabel=actionLabels[r.action]||'Approval';
     var actionColor=actionColors[r.action]||'#224F93';
     var subject='[BatiGED] '+typeLabel+' required — '+actionLabel;
     var html=buildEmailHtml({
-      recipientName:r.name,
-      actionLabel:actionLabel,
-      actionColor:actionColor,
-      typeLabel:typeLabel,
-      itemNames:itemNames||'',
-      wfName:wf.name,
-      company:r.company||'',
-      senderName:(sbProfile&&(sbProfile.full_name||sbProfile.username))||'BatiGED'
+      recipientName:r.name,actionLabel:actionLabel,actionColor:actionColor,
+      typeLabel:typeLabel,itemNames:itemNames||'',wfName:wf.name,
+      company:r.company||'',senderName:senderName,respondUrl:respondUrl
     });
     var ok=await sendResendEmail(r.email,subject,html,sender);
     if(ok)sent++;else failed++;
   }
-
   if(failed===0) showToast('✓ '+sent+' notification'+(sent>1?'s':'')+' sent successfully');
   else showToast('Sent: '+sent+' · Failed: '+failed);
 }
@@ -696,6 +707,14 @@ function buildEmailHtml(o){
             '</div>'+
           '</div>'+
         '</td></tr>'+
+        // Respond button
+        (o.respondUrl?
+        '<tr><td style="padding:24px 36px 0;text-align:center;">'+
+          '<a href="'+o.respondUrl+'" style="display:inline-block;background:#224F93;color:#fff;font-size:14px;font-weight:700;padding:13px 36px;border-radius:8px;text-decoration:none;letter-spacing:0.03em;">'+
+            (o.actionLabel==='For Information'?'✓ Acknowledge':'Respond Now')+
+          '</a>'+
+          '<p style="margin:10px 0 0;font-size:11px;color:#b0bec5;">Click the button above to submit your response</p>'+
+        '</td></tr>':'')+
         // Sent by
         '<tr><td style="padding:14px 36px 24px;">'+
           '<p style="margin:0;font-size:13px;color:#8099b0;">Sent by <strong style="color:#4a6080;">'+escHtml(o.senderName)+'</strong> via BatiGED</p>'+
