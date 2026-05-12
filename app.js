@@ -702,6 +702,7 @@ async function sendWorkflowEmails(wf,itemNames){
   if(failed===0) showToast('✓ '+sent+' notification'+(sent>1?'s':'')+' sent successfully');
   else showToast('Sent: '+sent+' · Failed: '+failed);
   loadDeliverablesBadges();
+  loadPayFolderBadges();
 }
 
 async function sendResendEmail(to,subject,html,from){
@@ -1720,7 +1721,8 @@ function renderPayFolders(){
       +'<div style="display:flex;align-items:center;justify-content:center;"><input type="checkbox" class="pay-row-check" data-id="'+f.id+'" onchange="updatePayToolbar()" style="width:15px;height:15px;accent-color:#224F93;cursor:pointer;"></div>'
       +'<div style="display:flex;align-items:center;gap:8px;overflow:hidden;cursor:pointer;" onclick="openPayFolder('+f.id+')">'
       +'<svg width="18" height="15" viewBox="0 0 24 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><path fill="#90a4ae" d="M10 2H2C.9 2 0 2.9 0 4v12c0 1.1.9 2 2 2h20c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H12L10 2z"/></svg>'
-      +'<span style="font-size:12px;color:#1a2a3a;font-weight:600;">'+(f.num||f.id)+'. '+f.name+'</span>'
+      +'<span style="font-size:12px;color:#1a2a3a;font-weight:600;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(f.num||f.id)+'. '+f.name+'</span>'
+      +'<span id="pay-badge-'+f.id+'" style="flex-shrink:0;margin-left:4px;"></span>'
       +'</div>'
       +'<div></div>'
       +'<div style="font-size:11px;color:#8099b0;font-family:\'DM Mono\',monospace;text-align:right;padding-right:4px;">'+f.date+'</div>'
@@ -1728,6 +1730,7 @@ function renderPayFolders(){
       +'</div>';
   }).join('');
   updatePayToolbar();
+  loadPayFolderBadges();
 }
 
 function payActionsSVG(){
@@ -1735,6 +1738,42 @@ function payActionsSVG(){
   return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="'+c+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="cursor:pointer;"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>'
     +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="'+c+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="cursor:pointer;"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>'
     +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="'+c+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="cursor:pointer;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+}
+
+async function loadPayFolderBadges(){
+  var {data:instances}=await sb.from('ged_workflow_instances').select('*').order('applied_at',{ascending:false});
+  if(!instances)instances=[];
+  var recips=[];
+  if(instances.length){
+    var ids=instances.map(function(i){return i.id;});
+    var {data:r}=await sb.from('ged_workflow_recipients').select('instance_id,status,action').in('instance_id',ids);
+    if(r)recips=r;
+  }
+  payFolders.forEach(function(f){
+    var el=document.getElementById('pay-badge-'+f.id);
+    if(!el)return;
+    var name=f.name.toLowerCase();
+    var matching=instances.filter(function(inst){return inst.document_names&&inst.document_names.toLowerCase().indexOf(name)!==-1;});
+    if(matching.length===0){el.innerHTML=wfBadgePill('Not Submitted','#8099b0','#f0f4f9');return;}
+    var inst=matching[0];
+    var ir=recips.filter(function(r){return r.instance_id===inst.id;});
+    var total=ir.length;
+    if(inst.status==='pending'){el.innerHTML=wfBadgePill('In Progress','#d97706','#fffbeb');return;}
+    var approvedCnt=ir.filter(function(r){return r.status==='approved'||r.status==='noted';}).length;
+    var rejectedCnt=ir.filter(function(r){return r.status==='rejected';}).length;
+    if(rejectedCnt>0){
+      var parts=[];
+      if(approvedCnt>0)parts.push(approvedCnt+'/'+total+' Approved');
+      parts.push(rejectedCnt+'/'+total+' Rejected');
+      el.innerHTML=wfBadgePill(parts.join(' · '),'#e53e3e','#fff5f5');
+      return;
+    }
+    var lbl={approved:'Approved',signed:'Signed',noted:'Acknowledged',completed:'Approved'}[inst.status]||'Approved';
+    var col={approved:'#1a9458',signed:'#7c3aed',noted:'#224F93',completed:'#1a9458'}[inst.status]||'#1a9458';
+    var bg={approved:'#f0fdf4',signed:'#faf5ff',noted:'#eff6ff',completed:'#f0fdf4'}[inst.status]||'#f0fdf4';
+    var txt=total>1?approvedCnt+'/'+total+' '+lbl:lbl;
+    el.innerHTML=wfBadgePill(txt,col,bg);
+  });
 }
 
 function updatePayToolbar(){
