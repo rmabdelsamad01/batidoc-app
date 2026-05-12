@@ -1690,6 +1690,7 @@ function updatePayToolbar(){
   s('paybtn-duplicate', any);
   s('paybtn-move',      any);
   s('paybtn-workflow',  any);
+  s('paybtn-status',    one);
   s('paybtn-download',  any);
   s('paybtn-delete',    any);
 }
@@ -1728,6 +1729,24 @@ function openPayFolderWorkflowModal(){
   var ids=getCheckedPayFolderIds();
   var names=ids.map(function(id){var f=payFolders.find(function(x){return x.id===id;});return f?f.name:'';}).filter(Boolean).join(', ');
   openWfPicker(names);
+}
+
+async function openPayFolderStatusModal(){
+  var ids=getCheckedPayFolderIds();
+  if(ids.length!==1)return;
+  var f=payFolders.find(function(x){return x.id===ids[0];});
+  var folderName=f?f.name:'';
+  document.getElementById('status-modal-subtitle').textContent=folderName;
+  document.getElementById('status-modal-body').innerHTML='<p style="font-size:13px;color:#8099b0;text-align:center;padding:24px 0;">Loading…</p>';
+  document.getElementById('status-modal').style.display='flex';
+  var {data:instances}=await sb.from('ged_workflow_instances').select('*').ilike('document_names','%'+folderName+'%').order('applied_at',{ascending:false});
+  if(!instances||instances.length===0){
+    document.getElementById('status-modal-body').innerHTML='<p style="font-size:13px;color:#8099b0;text-align:center;padding:24px 0;">No workflow has been applied to this folder yet.</p>';
+    return;
+  }
+  var ids2=instances.map(function(i){return i.id;});
+  var {data:allRecips}=await sb.from('ged_workflow_recipients').select('*').in('instance_id',ids2);
+  document.getElementById('status-modal-body').innerHTML=renderStatusInstances(instances,allRecips);
 }
 
 function downloadPayFolder(){
@@ -1877,6 +1896,7 @@ function updatePayFileToolbar(){
   s('payfbtn-duplicate', any);
   s('payfbtn-move',      any);
   s('payfbtn-workflow',  any);
+  s('payfbtn-status',    one);
   s('payfbtn-download',  any);
   s('payfbtn-delete',    any);
 }
@@ -1926,6 +1946,24 @@ function openPayFileWorkflowModal(){
   var files=payFolderFiles[currentPayFolderId]||[];
   var names=idxs.map(function(i){return files[i]?files[i].name:'';}).filter(Boolean).join(', ');
   openWfPicker(names);
+}
+
+async function openPayFileStatusModal(){
+  var idxs=getCheckedPayFileIdxs();
+  if(idxs.length!==1)return;
+  var files=payFolderFiles[currentPayFolderId]||[];
+  var fileName=files[idxs[0]]?files[idxs[0]].name:'';
+  document.getElementById('status-modal-subtitle').textContent=fileName;
+  document.getElementById('status-modal-body').innerHTML='<p style="font-size:13px;color:#8099b0;text-align:center;padding:24px 0;">Loading…</p>';
+  document.getElementById('status-modal').style.display='flex';
+  var {data:instances}=await sb.from('ged_workflow_instances').select('*').ilike('document_names','%'+fileName+'%').order('applied_at',{ascending:false});
+  if(!instances||instances.length===0){
+    document.getElementById('status-modal-body').innerHTML='<p style="font-size:13px;color:#8099b0;text-align:center;padding:24px 0;">No workflow has been applied to this file yet.</p>';
+    return;
+  }
+  var ids=instances.map(function(i){return i.id;});
+  var {data:allRecips}=await sb.from('ged_workflow_recipients').select('*').in('instance_id',ids);
+  document.getElementById('status-modal-body').innerHTML=renderStatusInstances(instances,allRecips);
 }
 
 function downloadPayFile(){
