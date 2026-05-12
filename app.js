@@ -1415,7 +1415,7 @@ function renderFolderFiles(){
       +'<div style="display:flex;align-items:center;justify-content:center;"><input type="checkbox" class="frow-check" data-idx="sub:'+si+'" onchange="updateFileToolbar()" style="width:15px;height:15px;accent-color:#224F93;cursor:pointer;"></div>'
       +'<div style="display:flex;align-items:center;gap:8px;overflow:hidden;cursor:pointer;" onclick="openSubFolder(\''+currentFolderId+'\','+sub.id+')">'
       +'<svg width="18" height="15" viewBox="0 0 24 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><path fill="#90a4ae" d="M10 2H2C.9 2 0 2.9 0 4v12c0 1.1.9 2 2 2h20c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H12L10 2z"/></svg>'
-      +'<span style="font-size:12px;color:#1a2a3a;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+sub.name+'</span>'
+      +'<span style="font-size:12px;color:#1a2a3a;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(sub.num||sub.id)+'. '+sub.name+'</span>'
       +'</div>'
       +'<div style="font-size:11px;color:#b0bec5;">—</div>'
       +'<div style="font-size:11px;color:#8099b0;font-family:\'DM Mono\',monospace;">'+sub.date+'</div>'
@@ -1483,7 +1483,8 @@ function confirmSubfolder(){
   var ds=('0'+today.getDate()).slice(-2)+'/'+('0'+(today.getMonth()+1)).slice(-2)+'/'+today.getFullYear();
   var existing=folderSubs[currentFolderId];
   var newId=Date.now();
-  existing.push({id:newId,name:val,date:ds});
+  var newNum=existing.length?Math.max.apply(null,existing.map(function(s){return s.num||0;}))+1:1;
+  existing.push({id:newId,num:newNum,name:val,date:ds});
   closeSubfolderModal();
   renderFolderFiles();
   showToast('Folder "'+val+'" created');
@@ -1652,7 +1653,7 @@ async function handleFiles(fileList){
 
 // ── payments folders ──────────────────────────────────────────
 var payFolders=[
-  {id:1, name:'Decompte 001', date:'22/03/2026'}
+  {id:1, num:1, name:'Decompte 001', date:'22/03/2026'}
 ];
 var payFolderFiles={};   // keyed by folder id
 var currentPayFolderId=null;
@@ -1671,7 +1672,7 @@ function renderPayFolders(){
       +'<div style="display:flex;align-items:center;justify-content:center;"><input type="checkbox" class="pay-row-check" data-id="'+f.id+'" onchange="updatePayToolbar()" style="width:15px;height:15px;accent-color:#224F93;cursor:pointer;"></div>'
       +'<div style="display:flex;align-items:center;gap:8px;overflow:hidden;cursor:pointer;" onclick="openPayFolder('+f.id+')">'
       +'<svg width="18" height="15" viewBox="0 0 24 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><path fill="#90a4ae" d="M10 2H2C.9 2 0 2.9 0 4v12c0 1.1.9 2 2 2h20c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H12L10 2z"/></svg>'
-      +'<span style="font-size:12px;color:#1a2a3a;font-weight:600;">'+f.name+'</span>'
+      +'<span style="font-size:12px;color:#1a2a3a;font-weight:600;">'+(f.num||f.id)+'. '+f.name+'</span>'
       +'</div>'
       +'<div></div>'
       +'<div style="font-size:11px;color:#8099b0;font-family:\'DM Mono\',monospace;text-align:right;padding-right:4px;">'+f.date+'</div>'
@@ -1713,8 +1714,9 @@ function duplicatePayFolder(){
     var f=payFolders.find(function(x){return x.id===id;});
     if(!f)return;
     var newId=Date.now();
+    var newNum=Math.max.apply(null,payFolders.map(function(x){return x.num||0;}))+1;
     var idx=payFolders.indexOf(f);
-    payFolders.splice(idx+1,0,{id:newId,name:f.name+' (copy)',date:ds});
+    payFolders.splice(idx+1,0,{id:newId,num:newNum,name:f.name+' (copy)',date:ds});
     if(payFolderFiles[id]) payFolderFiles[newId]=payFolderFiles[id].slice();
   });
   document.getElementById('pay-check-all').checked=false;
@@ -1785,7 +1787,8 @@ function confirmNewPayFolder(){
   var today=new Date();
   var ds=('0'+today.getDate()).slice(-2)+'/'+('0'+(today.getMonth()+1)).slice(-2)+'/'+today.getFullYear();
   var newId=Date.now();
-  payFolders.push({id:newId,name:val,date:ds});
+  var newNum=payFolders.length?Math.max.apply(null,payFolders.map(function(f){return f.num||0;}))+1:1;
+  payFolders.push({id:newId,num:newNum,name:val,date:ds});
   closeNewPayFolderModal();
   renderPayFolders();
   showToast('Folder "'+val+'" created');
@@ -1863,7 +1866,7 @@ function renderPayFileList(){
       +'<div style="display:flex;align-items:center;justify-content:center;"><input type="checkbox" class="payf-row-check" data-idx="sub:'+si+'" onchange="updatePayFileToolbar()" style="width:15px;height:15px;accent-color:#224F93;cursor:pointer;"></div>'
       +'<div style="display:flex;align-items:center;gap:8px;overflow:hidden;">'
       +'<svg width="18" height="15" viewBox="0 0 24 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><path fill="#90a4ae" d="M10 2H2C.9 2 0 2.9 0 4v12c0 1.1.9 2 2 2h20c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H12L10 2z"/></svg>'
-      +'<span style="font-size:12px;color:#1a2a3a;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+sub.name+'</span>'
+      +'<span style="font-size:12px;color:#1a2a3a;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(sub.num||sub.id)+'. '+sub.name+'</span>'
       +'</div>'
       +'<div style="font-size:11px;color:#b0bec5;">\u2014</div>'
       +'<div style="font-size:11px;color:#8099b0;font-family:\'DM Mono\',monospace;">'+sub.date+'</div>'
@@ -2019,7 +2022,8 @@ function confirmNewPaySubFolder(){
   var ds=('0'+today.getDate()).slice(-2)+'/'+('0'+(today.getMonth()+1)).slice(-2)+'/'+today.getFullYear();
   var subs=payFolderSubs[currentPayFolderId];
   var newId=Date.now();
-  subs.push({id:newId,name:val,date:ds});
+  var newNum=subs.length?Math.max.apply(null,subs.map(function(s){return s.num||0;}))+1:1;
+  subs.push({id:newId,num:newNum,name:val,date:ds});
   closeNewPaySubFolderModal();
   renderPayFileList();
   showToast('Folder "'+val+'" created');
