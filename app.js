@@ -934,7 +934,7 @@ function confirmNewFolder(){
   if(!val){document.getElementById('new-folder-err').textContent='Please enter a folder name.';document.getElementById('new-folder-err').style.display='block';return;}
   var today=new Date();
   var ds=('0'+today.getDate()).slice(-2)+'/'+('0'+(today.getMonth()+1)).slice(-2)+'/'+today.getFullYear();
-  var newId=deliverables.length?Math.max.apply(null,deliverables.map(function(d){return d.id;}))+1:1;
+  var newId=Date.now();
   deliverables.push({id:newId,code:'',name:val,blue:false,date:ds});
   closeNewFolderModal();
   renderDeliverables();
@@ -1011,7 +1011,7 @@ function duplicateSelected(){
     var id=parseInt(cb.getAttribute('data-id'));
     var d=deliverables.find(function(x){return x.id===id;});
     if(!d)return;
-    var newId=Math.max.apply(null,deliverables.map(function(x){return x.id;}))+1;
+    var newId=Date.now();
     var copy=Object.assign({},d,{id:newId,name:d.name+' (copy)',date:ds});
     // also duplicate files
     if(folderFiles[id]) folderFiles[newId]=folderFiles[id].slice();
@@ -1478,7 +1478,7 @@ function confirmSubfolder(){
   var today=new Date();
   var ds=('0'+today.getDate()).slice(-2)+'/'+('0'+(today.getMonth()+1)).slice(-2)+'/'+today.getFullYear();
   var existing=folderSubs[currentFolderId];
-  var newId=existing.length?Math.max.apply(null,existing.map(function(s){return s.id;}))+1:1;
+  var newId=Date.now();
   existing.push({id:newId,name:val,date:ds});
   closeSubfolderModal();
   renderFolderFiles();
@@ -1708,7 +1708,7 @@ function duplicatePayFolder(){
   ids.forEach(function(id){
     var f=payFolders.find(function(x){return x.id===id;});
     if(!f)return;
-    var newId=Math.max.apply(null,payFolders.map(function(x){return x.id;}))+1;
+    var newId=Date.now();
     var idx=payFolders.indexOf(f);
     payFolders.splice(idx+1,0,{id:newId,name:f.name+' (copy)',date:ds});
     if(payFolderFiles[id]) payFolderFiles[newId]=payFolderFiles[id].slice();
@@ -1780,7 +1780,7 @@ function confirmNewPayFolder(){
   if(!val){document.getElementById('new-pay-folder-err').textContent='Please enter a folder name.';document.getElementById('new-pay-folder-err').style.display='block';return;}
   var today=new Date();
   var ds=('0'+today.getDate()).slice(-2)+'/'+('0'+(today.getMonth()+1)).slice(-2)+'/'+today.getFullYear();
-  var newId=payFolders.length?Math.max.apply(null,payFolders.map(function(f){return f.id;}))+1:1;
+  var newId=Date.now();
   payFolders.push({id:newId,name:val,date:ds});
   closeNewPayFolderModal();
   renderPayFolders();
@@ -2014,7 +2014,7 @@ function confirmNewPaySubFolder(){
   var today=new Date();
   var ds=('0'+today.getDate()).slice(-2)+'/'+('0'+(today.getMonth()+1)).slice(-2)+'/'+today.getFullYear();
   var subs=payFolderSubs[currentPayFolderId];
-  var newId=subs.length?Math.max.apply(null,subs.map(function(s){return s.id;}))+1:1;
+  var newId=Date.now();
   subs.push({id:newId,name:val,date:ds});
   closeNewPaySubFolderModal();
   renderPayFileList();
