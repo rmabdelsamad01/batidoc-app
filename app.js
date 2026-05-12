@@ -1063,32 +1063,12 @@ function closeMoveModal(){document.getElementById('move-modal').style.display='n
 
 function closeStatusModal(){document.getElementById('status-modal').style.display='none';}
 
-async function openStatusModal(){
-  var checked=document.querySelectorAll('.row-check:checked');
-  if(checked.length!==1)return;
-  var id=parseInt(checked[0].getAttribute('data-id'));
-  var d=deliverables.find(function(x){return x.id===id;});
-  var docName=d?(d.code?'('+d.code+') '+d.name:d.name):'';
-  document.getElementById('status-modal-subtitle').textContent=docName;
-  document.getElementById('status-modal-body').innerHTML='<p style="font-size:12px;color:#8099b0;">Loading…</p>';
-  document.getElementById('status-modal').style.display='flex';
-
-  // Find instances where document_names contains this document
-  var {data:instances}=await sb.from('ged_workflow_instances').select('*').ilike('document_names','%'+docName+'%').order('applied_at',{ascending:false});
-  if(!instances||instances.length===0){
-    document.getElementById('status-modal-body').innerHTML='<p style="font-size:13px;color:#8099b0;text-align:center;padding:24px 0;">No workflow has been applied to this document yet.</p>';
-    return;
-  }
-
-  var ids=instances.map(function(i){return i.id;});
-  var {data:allRecips}=await sb.from('ged_workflow_recipients').select('*').in('instance_id',ids);
-
+function renderStatusInstances(instances,allRecips){
   var statusColors={pending:'#f59e0b',completed:'#1a9458',rejected:'#e53e3e'};
   var statusLabels={pending:'In Progress',completed:'Completed',rejected:'Rejected'};
   var recipStatusColors={pending:'#8099b0',approved:'#1a9458',rejected:'#e53e3e',noted:'#224F93'};
   var recipIcons={pending:'⏳',approved:'✅',rejected:'❌',noted:'✓'};
-
-  document.getElementById('status-modal-body').innerHTML=instances.map(function(inst){
+  return instances.map(function(inst){
     var recips=(allRecips||[]).filter(function(r){return r.instance_id===inst.id;});
     var statusColor=statusColors[inst.status]||'#8099b0';
     var statusLabel=statusLabels[inst.status]||inst.status;
@@ -1118,6 +1098,25 @@ async function openStatusModal(){
       '<div style="display:flex;flex-direction:column;gap:6px;">'+recipHtml+'</div>'+
     '</div>';
   }).join('');
+}
+
+async function openStatusModal(){
+  var checked=document.querySelectorAll('.row-check:checked');
+  if(checked.length!==1)return;
+  var id=parseInt(checked[0].getAttribute('data-id'));
+  var d=deliverables.find(function(x){return x.id===id;});
+  var docName=d?(d.code?'('+d.code+') '+d.name:d.name):'';
+  document.getElementById('status-modal-subtitle').textContent=docName;
+  document.getElementById('status-modal-body').innerHTML='<p style="font-size:12px;color:#8099b0;">Loading…</p>';
+  document.getElementById('status-modal').style.display='flex';
+  var {data:instances}=await sb.from('ged_workflow_instances').select('*').ilike('document_names','%'+docName+'%').order('applied_at',{ascending:false});
+  if(!instances||instances.length===0){
+    document.getElementById('status-modal-body').innerHTML='<p style="font-size:13px;color:#8099b0;text-align:center;padding:24px 0;">No workflow has been applied to this document yet.</p>';
+    return;
+  }
+  var ids=instances.map(function(i){return i.id;});
+  var {data:allRecips}=await sb.from('ged_workflow_recipients').select('*').in('instance_id',ids);
+  document.getElementById('status-modal-body').innerHTML=renderStatusInstances(instances,allRecips);
 }
 function confirmMove(){
   var dest=document.getElementById('move-dest').value.trim();
@@ -1503,6 +1502,7 @@ function updateFileToolbar(){
   setFBtn('fbtn-duplicate',any);
   setFBtn('fbtn-move',     any);
   setFBtn('fbtn-workflow', any);
+  setFBtn('fbtn-status',   one);
   setFBtn('fbtn-download', any);
   setFBtn('fbtn-delete',   any);
 }
@@ -1568,6 +1568,25 @@ function openFileWorkflowModal(){
   var files=folderFiles[currentFolderId]||[];
   var names=idxs.map(function(i){return files[i]?files[i].name:'';}).filter(Boolean).join(', ');
   openWfPicker(names);
+}
+
+async function openFileStatusModal(){
+  var idxs=getCheckedFileIdxs();
+  var files=folderFiles[currentFolderId]||[];
+  if(idxs.length!==1)return;
+  var fileName=files[idxs[0]]?files[idxs[0]].name:'';
+  document.getElementById('status-modal-subtitle').textContent=fileName;
+  document.getElementById('status-modal-body').innerHTML='<p style="font-size:12px;color:#8099b0;">Loading…</p>';
+  document.getElementById('status-modal').style.display='flex';
+
+  var {data:instances}=await sb.from('ged_workflow_instances').select('*').ilike('document_names','%'+fileName+'%').order('applied_at',{ascending:false});
+  if(!instances||instances.length===0){
+    document.getElementById('status-modal-body').innerHTML='<p style="font-size:13px;color:#8099b0;text-align:center;padding:24px 0;">No workflow has been applied to this file yet.</p>';
+    return;
+  }
+  var ids=instances.map(function(i){return i.id;});
+  var {data:allRecips}=await sb.from('ged_workflow_recipients').select('*').in('instance_id',ids);
+  document.getElementById('status-modal-body').innerHTML=renderStatusInstances(instances,allRecips);
 }
 
 function downloadFile(){

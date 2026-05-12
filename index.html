@@ -519,6 +519,12 @@ window._installPWA = async function() {
               Workflow
             </button>
 
+            <!-- Status file -->
+            <button id="fbtn-status" onclick="openFileStatusModal()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;background:#fff;color:#4a6080;border:1px solid rgba(34,79,147,0.2);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;opacity:0.45;pointer-events:none;" onmouseover="this.style.background='#f4f8fd'" onmouseout="this.style.background='#fff'">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4a6080" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              Status
+            </button>
+
             <!-- Download file -->
             <button id="fbtn-download" onclick="downloadFile()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;background:#fff;color:#4a6080;border:1px solid rgba(34,79,147,0.2);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;opacity:0.45;pointer-events:none;" onmouseover="this.style.background='#f4f8fd'" onmouseout="this.style.background='#fff'">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4a6080" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
