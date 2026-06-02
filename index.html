@@ -51,6 +51,10 @@ body{font-family:var(--font);background:#f0f4f9;color:var(--text);font-size:13px
 .sb-icon{width:28px;height:28px;border-radius:6px;background:#f0f4f9;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background 0.15s;}
 .sb-item.active .sb-icon{background:rgba(34,79,147,0.12);}
 .sb-footer{padding:10px 16px;border-top:1px solid rgba(34,79,147,0.08);font-size:9px;color:#b0bec5;}
+.sb-intervenants{margin-top:10px;border-top:1px solid rgba(34,79,147,0.08);padding-top:8px;}
+.sb-iv{display:flex;justify-content:space-between;align-items:baseline;gap:6px;padding:3px 0;}
+.sb-iv-role{font-size:9px;font-weight:700;color:#8099b0;text-transform:uppercase;letter-spacing:0.05em;white-space:nowrap;flex-shrink:0;}
+.sb-iv-name{font-size:10px;font-weight:600;color:#224F93;text-align:right;}
 
 .content{flex:1;overflow-y:auto;padding:28px 32px;background:#f0f4f9;}
 
@@ -324,6 +328,16 @@ window._installPWA = async function() {
       <div class="sb-project">
         <div class="sb-label">Current Project</div>
         <div class="sb-name">Shift Tower</div>
+        <div class="sb-intervenants">
+          <div class="sb-iv"><span class="sb-iv-role">BET Facade</span><span class="sb-iv-name">Ferres</span></div>
+          <div class="sb-iv"><span class="sb-iv-role">BCT Facade</span><span class="sb-iv-name">Save Controls</span></div>
+          <div class="sb-iv"><span class="sb-iv-role">Architecte</span><span class="sb-iv-name">OZA / KREA</span></div>
+          <div class="sb-iv"><span class="sb-iv-role">BET SSI</span><span class="sb-iv-name">Sepsi</span></div>
+          <div class="sb-iv"><span class="sb-iv-role">BET Acoustique</span><span class="sb-iv-name">Accoustichok</span></div>
+          <div class="sb-iv"><span class="sb-iv-role">AMO HQE/Env/Therm</span><span class="sb-iv-name">EESM</span></div>
+          <div class="sb-iv"><span class="sb-iv-role">AMO</span><span class="sb-iv-name">AMODEV</span></div>
+          <div class="sb-iv"><span class="sb-iv-role">MO</span><span class="sb-iv-name">Maydane</span></div>
+        </div>
       </div>
       <nav class="sb-nav">
         <button class="sb-item active" id="nav-deliverables" onclick="setPage('deliverables')">
