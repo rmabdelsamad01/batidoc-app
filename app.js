@@ -17,11 +17,25 @@ async function loadDeliv(){
   }catch(e){console.error('loadDeliv',e);}
 }
 
+async function saveVisaStatuses(){
+  try{
+    await sb.from('project_info').delete().eq('project','batidoc').eq('key','visa_statuses');
+    await sb.from('project_info').insert({project:'batidoc',key:'visa_statuses',value:JSON.stringify(_visaStatuses),updated_at:new Date().toISOString()});
+  }catch(e){console.error('saveVisaStatuses',e);}
+}
+async function loadVisaStatuses(){
+  try{
+    var {data,error}=await sb.from('project_info').select('value').eq('project','batidoc').eq('key','visa_statuses').maybeSingle();
+    if(!error&&data&&data.value){_visaStatuses=JSON.parse(data.value)||{};}
+  }catch(e){console.error('loadVisaStatuses',e);}
+}
+
 // ── app init ──────────────────────────────────────────────────
 function initApp(){
   setPage('deliverables');
   loadDeliv();
   loadGedWorkflows();
+  loadVisaStatuses();
 }
 
 function setUserName(name){
@@ -1322,6 +1336,33 @@ function showToast(msg){
 var GED_BUCKET='ged-documents';
 var _downloadFileRefs=[];
 
+// ── Visa / Intervenant constants ──────────────────────────────
+var GED_INTERVENANTS=[
+  {key:'bet-facade',  short:'BET Fac.'},
+  {key:'bct-facade',  short:'BCT Fac.'},
+  {key:'architecte',  short:'Archi.'},
+  {key:'bet-ssi',     short:'SSI'},
+  {key:'bet-acous',   short:'Acous.'},
+  {key:'amo-hqe',     short:'HQE'},
+  {key:'amo',         short:'AMO'},
+  {key:'mo',          short:'MO'},
+];
+var GED_IV_COMPANY_MAP={
+  'Ferres':'bet-facade',
+  'Save Controls':'bct-facade',
+  'OZA':'architecte','KREA':'architecte','OZA / KREA':'architecte',
+  'Sepsi':'bet-ssi',
+  'Accoustichok':'bet-acous',
+  'EESM':'amo-hqe',
+  'AMODEV':'amo',
+  'Maydane':'mo',
+};
+var WF_TO_VISA={approved:'VSO',noted:'VAO',rejected:'REJ'};
+var FOLDER_GRID='36px minmax(180px,1fr) 90px 100px 62px 62px 62px 62px 62px 62px 62px 62px 44px';
+var _visaStatuses={};
+var _visaAutoStatuses={};
+var _visaCellTarget=null;
+
 function gedFmtSize(b){return b<1024?b+' B':b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(1)+' MB';}
 
 async function gedLoadFiles(folderId,folderType){
@@ -1385,6 +1426,7 @@ async function openFolder(id){
   document.getElementById('view-folder').style.display='block';
   folderFiles[id]=await gedLoadFiles(id,'deliverable');
   renderFolderFiles();
+  loadFolderVisaFromWorkflow(folderFiles[id]);
 }
 
 async function openSubFolder(parentId, subId){
@@ -1397,6 +1439,7 @@ async function openSubFolder(parentId, subId){
   renderBreadcrumb();
   folderFiles[key]=await gedLoadFiles(key,'deliverable');
   renderFolderFiles();
+  loadFolderVisaFromWorkflow(folderFiles[key]);
 }
 
 function navigateTo(stackIdx){
@@ -1457,14 +1500,15 @@ function renderFolderFiles(){
   // ── subfolders ──
   subs.forEach(function(sub,si){
     var bg=si%2===0?'#fff':'#fafcff';
-    html+='<div style="display:grid;grid-template-columns:36px 1fr 100px 120px 44px;align-items:center;padding:0 14px;height:46px;background:'+bg+';border-bottom:1px solid rgba(34,79,147,0.05);transition:background 0.1s;" onmouseover="this.style.background=\'#eef4ff\'" onmouseout="this.style.background=\''+bg+'\'">'
+    html+='<div style="display:grid;grid-template-columns:'+FOLDER_GRID+';align-items:center;padding:0 14px;height:46px;background:'+bg+';border-bottom:1px solid rgba(34,79,147,0.05);transition:background 0.1s;" onmouseover="this.style.background=\'#eef4ff\'" onmouseout="this.style.background=\''+bg+'\'">'
       +'<div style="display:flex;align-items:center;justify-content:center;"><input type="checkbox" class="frow-check" data-idx="sub:'+si+'" onchange="updateFileToolbar()" style="width:15px;height:15px;accent-color:#224F93;cursor:pointer;"></div>'
       +'<div style="display:flex;align-items:center;gap:8px;overflow:hidden;cursor:pointer;" onclick="openSubFolder(\''+currentFolderId+'\','+sub.id+')">'
       +'<svg width="18" height="15" viewBox="0 0 24 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><path fill="#90a4ae" d="M10 2H2C.9 2 0 2.9 0 4v12c0 1.1.9 2 2 2h20c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H12L10 2z"/></svg>'
       +'<span style="font-size:12px;color:#1a2a3a;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(sub.num||sub.id)+'. '+sub.name+'</span>'
       +'</div>'
-      +'<div style="font-size:11px;color:#b0bec5;">—</div>'
-      +'<div style="font-size:11px;color:#8099b0;font-family:\'DM Mono\',monospace;">'+sub.date+'</div>'
+      +'<div style="font-size:11px;color:#b0bec5;text-align:center;">—</div>'
+      +'<div style="font-size:11px;color:#8099b0;font-family:\'DM Mono\',monospace;text-align:center;">'+sub.date+'</div>'
+      +GED_INTERVENANTS.map(function(){return '<div></div>';}).join('')
       +'<div style="display:flex;justify-content:center;">'
       +'<button onclick="removeSubFolder(\''+currentFolderId+'\','+sub.id+')" style="background:none;border:none;cursor:pointer;color:#c02020;font-size:12px;font-weight:700;padding:4px 8px;border-radius:4px;" title="Remove">✕</button>'
       +'</div>'
@@ -1477,14 +1521,22 @@ function renderFolderFiles(){
     var ext=f.name.split('.').pop().toLowerCase();
     var ic=ext==='pdf'?'#e05555':ext==='docx'||ext==='doc'?'#2d65bd':ext==='xlsx'||ext==='xls'?'#1a9458':'#8099b0';
     var bg=rowIdx%2===0?'#fff':'#fafcff';
-    html+='<div style="display:grid;grid-template-columns:36px 1fr 100px 120px 44px;align-items:center;padding:0 14px;height:44px;background:'+bg+';border-bottom:1px solid rgba(34,79,147,0.05);transition:background 0.1s;" onmouseover="this.style.background=\'#eef4ff\'" onmouseout="this.style.background=\''+bg+'\'">'
+    var visaCells=GED_INTERVENANTS.map(function(iv){
+      var vs=getVisaStatus(f.id,iv.key);
+      var badge=vs.status?visaBadge(vs.status):'<span style="color:#d0dae6;font-size:12px;">—</span>';
+      var autoMark=vs.source==='auto'?'<span style="font-size:8px;color:#b0bec5;vertical-align:super;" title="Auto from workflow">⚡</span>':'';
+      var hasReply=vs.replyName?'<span style="display:block;width:5px;height:5px;border-radius:50%;background:#1a9458;position:absolute;top:6px;right:6px;" title="Reply attached"></span>':'';
+      return '<div style="display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;padding:0 2px;transition:background 0.1s;border-left:1px solid rgba(34,79,147,0.05);" onclick="openVisaCell(\''+f.id+'\',\''+iv.key+'\',this)" onmouseover="this.style.background=\'rgba(34,79,147,0.04)\'" onmouseout="this.style.background=\'\'">'+badge+autoMark+hasReply+'</div>';
+    }).join('');
+    html+='<div style="display:grid;grid-template-columns:'+FOLDER_GRID+';align-items:center;padding:0 14px;height:44px;background:'+bg+';border-bottom:1px solid rgba(34,79,147,0.05);">'
       +'<div style="display:flex;align-items:center;justify-content:center;"><input type="checkbox" class="frow-check" data-idx="'+fi+'" onchange="updateFileToolbar()" style="width:15px;height:15px;accent-color:#224F93;cursor:pointer;"></div>'
       +'<div style="display:flex;align-items:center;gap:9px;overflow:hidden;">'
       +'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="'+ic+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>'
       +'<span style="font-size:12px;color:#1a2a3a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+f.name+'</span>'
       +'</div>'
-      +'<div style="font-size:11px;color:#8099b0;">'+f.size+'</div>'
-      +'<div style="font-size:11px;color:#8099b0;font-family:\'DM Mono\',monospace;">'+f.date+'</div>'
+      +'<div style="font-size:11px;color:#8099b0;text-align:center;">'+f.size+'</div>'
+      +'<div style="font-size:11px;color:#8099b0;font-family:\'DM Mono\',monospace;text-align:center;">'+f.date+'</div>'
+      +visaCells
       +'<div style="display:flex;justify-content:center;">'
       +'<button onclick="removeFile('+fi+')" style="background:none;border:none;cursor:pointer;color:#c02020;font-size:12px;font-weight:700;padding:4px 8px;border-radius:4px;" title="Remove">✕</button>'
       +'</div>'
@@ -1509,6 +1561,121 @@ function removeSubFolder(parentId, subId){
   delete folderFiles['sub:'+parentId+':'+subId];
   delete folderSubs['sub:'+parentId+':'+subId];
   renderFolderFiles();
+}
+
+// ── Visa status helpers ───────────────────────────────────────
+function visaBadge(status){
+  if(!status) return '<span style="color:#d0dae6;font-size:12px;">—</span>';
+  var c={VSO:'#1a9458',VAO:'#d97706',VAOB:'#e07000',REJ:'#e53e3e'}[status]||'#8099b0';
+  var b={VSO:'#f0fdf4',VAO:'#fffbeb',VAOB:'#fff3e0',REJ:'#fff5f5'}[status]||'#f0f4f9';
+  return '<span style="display:inline-block;padding:2px 5px;border-radius:4px;background:'+b+';color:'+c+';font-size:10px;font-weight:700;border:1px solid '+c+'40;white-space:nowrap;line-height:1.5;">'+status+'</span>';
+}
+
+function getVisaStatus(fileId, ivKey){
+  var m=(_visaStatuses[fileId]||{})[ivKey];
+  if(m) return {status:m.status,source:'manual',replyName:m.replyName||''};
+  var a=(_visaAutoStatuses[fileId]||{})[ivKey];
+  if(a) return {status:a,source:'auto'};
+  return {};
+}
+
+function openVisaCell(fileId, ivKey, el){
+  _visaCellTarget={fileId:fileId,ivKey:ivKey};
+  var popup=document.getElementById('visa-popup');
+  if(!popup) return;
+  var vs=(_visaStatuses[fileId]||{})[ivKey]||{};
+  var ri=document.getElementById('visa-reply-info');
+  if(vs.replyName){ri.style.display='block';ri.textContent='📎 '+vs.replyName;}
+  else{ri.style.display='none';ri.textContent='';}
+  var rect=el.getBoundingClientRect();
+  var pw=220;
+  var left=Math.min(rect.left,window.innerWidth-pw-8);
+  var top=rect.bottom+4;
+  if(top+200>window.innerHeight) top=rect.top-220;
+  popup.style.top=Math.max(8,top)+'px';
+  popup.style.left=Math.max(8,left)+'px';
+  popup.style.display='flex';
+  setTimeout(function(){document.addEventListener('click',_visaOutside,{once:true});},0);
+}
+
+function _visaOutside(e){
+  var p=document.getElementById('visa-popup');
+  if(p&&!p.contains(e.target)) closeVisaPopup();
+}
+
+function closeVisaPopup(){
+  var p=document.getElementById('visa-popup');
+  if(p) p.style.display='none';
+  _visaCellTarget=null;
+}
+
+async function setVisaStatus(status){
+  if(!_visaCellTarget) return;
+  var fid=_visaCellTarget.fileId, ik=_visaCellTarget.ivKey;
+  if(!_visaStatuses[fid]) _visaStatuses[fid]={};
+  if(status){
+    _visaStatuses[fid][ik]=Object.assign(_visaStatuses[fid][ik]||{},{status:status});
+  } else {
+    delete _visaStatuses[fid][ik];
+    if(!Object.keys(_visaStatuses[fid]).length) delete _visaStatuses[fid];
+  }
+  closeVisaPopup();
+  renderFolderFiles();
+  await saveVisaStatuses();
+}
+
+function triggerVisaUpload(){
+  document.getElementById('visa-file-input').click();
+}
+
+async function handleVisaUpload(input){
+  if(!_visaCellTarget||!input.files||!input.files[0]) return;
+  var fid=_visaCellTarget.fileId, ik=_visaCellTarget.ivKey;
+  var file=input.files[0];
+  var safeName=file.name.replace(/[^a-zA-Z0-9._\-]/g,'_');
+  var path='visa-replies/'+Date.now()+'_'+safeName;
+  showToast('Uploading reply…');
+  var {error}=await sb.storage.from(GED_BUCKET).upload(path,file,{cacheControl:'3600',upsert:true});
+  if(error){showToast('Upload failed');input.value='';return;}
+  if(!_visaStatuses[fid]) _visaStatuses[fid]={};
+  _visaStatuses[fid][ik]=Object.assign(_visaStatuses[fid][ik]||{},{replyName:file.name,replyPath:path});
+  closeVisaPopup();
+  renderFolderFiles();
+  await saveVisaStatuses();
+  input.value='';
+  showToast('Reply uploaded');
+}
+
+async function loadFolderVisaFromWorkflow(files){
+  _visaAutoStatuses={};
+  if(!files||!files.length) return;
+  try{
+    var {data:instances}=await sb.from('ged_workflow_instances').select('id,document_names').order('applied_at',{ascending:false});
+    if(!instances||!instances.length) return;
+    var names=files.map(function(f){return f.name.toLowerCase();});
+    var relevant=instances.filter(function(inst){
+      return inst.document_names&&names.some(function(n){return inst.document_names.toLowerCase().indexOf(n)!==-1;});
+    });
+    if(!relevant.length) return;
+    var ids=relevant.map(function(i){return i.id;});
+    var {data:recips}=await sb.from('ged_workflow_recipients').select('instance_id,company,status').in('instance_id',ids).neq('status','pending');
+    if(!recips||!recips.length) return;
+    files.forEach(function(f){
+      var fname=f.name.toLowerCase();
+      relevant.forEach(function(inst){
+        if(!inst.document_names||inst.document_names.toLowerCase().indexOf(fname)===-1) return;
+        recips.filter(function(r){return r.instance_id===inst.id;}).forEach(function(r){
+          var ivKey=GED_IV_COMPANY_MAP[r.company||''];
+          var visa=WF_TO_VISA[r.status];
+          if(ivKey&&visa){
+            if(!_visaAutoStatuses[f.id]) _visaAutoStatuses[f.id]={};
+            if(!_visaAutoStatuses[f.id][ivKey]) _visaAutoStatuses[f.id][ivKey]=visa;
+          }
+        });
+      });
+    });
+    renderFolderFiles();
+  }catch(e){console.error('loadFolderVisaFromWorkflow',e);}
 }
 
 // ── subfolder modal ──────────────────────────────────────────
