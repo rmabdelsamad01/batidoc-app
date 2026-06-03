@@ -906,7 +906,7 @@ function renderDeliverables(){
       +'<div style="display:flex;align-items:center;gap:8px;overflow:hidden;cursor:pointer;" onclick="openFolder('+d.id+')">'
       +folderSVG(d.blue, d.id)
       +'<span style="font-size:12px;color:#1a2a3a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;">'+label+'</span>'
-      +''
+      +'<button onclick="event.stopPropagation();openDashboard()" style="flex-shrink:0;font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;background:#eef4ff;color:#224F93;border:1px solid rgba(34,79,147,0.25);cursor:pointer;white-space:nowrap;font-family:var(--font);">Dashboard</button>'
       +'</div>'
       +'<div></div>'
       +'<div style="font-size:11px;color:#8099b0;font-family:\'DM Mono\',monospace;text-align:right;padding-right:4px;">'+d.date+'</div>'
@@ -956,6 +956,82 @@ async function loadDeliverablesBadges(){
     var txt=total>1?approvedCnt+'/'+total+' '+lbl:lbl;
     el.innerHTML=wfBadgePill(txt,col,bg);
   });
+}
+
+function closeDashboard(){
+  var m=document.getElementById('dashboard-modal');
+  if(m)m.style.display='none';
+}
+
+async function openDashboard(){
+  var m=document.getElementById('dashboard-modal');
+  if(!m)return;
+  m.style.display='flex';
+  document.getElementById('dashboard-body').innerHTML='<tr><td colspan="13" style="text-align:center;padding:32px;color:#8099b0;">Loading…</td></tr>';
+
+  await loadVisaStatuses();
+
+  var statuses=['VSO','VAO','VAOB','REJ','EA','NC','PR','PI','Sou','NS'];
+  var totals={};statuses.forEach(function(s){totals[s]=0;});
+  var totalQty=0;
+  var rows=[];
+
+  for(var i=0;i<deliverables.length;i++){
+    var d=deliverables[i];
+    if(!folderFiles[d.id]){
+      folderFiles[d.id]=await gedLoadFiles(d.id,'deliverable');
+    }
+    var files=folderFiles[d.id]||[];
+    var counts={};statuses.forEach(function(s){counts[s]=0;});
+    files.forEach(function(f){
+      var bgVisa=(_visaStatuses[f.id]||{})['batiglobe']||{};
+      var st=bgVisa.status;
+      if(st&&counts[st]!==undefined)counts[st]++;
+    });
+    statuses.forEach(function(s){totals[s]+=counts[s];});
+    totalQty+=files.length;
+    rows.push({d:d,counts:counts,qty:files.length,num:(i+1)*100});
+  }
+
+  var STATUS_COLORS={
+    VSO:'#14532d',VAO:'#16a34a',VAOB:'#dc2626',REJ:'#991b1b',
+    EA:'#ca8a04',NC:'#14532d',PR:'#0891b2',PI:'#0891b2',Sou:'#14532d',NS:'#6b7280'
+  };
+
+  var html=rows.map(function(r,ri){
+    var bg=ri%2===0?'#ffffff':'#fafcff';
+    var dn=r.d.code?'('+r.d.code+') '+r.d.name:r.d.name;
+    return '<tr style="background:'+bg+';border-bottom:1px solid rgba(34,79,147,0.07);">'
+      +'<td style="padding:7px 12px;font-size:11px;color:#8099b0;font-family:\'DM Mono\',monospace;white-space:nowrap;">'+r.num+'</td>'
+      +'<td style="padding:7px 12px;font-size:12px;color:#1a2a3a;font-weight:600;">'+dn+'</td>'
+      +'<td style="padding:7px 12px;font-size:12px;color:#224F93;font-weight:700;text-align:center;">'+r.qty+'</td>'
+      +statuses.map(function(s){
+        var v=r.counts[s];
+        var col=v>0?STATUS_COLORS[s]:'#d0dae6';
+        return '<td style="padding:7px 12px;font-size:12px;text-align:center;color:'+col+';font-weight:'+(v>0?'700':'400')+';">'+(v>0?v:'—')+'</td>';
+      }).join('')
+      +'</tr>';
+  }).join('');
+
+  // Total row
+  html+='<tr style="background:#f4f8fd;border-top:2px solid #224F93;">'
+    +'<td colspan="2" style="padding:9px 12px;font-size:12px;font-weight:700;color:#224F93;">Total</td>'
+    +'<td style="padding:9px 12px;font-size:13px;font-weight:700;color:#224F93;text-align:center;">'+totalQty+'</td>'
+    +statuses.map(function(s){
+      return '<td style="padding:9px 12px;font-size:12px;font-weight:700;text-align:center;color:#224F93;">'+totals[s]+'</td>';
+    }).join('')
+    +'</tr>';
+
+  // Percentage row
+  html+='<tr style="background:#eef4ff;">'
+    +'<td colspan="3" style="padding:6px 12px;"></td>'
+    +statuses.map(function(s){
+      var pct=totalQty>0?Math.round(totals[s]/totalQty*100):0;
+      return '<td style="padding:6px 12px;font-size:11px;text-align:center;color:#8099b0;">'+pct+'%</td>';
+    }).join('')
+    +'</tr>';
+
+  document.getElementById('dashboard-body').innerHTML=html;
 }
 
 function toggleAll(cb){

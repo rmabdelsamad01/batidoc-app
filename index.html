@@ -1440,6 +1440,40 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
   </div>
 </div>
 
+<!-- ══ DASHBOARD MODAL ══ -->
+<div id="dashboard-modal" style="display:none;position:fixed;inset:0;background:rgba(10,20,40,0.45);z-index:9500;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;box-shadow:0 12px 48px rgba(34,79,147,0.22);width:95%;max-width:980px;max-height:85vh;overflow:hidden;display:flex;flex-direction:column;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 22px;border-bottom:1px solid rgba(34,79,147,0.12);background:#f4f8fd;">
+      <span style="font-size:15px;font-weight:700;color:#224F93;letter-spacing:0.01em;">Dashboard Visa — Batiglobe</span>
+      <button onclick="closeDashboard()" style="background:none;border:none;cursor:pointer;font-size:20px;color:#8099b0;line-height:1;padding:2px 6px;">&times;</button>
+    </div>
+    <div style="overflow:auto;flex:1;">
+      <table id="dashboard-table" style="width:100%;border-collapse:collapse;min-width:700px;">
+        <thead>
+          <tr style="background:#224F93;color:#fff;position:sticky;top:0;z-index:1;">
+            <th style="padding:9px 12px;font-size:11px;font-weight:700;text-align:left;white-space:nowrap;">N°</th>
+            <th style="padding:9px 12px;font-size:11px;font-weight:700;text-align:left;white-space:nowrap;">Description</th>
+            <th style="padding:9px 12px;font-size:11px;font-weight:700;text-align:center;white-space:nowrap;">Qté</th>
+            <th style="padding:9px 12px;font-size:11px;font-weight:700;text-align:center;white-space:nowrap;">VSO</th>
+            <th style="padding:9px 12px;font-size:11px;font-weight:700;text-align:center;white-space:nowrap;">VAO</th>
+            <th style="padding:9px 12px;font-size:11px;font-weight:700;text-align:center;white-space:nowrap;">VAOB</th>
+            <th style="padding:9px 12px;font-size:11px;font-weight:700;text-align:center;white-space:nowrap;">REJ</th>
+            <th style="padding:9px 12px;font-size:11px;font-weight:700;text-align:center;white-space:nowrap;">EA</th>
+            <th style="padding:9px 12px;font-size:11px;font-weight:700;text-align:center;white-space:nowrap;">NC</th>
+            <th style="padding:9px 12px;font-size:11px;font-weight:700;text-align:center;white-space:nowrap;">PR</th>
+            <th style="padding:9px 12px;font-size:11px;font-weight:700;text-align:center;white-space:nowrap;">PI</th>
+            <th style="padding:9px 12px;font-size:11px;font-weight:700;text-align:center;white-space:nowrap;">Sou</th>
+            <th style="padding:9px 12px;font-size:11px;font-weight:700;text-align:center;white-space:nowrap;">NS</th>
+          </tr>
+        </thead>
+        <tbody id="dashboard-body">
+          <tr><td colspan="13" style="text-align:center;padding:32px;color:#8099b0;">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <!-- ══ VISA STATUS POPUP ══ -->
 <div id="visa-popup" style="display:none;position:fixed;z-index:10010;flex-direction:column;gap:8px;background:#fff;border:1px solid rgba(34,79,147,0.18);border-radius:10px;padding:12px 14px;box-shadow:0 8px 32px rgba(20,40,80,0.18);min-width:212px;">
   <div style="font-size:9px;font-weight:700;color:#8099b0;text-transform:uppercase;letter-spacing:0.09em;">Visa Status</div>
