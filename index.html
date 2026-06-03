@@ -570,6 +570,10 @@ window._installPWA = async function() {
           </div>
           <!-- Legend -->
           <div class="visa-legend">
+            <div class="visa-legend-item"><b style="color:#224F93;">PR</b> = Pour Revue</div>
+            <div style="color:#d0dae6;font-size:11px;">·</div>
+            <div class="visa-legend-item"><b style="color:#0891b2;">PI</b> = Pour Info</div>
+            <div style="color:#d0dae6;font-size:11px;">·</div>
             <div class="visa-legend-item"><b style="color:#1a9458;">VSO</b> = Visa Sans Observation</div>
             <div style="color:#d0dae6;font-size:11px;">·</div>
             <div class="visa-legend-item"><b style="color:#d97706;">VAO</b> = Visa Avec Observation</div>
@@ -1433,6 +1437,8 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 <div id="visa-popup" style="display:none;position:fixed;z-index:10010;flex-direction:column;gap:8px;background:#fff;border:1px solid rgba(34,79,147,0.18);border-radius:10px;padding:12px 14px;box-shadow:0 8px 32px rgba(20,40,80,0.18);min-width:212px;">
   <div style="font-size:9px;font-weight:700;color:#8099b0;text-transform:uppercase;letter-spacing:0.09em;">Visa Status</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;">
+    <button onclick="setVisaStatus('PR')" style="padding:7px 4px;background:#eff6ff;color:#224F93;border:1px solid #224F9340;border-radius:6px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;cursor:pointer;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">PR</button>
+    <button onclick="setVisaStatus('PI')" style="padding:7px 4px;background:#ecfeff;color:#0891b2;border:1px solid #0891b240;border-radius:6px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;cursor:pointer;" onmouseover="this.style.background='#cffafe'" onmouseout="this.style.background='#ecfeff'">PI</button>
     <button onclick="setVisaStatus('VSO')" style="padding:7px 4px;background:#f0fdf4;color:#1a9458;border:1px solid #1a945840;border-radius:6px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;cursor:pointer;" onmouseover="this.style.background='#dcfce7'" onmouseout="this.style.background='#f0fdf4'">VSO</button>
     <button onclick="setVisaStatus('VAO')" style="padding:7px 4px;background:#fffbeb;color:#d97706;border:1px solid #d9770640;border-radius:6px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;cursor:pointer;" onmouseover="this.style.background='#fef3c7'" onmouseout="this.style.background='#fffbeb'">VAO</button>
     <button onclick="setVisaStatus('VAOB')" style="padding:7px 4px;background:#fff3e0;color:#e07000;border:1px solid #e0700040;border-radius:6px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;cursor:pointer;" onmouseover="this.style.background='#ffe0b2'" onmouseout="this.style.background='#fff3e0'">VAOB</button>
