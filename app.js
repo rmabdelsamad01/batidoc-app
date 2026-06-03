@@ -1524,11 +1524,12 @@ function renderFolderFiles(){
     var visaCells=GED_INTERVENANTS.map(function(iv){
       var vs=getVisaStatus(f.id,iv.key);
       var badge=vs.status?visaBadge(vs.status):'<span style="color:#d0dae6;font-size:12px;">—</span>';
-      var autoMark=vs.source==='auto'?'<span style="font-size:8px;color:#b0bec5;vertical-align:super;" title="Auto from workflow">⚡</span>':'';
-      var hasReply=vs.replyName?'<span style="display:block;width:5px;height:5px;border-radius:50%;background:#1a9458;position:absolute;top:6px;right:6px;" title="Reply attached"></span>':'';
-      return '<div style="display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;padding:0 2px;transition:background 0.1s;border-left:1px solid rgba(34,79,147,0.05);" onclick="openVisaCell(\''+f.id+'\',\''+iv.key+'\',this)" onmouseover="this.style.background=\'rgba(34,79,147,0.04)\'" onmouseout="this.style.background=\'\'">'+badge+autoMark+hasReply+'</div>';
+      var autoMark=vs.source==='auto'?'<span style="font-size:8px;color:#b0bec5;" title="Auto from workflow">⚡</span>':'';
+      var dateEl=vs.date?'<span style="display:block;font-size:8px;color:#b0bec5;margin-top:3px;line-height:1;">'+vs.date+'</span>':'';
+      var hasReply=vs.replyName?'<span style="display:block;width:5px;height:5px;border-radius:50%;background:#1a9458;position:absolute;top:4px;right:4px;" title="Reply attached"></span>':'';
+      return '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;padding:0 2px;transition:background 0.1s;border-left:1px solid rgba(34,79,147,0.05);" onclick="openVisaCell(\''+f.id+'\',\''+iv.key+'\',this)" onmouseover="this.style.background=\'rgba(34,79,147,0.04)\'" onmouseout="this.style.background=\'\'">'+badge+autoMark+dateEl+hasReply+'</div>';
     }).join('');
-    html+='<div style="display:grid;grid-template-columns:'+FOLDER_GRID+';align-items:center;padding:0 14px;height:44px;background:'+bg+';border-bottom:1px solid rgba(34,79,147,0.05);">'
+    html+='<div style="display:grid;grid-template-columns:'+FOLDER_GRID+';align-items:center;padding:0 14px;height:60px;background:'+bg+';border-bottom:1px solid rgba(34,79,147,0.05);">'
       +'<div style="display:flex;align-items:center;justify-content:center;"><input type="checkbox" class="frow-check" data-idx="'+fi+'" onchange="updateFileToolbar()" style="width:15px;height:15px;accent-color:#224F93;cursor:pointer;"></div>'
       +'<div style="display:flex;align-items:center;gap:9px;overflow:hidden;">'
       +'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="'+ic+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>'
@@ -1573,9 +1574,9 @@ function visaBadge(status){
 
 function getVisaStatus(fileId, ivKey){
   var m=(_visaStatuses[fileId]||{})[ivKey];
-  if(m) return {status:m.status,source:'manual',replyName:m.replyName||''};
+  if(m) return {status:m.status,source:'manual',replyName:m.replyName||'',date:m.date||''};
   var a=(_visaAutoStatuses[fileId]||{})[ivKey];
-  if(a) return {status:a,source:'auto'};
+  if(a) return {status:a,source:'auto',date:''};
   return {};
 }
 
@@ -1614,7 +1615,9 @@ async function setVisaStatus(status){
   var fid=_visaCellTarget.fileId, ik=_visaCellTarget.ivKey;
   if(!_visaStatuses[fid]) _visaStatuses[fid]={};
   if(status){
-    _visaStatuses[fid][ik]=Object.assign(_visaStatuses[fid][ik]||{},{status:status});
+    var now=new Date();
+    var ds=('0'+now.getDate()).slice(-2)+'/'+('0'+(now.getMonth()+1)).slice(-2)+'/'+String(now.getFullYear()).slice(-2);
+    _visaStatuses[fid][ik]=Object.assign(_visaStatuses[fid][ik]||{},{status:status,date:ds});
   } else {
     delete _visaStatuses[fid][ik];
     if(!Object.keys(_visaStatuses[fid]).length) delete _visaStatuses[fid];
