@@ -1448,7 +1448,19 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 <div id="dashboard-modal" style="display:none;position:fixed;inset:0;background:rgba(10,20,40,0.45);z-index:9500;align-items:center;justify-content:center;">
   <div style="background:#fff;border-radius:14px;box-shadow:0 12px 48px rgba(34,79,147,0.22);width:95%;max-width:980px;max-height:85vh;overflow:hidden;display:flex;flex-direction:column;">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 22px;border-bottom:1px solid rgba(34,79,147,0.12);background:#f4f8fd;">
-      <span style="font-size:15px;font-weight:700;color:#224F93;letter-spacing:0.01em;">Dashboard Visa — Final Status</span>
+      <div style="display:flex;align-items:center;gap:14px;">
+        <span style="font-size:15px;font-weight:700;color:#224F93;letter-spacing:0.01em;">Dashboard Visa</span>
+        <select id="dashboard-iv-select" onchange="renderDashboard(this.value)" style="font-size:12px;font-weight:600;color:#224F93;border:1px solid rgba(34,79,147,0.3);border-radius:8px;padding:5px 10px;background:#fff;cursor:pointer;font-family:'Barlow',sans-serif;outline:none;">
+          <option value="final">Final Status</option>
+          <option value="batiglobe">Batiglobe</option>
+          <option value="bet-facade">BET Ferres</option>
+          <option value="bct-facade">BCT Save</option>
+          <option value="architecte">Archi. OZA/KREA</option>
+          <option value="bet-ssi">SSI Sepsi</option>
+          <option value="bet-acous">Acous. Accoustichok</option>
+          <option value="amo-hqe">HQE EESM</option>
+        </select>
+      </div>
       <button onclick="closeDashboard()" style="background:none;border:none;cursor:pointer;font-size:20px;color:#8099b0;line-height:1;padding:2px 6px;">&times;</button>
     </div>
     <div style="overflow:auto;flex:1;">

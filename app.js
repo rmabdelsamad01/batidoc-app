@@ -966,6 +966,12 @@ async function openDashboard(){
   var m=document.getElementById('dashboard-modal');
   if(!m)return;
   m.style.display='flex';
+  var sel=document.getElementById('dashboard-iv-select');
+  if(sel)sel.value='final';
+  await renderDashboard('final');
+}
+
+async function renderDashboard(ivKey){
   document.getElementById('dashboard-body').innerHTML='<tr><td colspan="13" style="text-align:center;padding:32px;color:#8099b0;">Loading…</td></tr>';
 
   await loadVisaStatuses();
@@ -983,8 +989,8 @@ async function openDashboard(){
     var files=folderFiles[d.id]||[];
     var counts={};statuses.forEach(function(s){counts[s]=0;});
     files.forEach(function(f){
-      var bgVisa=(_visaStatuses[f.id]||{})['final']||{};
-      var st=bgVisa.status;
+      var vs=(_visaStatuses[f.id]||{})[ivKey]||{};
+      var st=vs.status;
       if(st&&counts[st]!==undefined)counts[st]++;
     });
     statuses.forEach(function(s){totals[s]+=counts[s];});
@@ -1012,7 +1018,6 @@ async function openDashboard(){
       +'</tr>';
   }).join('');
 
-  // Total row
   html+='<tr style="background:#f4f8fd;border-top:2px solid #224F93;">'
     +'<td colspan="2" style="padding:9px 12px;font-size:12px;font-weight:700;color:#224F93;">Total</td>'
     +'<td style="padding:9px 12px;font-size:13px;font-weight:700;color:#224F93;text-align:center;">'+totalQty+'</td>'
@@ -1021,7 +1026,6 @@ async function openDashboard(){
     }).join('')
     +'</tr>';
 
-  // Percentage row
   html+='<tr style="background:#eef4ff;">'
     +'<td colspan="3" style="padding:6px 12px;"></td>'
     +statuses.map(function(s){
