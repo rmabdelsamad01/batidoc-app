@@ -936,7 +936,7 @@ async function loadDeliverablesBadges(){
     var matching=instances.filter(function(inst){
       return inst.document_names&&inst.document_names.toLowerCase().indexOf(name)!==-1;
     });
-    if(matching.length===0){el.innerHTML=wfBadgePill('Not Submitted','#8099b0','#f0f4f9');return;}
+    if(matching.length===0){el.innerHTML='';return;}
     var inst=matching[0];
     var ir=recips.filter(function(r){return r.instance_id===inst.id;});
     var total=ir.length;
@@ -1956,7 +1956,7 @@ async function loadPayFolderBadges(){
     if(!el)return;
     var name=f.name.toLowerCase();
     var matching=instances.filter(function(inst){return inst.document_names&&inst.document_names.toLowerCase().indexOf(name)!==-1;});
-    if(matching.length===0){el.innerHTML=wfBadgePill('Not Submitted','#8099b0','#f0f4f9');return;}
+    if(matching.length===0){el.innerHTML='';return;}
     var inst=matching[0];
     var ir=recips.filter(function(r){return r.instance_id===inst.id;});
     var total=ir.length;
