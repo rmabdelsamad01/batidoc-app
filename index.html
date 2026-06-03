@@ -569,6 +569,8 @@ window._installPWA = async function() {
           </div>
           <!-- Legend -->
           <div class="visa-legend">
+            <div class="visa-legend-item"><b style="color:#14532d;">Sou</b> = Soumis</div>
+            <div style="color:#d0dae6;font-size:11px;">·</div>
             <div class="visa-legend-item"><b style="color:#0891b2;">PR</b> = Pour Revue</div>
             <div style="color:#d0dae6;font-size:11px;">·</div>
             <div class="visa-legend-item"><b style="color:#0891b2;">PI</b> = Pour Info</div>
@@ -1442,6 +1444,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 <div id="visa-popup" style="display:none;position:fixed;z-index:10010;flex-direction:column;gap:8px;background:#fff;border:1px solid rgba(34,79,147,0.18);border-radius:10px;padding:12px 14px;box-shadow:0 8px 32px rgba(20,40,80,0.18);min-width:212px;">
   <div style="font-size:9px;font-weight:700;color:#8099b0;text-transform:uppercase;letter-spacing:0.09em;">Visa Status</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;">
+    <button onclick="setVisaStatus('Sou')" style="padding:7px 4px;background:#dcfce7;color:#14532d;border:1px solid #14532d40;border-radius:6px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;cursor:pointer;grid-column:span 2;" onmouseover="this.style.background='#bbf7d0'" onmouseout="this.style.background='#dcfce7'">Sou</button>
     <button onclick="setVisaStatus('PR')" style="padding:7px 4px;background:#ecfeff;color:#0891b2;border:1px solid #0891b240;border-radius:6px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;cursor:pointer;" onmouseover="this.style.background='#cffafe'" onmouseout="this.style.background='#ecfeff'">PR</button>
     <button onclick="setVisaStatus('PI')" style="padding:7px 4px;background:#ecfeff;color:#0891b2;border:1px solid #0891b240;border-radius:6px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;cursor:pointer;" onmouseover="this.style.background='#cffafe'" onmouseout="this.style.background='#ecfeff'">PI</button>
     <button onclick="setVisaStatus('VSO')" style="padding:7px 4px;background:#dcfce7;color:#14532d;border:1px solid #14532d40;border-radius:6px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;cursor:pointer;" onmouseover="this.style.background='#bbf7d0'" onmouseout="this.style.background='#dcfce7'">VSO</button>

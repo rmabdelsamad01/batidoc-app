@@ -1565,8 +1565,8 @@ function removeSubFolder(parentId, subId){
 // ── Visa status helpers ───────────────────────────────────────
 function visaBadge(status){
   if(!status) return '<span style="color:#d0dae6;font-size:12px;">—</span>';
-  var c={PR:'#0891b2',PI:'#0891b2',VSO:'#14532d',VAO:'#16a34a',VAOB:'#dc2626',REJ:'#991b1b',NS:'#6b7280',NC:'#14532d',EA:'#ca8a04'}[status]||'#8099b0';
-  var b={PR:'#ecfeff',PI:'#ecfeff',VSO:'#dcfce7',VAO:'#f0fdf4',VAOB:'#fee2e2',REJ:'#fecaca',NS:'#f3f4f6',NC:'#dcfce7',EA:'#fef9c3'}[status]||'#f0f4f9';
+  var c={Sou:'#14532d',PR:'#0891b2',PI:'#0891b2',VSO:'#14532d',VAO:'#16a34a',VAOB:'#dc2626',REJ:'#991b1b',NS:'#6b7280',NC:'#14532d',EA:'#ca8a04'}[status]||'#8099b0';
+  var b={Sou:'#dcfce7',PR:'#ecfeff',PI:'#ecfeff',VSO:'#dcfce7',VAO:'#f0fdf4',VAOB:'#fee2e2',REJ:'#fecaca',NS:'#f3f4f6',NC:'#dcfce7',EA:'#fef9c3'}[status]||'#f0f4f9';
   return '<span style="display:inline-block;padding:2px 5px;border-radius:4px;background:'+b+';color:'+c+';font-size:10px;font-weight:700;border:1px solid '+c+'40;white-space:nowrap;line-height:1.5;">'+status+'</span>';
 }
 
