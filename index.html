@@ -546,21 +546,20 @@ window._installPWA = async function() {
 
           <!-- File table (scrollable) -->
           <div style="overflow-x:auto;border:1px solid rgba(34,79,147,0.12);border-radius:12px;">
-            <div style="background:#fff;min-width:960px;">
+            <div style="background:#fff;min-width:880px;">
               <!-- Header -->
-              <div style="display:grid;grid-template-columns:36px minmax(180px,1fr) 90px 100px 62px 62px 62px 62px 62px 62px 62px 62px 44px;align-items:center;padding:0 14px;height:46px;background:#f4f8fd;border-bottom:1px solid rgba(34,79,147,0.12);">
+              <div style="display:grid;grid-template-columns:36px minmax(180px,1fr) 90px 100px 74px 62px 62px 62px 62px 62px 62px 44px;align-items:center;padding:0 14px;height:46px;background:#f4f8fd;border-bottom:1px solid rgba(34,79,147,0.12);">
                 <div style="display:flex;align-items:center;justify-content:center;"><input type="checkbox" id="fcheck-all" onchange="toggleAllFiles(this)" style="width:15px;height:15px;accent-color:#224F93;cursor:pointer;"></div>
                 <div class="del-hcell blue">Name</div>
                 <div class="del-hcell" style="text-align:center;">Size</div>
                 <div class="del-hcell" style="text-align:center;">Date</div>
+                <div class="del-hcell" style="text-align:center;font-size:8px;line-height:1.3;color:#224F93;font-weight:700;">Batiglobe</div>
                 <div class="del-hcell" style="text-align:center;font-size:8px;line-height:1.3;">BET<br><span style="color:#1a2a3a;font-weight:700;">Ferres</span></div>
                 <div class="del-hcell" style="text-align:center;font-size:8px;line-height:1.3;">BCT<br><span style="color:#1a2a3a;font-weight:700;">Save</span></div>
                 <div class="del-hcell" style="text-align:center;font-size:8px;line-height:1.3;">Archi.<br><span style="color:#1a2a3a;font-weight:700;">OZA/KREA</span></div>
                 <div class="del-hcell" style="text-align:center;font-size:8px;line-height:1.3;">SSI<br><span style="color:#1a2a3a;font-weight:700;">Sepsi</span></div>
                 <div class="del-hcell" style="text-align:center;font-size:8px;line-height:1.3;">Acous.<br><span style="color:#1a2a3a;font-weight:700;">Accoustichok</span></div>
                 <div class="del-hcell" style="text-align:center;font-size:8px;line-height:1.3;">HQE<br><span style="color:#1a2a3a;font-weight:700;">EESM</span></div>
-                <div class="del-hcell" style="text-align:center;font-size:8px;line-height:1.3;">AMO<br><span style="color:#1a2a3a;font-weight:700;">AMODEV</span></div>
-                <div class="del-hcell" style="text-align:center;font-size:8px;line-height:1.3;">MO<br><span style="color:#1a2a3a;font-weight:700;">Maydane</span></div>
                 <div></div>
               </div>
               <div id="folder-file-list">
@@ -1452,6 +1451,10 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
     <button onclick="setVisaStatus('NS')" style="padding:7px 4px;background:#f3f4f6;color:#6b7280;border:1px solid #6b728040;border-radius:6px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;cursor:pointer;" onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">NS</button>
     <button onclick="setVisaStatus('NC')" style="padding:7px 4px;background:#dcfce7;color:#14532d;border:1px solid #14532d40;border-radius:6px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;cursor:pointer;" onmouseover="this.style.background='#bbf7d0'" onmouseout="this.style.background='#dcfce7'">NC</button>
     <button onclick="setVisaStatus('EA')" style="padding:7px 4px;background:#fef9c3;color:#ca8a04;border:1px solid #ca8a0440;border-radius:6px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;cursor:pointer;grid-column:span 2;" onmouseover="this.style.background='#fef08a'" onmouseout="this.style.background='#fef9c3'">EA</button>
+  </div>
+  <div>
+    <div style="font-size:9px;font-weight:700;color:#8099b0;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">Date</div>
+    <input type="date" id="visa-date-input" style="width:100%;padding:5px 8px;border:1px solid rgba(34,79,147,0.25);border-radius:6px;font-family:'Barlow',sans-serif;font-size:11px;color:#1a2a3a;outline:none;background:#f4f8fd;box-sizing:border-box;" onfocus="this.style.borderColor='#224F93'" onblur="this.style.borderColor='rgba(34,79,147,0.25)'">
   </div>
   <button onclick="setVisaStatus(null)" style="padding:5px;background:#f0f4f9;color:#8099b0;border:1px solid rgba(34,79,147,0.15);border-radius:6px;font-family:'Barlow',sans-serif;font-size:11px;font-weight:600;cursor:pointer;width:100%;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f0f4f9'">Clear</button>
   <div style="border-top:1px solid rgba(34,79,147,0.1);padding-top:8px;">

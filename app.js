@@ -1338,27 +1338,25 @@ var _downloadFileRefs=[];
 
 // ── Visa / Intervenant constants ──────────────────────────────
 var GED_INTERVENANTS=[
+  {key:'batiglobe',   short:'Batiglobe'},
   {key:'bet-facade',  short:'BET Fac.'},
   {key:'bct-facade',  short:'BCT Fac.'},
   {key:'architecte',  short:'Archi.'},
   {key:'bet-ssi',     short:'SSI'},
   {key:'bet-acous',   short:'Acous.'},
   {key:'amo-hqe',     short:'HQE'},
-  {key:'amo',         short:'AMO'},
-  {key:'mo',          short:'MO'},
 ];
 var GED_IV_COMPANY_MAP={
+  'Batiglobe':'batiglobe',
   'Ferres':'bet-facade',
   'Save Controls':'bct-facade',
   'OZA':'architecte','KREA':'architecte','OZA / KREA':'architecte',
   'Sepsi':'bet-ssi',
   'Accoustichok':'bet-acous',
   'EESM':'amo-hqe',
-  'AMODEV':'amo',
-  'Maydane':'mo',
 };
 var WF_TO_VISA={approved:'VSO',noted:'VAO',rejected:'REJ'};
-var FOLDER_GRID='36px minmax(180px,1fr) 90px 100px 62px 62px 62px 62px 62px 62px 62px 62px 44px';
+var FOLDER_GRID='36px minmax(180px,1fr) 90px 100px 74px 62px 62px 62px 62px 62px 62px 44px';
 var _visaStatuses={};
 var _visaAutoStatuses={};
 var _visaCellTarget=null;
@@ -1580,6 +1578,22 @@ function getVisaStatus(fileId, ivKey){
   return {};
 }
 
+function _visaDateToInput(ds){
+  // dd/mm/yy → yyyy-mm-dd
+  if(!ds) return '';
+  var p=ds.split('/');
+  if(p.length!==3) return '';
+  var yr=p[2].length===2?'20'+p[2]:p[2];
+  return yr+'-'+p[1]+'-'+p[0];
+}
+function _visaInputToDate(val){
+  // yyyy-mm-dd → dd/mm/yy
+  if(!val) return '';
+  var p=val.split('-');
+  if(p.length!==3) return '';
+  return p[2]+'/'+p[1]+'/'+p[0].slice(2);
+}
+
 function openVisaCell(fileId, ivKey, el){
   _visaCellTarget={fileId:fileId,ivKey:ivKey};
   var popup=document.getElementById('visa-popup');
@@ -1588,11 +1602,18 @@ function openVisaCell(fileId, ivKey, el){
   var ri=document.getElementById('visa-reply-info');
   if(vs.replyName){ri.style.display='block';ri.textContent='📎 '+vs.replyName;}
   else{ri.style.display='none';ri.textContent='';}
+  // pre-fill date input
+  var di=document.getElementById('visa-date-input');
+  if(di){
+    var today=new Date();
+    var todayStr=today.getFullYear()+'-'+('0'+(today.getMonth()+1)).slice(-2)+'-'+('0'+today.getDate()).slice(-2);
+    di.value=vs.date?_visaDateToInput(vs.date):todayStr;
+  }
   var rect=el.getBoundingClientRect();
   var pw=220;
   var left=Math.min(rect.left,window.innerWidth-pw-8);
   var top=rect.bottom+4;
-  if(top+200>window.innerHeight) top=rect.top-220;
+  if(top+260>window.innerHeight) top=rect.top-260;
   popup.style.top=Math.max(8,top)+'px';
   popup.style.left=Math.max(8,left)+'px';
   popup.style.display='flex';
@@ -1615,8 +1636,8 @@ async function setVisaStatus(status){
   var fid=_visaCellTarget.fileId, ik=_visaCellTarget.ivKey;
   if(!_visaStatuses[fid]) _visaStatuses[fid]={};
   if(status){
-    var now=new Date();
-    var ds=('0'+now.getDate()).slice(-2)+'/'+('0'+(now.getMonth()+1)).slice(-2)+'/'+String(now.getFullYear()).slice(-2);
+    var di=document.getElementById('visa-date-input');
+    var ds=di&&di.value?_visaInputToDate(di.value):(function(){var n=new Date();return ('0'+n.getDate()).slice(-2)+'/'+('0'+(n.getMonth()+1)).slice(-2)+'/'+String(n.getFullYear()).slice(-2);})();
     _visaStatuses[fid][ik]=Object.assign(_visaStatuses[fid][ik]||{},{status:status,date:ds});
   } else {
     delete _visaStatuses[fid][ik];
