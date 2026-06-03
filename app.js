@@ -1612,7 +1612,13 @@ function openVisaCell(fileId, ivKey, el){
   if(di){
     var today=new Date();
     var todayStr=today.getFullYear()+'-'+('0'+(today.getMonth()+1)).slice(-2)+'-'+('0'+today.getDate()).slice(-2);
-    di.value=vs.date?_visaDateToInput(vs.date):todayStr;
+    var defaultDate=todayStr;
+    // if no date on this cell and not Batiglobe, use Batiglobe Sou date if available
+    if(!vs.date && ivKey!=='batiglobe'){
+      var bgVisa=(_visaStatuses[fileId]||{})['batiglobe']||{};
+      if(bgVisa.status==='Sou' && bgVisa.date) defaultDate=_visaDateToInput(bgVisa.date);
+    }
+    di.value=vs.date?_visaDateToInput(vs.date):defaultDate;
   }
   var rect=el.getBoundingClientRect();
   var pw=220;
