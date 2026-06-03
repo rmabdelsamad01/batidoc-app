@@ -983,7 +983,7 @@ async function openDashboard(){
     var files=folderFiles[d.id]||[];
     var counts={};statuses.forEach(function(s){counts[s]=0;});
     files.forEach(function(f){
-      var bgVisa=(_visaStatuses[f.id]||{})['batiglobe']||{};
+      var bgVisa=(_visaStatuses[f.id]||{})['final']||{};
       var st=bgVisa.status;
       if(st&&counts[st]!==undefined)counts[st]++;
     });
@@ -1423,6 +1423,7 @@ var GED_INTERVENANTS=[
   {key:'bet-ssi',     short:'SSI'},
   {key:'bet-acous',   short:'Acous.'},
   {key:'amo-hqe',     short:'HQE'},
+  {key:'final',       short:'Final'},
 ];
 var GED_IV_COMPANY_MAP={
   'Batiglobe':'batiglobe',
@@ -1434,7 +1435,7 @@ var GED_IV_COMPANY_MAP={
   'EESM':'amo-hqe',
 };
 var WF_TO_VISA={approved:'VSO',noted:'VAO',rejected:'REJ'};
-var FOLDER_GRID='36px minmax(180px,1fr) 90px 100px 74px 62px 62px 62px 62px 62px 62px 44px';
+var FOLDER_GRID='36px minmax(180px,1fr) 90px 100px 74px 62px 62px 62px 62px 62px 62px 72px 44px';
 var _visaStatuses={};
 var _visaAutoStatuses={};
 var _visaCellTarget=null;
