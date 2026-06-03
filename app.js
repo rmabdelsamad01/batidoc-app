@@ -1528,7 +1528,7 @@ function renderFolderFiles(){
       var vs=getVisaStatus(f.id,iv.key);
       var badge=vs.status?visaBadge(vs.status):'<span style="color:#d0dae6;font-size:12px;">—</span>';
       var autoMark=vs.source==='auto'?'<span style="font-size:8px;color:#b0bec5;" title="Auto from workflow">⚡</span>':'';
-      var dateEl=(vs.date&&vs.status!=='PI'&&vs.status!=='PR')?'<span style="display:block;font-size:16px;color:#b0bec5;margin-top:3px;line-height:1;">'+vs.date+'</span>':'';
+      var dateEl=(vs.date&&vs.status!=='PI'&&vs.status!=='PR')?'<span style="display:block;font-size:12px;color:#b0bec5;margin-top:3px;line-height:1;">'+vs.date+'</span>':'';
       var hasReply=vs.replyName?'<span style="display:block;width:5px;height:5px;border-radius:50%;background:#1a9458;position:absolute;top:4px;right:4px;" title="Reply attached"></span>':'';
       return '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;padding:0 2px;transition:background 0.1s;border-left:1px solid rgba(34,79,147,0.05);" onclick="openVisaCell(\''+f.id+'\',\''+iv.key+'\',this)" onmouseover="this.style.background=\'rgba(34,79,147,0.04)\'" onmouseout="this.style.background=\'\'">'+badge+autoMark+dateEl+hasReply+'</div>';
     }).join('');
