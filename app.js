@@ -1617,9 +1617,7 @@ function renderFolderFiles(){
       +'<div style="font-size:11px;color:#8099b0;text-align:center;">'+f.size+'</div>'
       +'<div style="font-size:11px;color:#8099b0;font-family:\'DM Mono\',monospace;text-align:center;">'+f.date+'</div>'
       +visaCells
-      +'<div style="display:flex;justify-content:center;">'
-      +'<button onclick="removeFile('+fi+')" style="background:none;border:none;cursor:pointer;color:#c02020;font-size:12px;font-weight:700;padding:4px 8px;border-radius:4px;" title="Remove">✕</button>'
-      +'</div>'
+      +'<div></div>'
       +'</div>';
   });
 
