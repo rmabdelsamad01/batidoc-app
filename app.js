@@ -906,7 +906,7 @@ function renderDeliverables(){
       +'<div style="display:flex;align-items:center;gap:8px;overflow:hidden;cursor:pointer;" onclick="openFolder('+d.id+')">'
       +folderSVG(d.blue, d.id)
       +'<span style="font-size:12px;color:#1a2a3a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;">'+label+'</span>'
-      +'<span id="wf-badge-'+d.id+'" style="flex-shrink:0;margin-left:4px;"></span>'
+      +''
       +'</div>'
       +'<div></div>'
       +'<div style="font-size:11px;color:#8099b0;font-family:\'DM Mono\',monospace;text-align:right;padding-right:4px;">'+d.date+'</div>'
