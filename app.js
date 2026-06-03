@@ -26,7 +26,10 @@ async function saveVisaStatuses(){
 async function loadVisaStatuses(){
   try{
     var {data,error}=await sb.from('project_info').select('value').eq('project','batidoc').eq('key','visa_statuses').maybeSingle();
-    if(!error&&data&&data.value){_visaStatuses=JSON.parse(data.value)||{};}
+    if(!error&&data&&data.value){
+      _visaStatuses=JSON.parse(data.value)||{};
+      if(currentFolderId) renderFolderFiles();
+    }
   }catch(e){console.error('loadVisaStatuses',e);}
 }
 
@@ -1423,6 +1426,7 @@ async function openFolder(id){
   document.getElementById('view-list').style.display='none';
   document.getElementById('view-folder').style.display='block';
   folderFiles[id]=await gedLoadFiles(id,'deliverable');
+  await loadVisaStatuses();
   renderFolderFiles();
   loadFolderVisaFromWorkflow(folderFiles[id]);
 }
@@ -1436,6 +1440,7 @@ async function openSubFolder(parentId, subId){
   currentFolderId=key;
   renderBreadcrumb();
   folderFiles[key]=await gedLoadFiles(key,'deliverable');
+  await loadVisaStatuses();
   renderFolderFiles();
   loadFolderVisaFromWorkflow(folderFiles[key]);
 }
