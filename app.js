@@ -1683,8 +1683,12 @@ function openVisaCell(fileId, ivKey, el){
   if(!popup) return;
   var vs=(_visaStatuses[fileId]||{})[ivKey]||{};
   var ri=document.getElementById('visa-reply-info');
-  if(vs.replyName){ri.style.display='block';ri.textContent='📎 '+vs.replyName;}
-  else{ri.style.display='none';ri.textContent='';}
+  if(vs.replyName){
+    ri.style.display='block';
+    var escPath=(vs.replyPath||'').replace(/'/g,"\\'");
+    var escName=(vs.replyName||'').replace(/'/g,"\\'").replace(/</g,'&lt;');
+    ri.innerHTML='📎 <a href="#" onclick="event.stopPropagation();downloadVisaReply(\''+escPath+'\',\''+escName+'\');return false;" style="color:#1a5fa8;text-decoration:underline;cursor:pointer;font-size:12px;">'+vs.replyName.replace(/</g,'&lt;')+'</a>';
+  } else {ri.style.display='none';ri.innerHTML='';}
   // pre-fill date input
   var di=document.getElementById('visa-date-input');
   if(di){
@@ -1757,6 +1761,18 @@ async function handleVisaUpload(input){
   await saveVisaStatuses();
   input.value='';
   showToast('Reply uploaded');
+}
+
+async function downloadVisaReply(path, name){
+  if(!path){showToast('No file path found');return;}
+  var {data,error}=await sb.storage.from(GED_BUCKET).createSignedUrl(path,300);
+  if(!data||!data.signedUrl){showToast('Download failed');return;}
+  var a=document.createElement('a');
+  a.href=data.signedUrl;
+  a.download=name||'reply';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
 async function loadFolderVisaFromWorkflow(files){
