@@ -39,6 +39,8 @@ function initApp(){
   loadDeliv();
   loadGedWorkflows();
   loadVisaStatuses();
+  applyColStyle();
+  initFolderColResizers();
 }
 
 function setUserName(name){
@@ -1440,7 +1442,14 @@ var GED_IV_COMPANY_MAP={
   'EESM':'amo-hqe',
 };
 var WF_TO_VISA={approved:'VSO',noted:'VAO',rejected:'REJ'};
-var FOLDER_GRID='36px minmax(180px,1fr) minmax(80px,150px) 90px 100px 74px 62px 62px 62px 62px 62px 62px 72px 44px';
+var COL_DEFAULTS=[36,260,120,90,100,74,62,62,62,62,62,62,72,44];
+var COL_FIXED=[0,13];
+var _colWidths=null;
+function getColWidths(){if(!_colWidths){try{var s=localStorage.getItem('ged_col_widths');_colWidths=s?JSON.parse(s):null;}catch(e){}if(!_colWidths||_colWidths.length!==COL_DEFAULTS.length)_colWidths=COL_DEFAULTS.slice();}return _colWidths;}
+function saveColWidths(){try{localStorage.setItem('ged_col_widths',JSON.stringify(_colWidths));}catch(e){}}
+function applyColStyle(){var w=getColWidths();var tmpl=w.map(function(px){return px+'px';}).join(' ');var el=document.getElementById('folder-col-style');if(!el){el=document.createElement('style');el.id='folder-col-style';document.head.appendChild(el);}el.textContent='.folder-grid-row{display:grid!important;grid-template-columns:'+tmpl+'!important;}';}
+function initFolderColResizers(){document.querySelectorAll('.col-rh[data-col]').forEach(function(h){h.addEventListener('mousedown',function(e){e.preventDefault();e.stopPropagation();var ci=parseInt(h.getAttribute('data-col'));var sx=e.clientX;var sw=getColWidths()[ci];h.classList.add('active');function mv(e){var nw=Math.max(40,sw+(e.clientX-sx));getColWidths()[ci]=nw;applyColStyle();}function up(){document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);h.classList.remove('active');saveColWidths();}document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);});});}
+var FOLDER_GRID=''; // kept for legacy, not used in rows
 var _visaStatuses={};
 var _visaAutoStatuses={};
 var _visaCellTarget=null;
@@ -1618,7 +1627,7 @@ function renderFolderFiles(){
   // ── subfolders ──
   subs.forEach(function(sub,si){
     var bg=si%2===0?'#fff':'#fafcff';
-    html+='<div style="display:grid;grid-template-columns:'+FOLDER_GRID+';align-items:center;padding:0 14px;height:46px;background:'+bg+';border-bottom:1px solid rgba(34,79,147,0.05);transition:background 0.1s;" onmouseover="this.style.background=\'#eef4ff\'" onmouseout="this.style.background=\''+bg+'\'">'
+    html+='<div class="folder-grid-row" style="align-items:center;padding:0 14px;height:46px;background:'+bg+';border-bottom:1px solid rgba(34,79,147,0.05);transition:background 0.1s;" onmouseover="this.style.background=\'#eef4ff\'" onmouseout="this.style.background=\''+bg+'\'">'
       +'<div style="display:flex;align-items:center;justify-content:center;"><input type="checkbox" class="frow-check" data-idx="sub:'+si+'" onchange="updateFileToolbar()" style="width:15px;height:15px;accent-color:#224F93;cursor:pointer;"></div>'
       +'<div style="display:flex;align-items:center;gap:8px;overflow:hidden;cursor:pointer;" onclick="openSubFolder(\''+currentFolderId+'\','+sub.id+')">'
       +'<svg width="18" height="15" viewBox="0 0 24 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><path fill="#90a4ae" d="M10 2H2C.9 2 0 2.9 0 4v12c0 1.1.9 2 2 2h20c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H12L10 2z"/></svg>'
@@ -1667,7 +1676,7 @@ function renderFolderFiles(){
         return '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 2px;border-left:1px solid rgba(34,79,147,0.05);">'+badge+dateEl+'</div>';
       }).join('');
       var safeGk=gk.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-      html+='<div style="display:grid;grid-template-columns:'+FOLDER_GRID+';align-items:center;padding:0 14px;min-height:54px;background:#eef4ff;border-bottom:1px solid #d4e2f5;cursor:pointer;transition:background 0.1s;" onclick="toggleRevGroup(\''+safeGk+'\')" onmouseover="this.style.background=\'#e4eeff\'" onmouseout="this.style.background=\'#eef4ff\'">'
+      html+='<div class="folder-grid-row" style="align-items:center;padding:0 14px;min-height:54px;background:#eef4ff;border-bottom:1px solid #d4e2f5;cursor:pointer;transition:background 0.1s;" onclick="toggleRevGroup(\''+safeGk+'\')" onmouseover="this.style.background=\'#e4eeff\'" onmouseout="this.style.background=\'#eef4ff\'">'
         +'<div></div>'
         +'<div style="display:flex;align-items:center;gap:8px;overflow:hidden;padding:8px 0;">'
         +'<span style="color:#224F93;font-size:10px;flex-shrink:0;display:inline-block;transform:rotate('+(isExp?'90':'0')+'deg);transition:transform 0.15s;">▶</span>'
@@ -1697,7 +1706,7 @@ function renderFolderFiles(){
             var hasReply=vs.replyName?'<span style="display:block;width:5px;height:5px;border-radius:50%;background:#1a9458;position:absolute;top:4px;right:4px;" title="Reply attached"></span>':'';
             return '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;padding:0 2px;transition:background 0.1s;border-left:1px solid rgba(34,79,147,0.05);" onclick="openVisaCell(\''+f.id+'\',\''+iv.key+'\',this)" onmouseover="this.style.background=\'rgba(34,79,147,0.04)\'" onmouseout="this.style.background=\'\'">'+badge+autoMark+dateEl+hasReply+'</div>';
           }).join('');
-          html+='<div style="display:grid;grid-template-columns:'+FOLDER_GRID+';align-items:center;padding:0 14px 0 0;height:54px;background:#f7fbff;border-bottom:1px solid #e4eefc;border-left:3px solid rgba(34,79,147,0.25);transition:background 0.1s;" onmouseover="this.style.background=\'#eef4ff\'" onmouseout="this.style.background=\'#f7fbff\'">'
+          html+='<div class="folder-grid-row" style="align-items:center;padding:0 14px 0 0;height:54px;background:#f7fbff;border-bottom:1px solid #e4eefc;border-left:3px solid rgba(34,79,147,0.25);transition:background 0.1s;" onmouseover="this.style.background=\'#eef4ff\'" onmouseout="this.style.background=\'#f7fbff\'">'
             +'<div style="display:flex;align-items:center;justify-content:center;"><input type="checkbox" class="frow-check" data-idx="'+entry.origIdx+'" onchange="updateFileToolbar()" style="width:15px;height:15px;accent-color:#224F93;cursor:pointer;"></div>'
             +'<div style="display:flex;align-items:center;gap:9px;overflow:hidden;padding-left:30px;">'
             +'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="'+ic+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>'
@@ -1728,7 +1737,7 @@ function renderFolderFiles(){
         var hasReply=vs.replyName?'<span style="display:block;width:5px;height:5px;border-radius:50%;background:#1a9458;position:absolute;top:4px;right:4px;" title="Reply attached"></span>':'';
         return '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;padding:0 2px;transition:background 0.1s;border-left:1px solid rgba(34,79,147,0.05);" onclick="openVisaCell(\''+f.id+'\',\''+iv.key+'\',this)" onmouseover="this.style.background=\'rgba(34,79,147,0.04)\'" onmouseout="this.style.background=\'\'">'+badge+autoMark+dateEl+hasReply+'</div>';
       }).join('');
-      html+='<div style="display:grid;grid-template-columns:'+FOLDER_GRID+';align-items:center;padding:0 14px;height:60px;background:'+bg+';border-bottom:1px solid rgba(34,79,147,0.05);">'
+      html+='<div class="folder-grid-row" style="align-items:center;padding:0 14px;height:60px;background:'+bg+';border-bottom:1px solid rgba(34,79,147,0.05);">'
         +'<div style="display:flex;align-items:center;justify-content:center;"><input type="checkbox" class="frow-check" data-idx="'+origIdx+'" onchange="updateFileToolbar()" style="width:15px;height:15px;accent-color:#224F93;cursor:pointer;"></div>'
         +'<div style="display:flex;align-items:center;gap:9px;overflow:hidden;">'
         +'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="'+ic+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>'
@@ -1745,6 +1754,7 @@ function renderFolderFiles(){
   });
 
   container.innerHTML=html;
+  applyColStyle();
   updateFileToolbar();
 }
 
