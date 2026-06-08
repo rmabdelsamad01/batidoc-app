@@ -1494,6 +1494,13 @@ var folderFiles={};     // keyed by folderId: array of {id,name,size,date,storag
 var folderSubs={};      // keyed by folderId: array of {id,name,date}
 var currentFolderId=null;
 var folderStack=[];     // navigation stack [{id, label}]
+var _fileSortCol='name';
+var _fileSortAsc=true;
+function sortFolderFiles(col){
+  if(_fileSortCol===col){_fileSortAsc=!_fileSortAsc;}
+  else{_fileSortCol=col;_fileSortAsc=true;}
+  renderFolderFiles();
+}
 
 async function openFolder(id){
   var d=deliverables.find(function(x){return x.id===id;});
@@ -1578,6 +1585,23 @@ function renderFolderFiles(){
     return;
   }
 
+  // Sort files
+  var sortedFiles=files.slice().sort(function(a,b){
+    var va=(a[_fileSortCol]||'').toLowerCase();
+    var vb=(b[_fileSortCol]||'').toLowerCase();
+    if(va<vb)return _fileSortAsc?-1:1;
+    if(va>vb)return _fileSortAsc?1:-1;
+    return 0;
+  });
+
+  // Update sort icons
+  ['name','date'].forEach(function(c){
+    var el=document.getElementById('fsort-icon-'+c);
+    if(!el)return;
+    if(c===_fileSortCol){el.textContent=_fileSortAsc?' ▲':' ▼';el.style.opacity='1';}
+    else{el.textContent='';el.style.opacity='0.5';}
+  });
+
   var html='';
 
   // ── subfolders ──
@@ -1599,7 +1623,7 @@ function renderFolderFiles(){
   });
 
   // ── files ──
-  files.forEach(function(f,fi){
+  sortedFiles.forEach(function(f,fi){
     var rowIdx=subs.length+fi;
     var ext=f.name.split('.').pop().toLowerCase();
     var ic=ext==='pdf'?'#e05555':ext==='docx'||ext==='doc'?'#2d65bd':ext==='xlsx'||ext==='xls'?'#1a9458':'#8099b0';
