@@ -1100,6 +1100,7 @@ function openRenameModal(){
 }
 function closeRenameModal(){
   document.getElementById('rename-modal').style.display='none';
+  var ds=document.getElementById('rename-desc-section');if(ds)ds.style.display='none';
 }
 function confirmRename(){
   var val=document.getElementById('rename-input').value.trim();
@@ -1439,10 +1440,17 @@ var GED_IV_COMPANY_MAP={
   'EESM':'amo-hqe',
 };
 var WF_TO_VISA={approved:'VSO',noted:'VAO',rejected:'REJ'};
-var FOLDER_GRID='36px minmax(180px,1fr) 90px 100px 74px 62px 62px 62px 62px 62px 62px 72px 44px';
+var FOLDER_GRID='36px minmax(180px,1fr) minmax(80px,150px) 90px 100px 74px 62px 62px 62px 62px 62px 62px 72px 44px';
 var _visaStatuses={};
 var _visaAutoStatuses={};
 var _visaCellTarget=null;
+var _fileDescriptions={};
+async function loadFileDescriptions(){
+  try{var {data,error}=await sb.from('project_info').select('value').eq('project','batidoc').eq('key','file_descriptions').maybeSingle();if(!error&&data&&data.value)_fileDescriptions=JSON.parse(data.value)||{};}catch(e){}
+}
+async function saveFileDescriptions(){
+  try{await sb.from('project_info').upsert({project:'batidoc',key:'file_descriptions',value:JSON.stringify(_fileDescriptions)},{onConflict:'project,key'});}catch(e){}
+}
 
 function gedFmtSize(b){return b<1024?b+' B':b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(1)+' MB';}
 
@@ -1516,6 +1524,7 @@ async function openFolder(id){
   document.getElementById('view-folder').style.display='block';
   folderFiles[id]=await gedLoadFiles(id,'deliverable');
   await loadVisaStatuses();
+  await loadFileDescriptions();
   renderFolderFiles();
   loadFolderVisaFromWorkflow(folderFiles[id]);
 }
@@ -1615,6 +1624,7 @@ function renderFolderFiles(){
       +'<svg width="18" height="15" viewBox="0 0 24 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><path fill="#90a4ae" d="M10 2H2C.9 2 0 2.9 0 4v12c0 1.1.9 2 2 2h20c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H12L10 2z"/></svg>'
       +'<span style="font-size:12px;color:#1a2a3a;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(sub.num||sub.id)+'. '+sub.name+'</span>'
       +'</div>'
+      +'<div style="font-size:11px;color:#d0dae6;padding:0 8px;">—</div>'
       +'<div style="font-size:11px;color:#b0bec5;text-align:center;">—</div>'
       +'<div style="font-size:11px;color:#8099b0;font-family:\'DM Mono\',monospace;text-align:center;">'+sub.date+'</div>'
       +GED_INTERVENANTS.map(function(){return '<div></div>';}).join('')
@@ -1666,6 +1676,7 @@ function renderFolderFiles(){
         +'<span style="font-size:10px;font-weight:700;color:#224F93;background:rgba(34,79,147,0.12);padding:2px 8px;border-radius:10px;white-space:nowrap;flex-shrink:0;">Rev '+item.latest.revStr+'</span>'
         +'<span style="font-size:10px;color:#8099b0;white-space:nowrap;flex-shrink:0;">'+item.files.length+' rev'+(item.files.length>1?'s':'')+'</span>'
         +'</div>'
+        +(function(){var d=_fileDescriptions[lf.id]||'';return '<div style="font-size:11px;color:#4a6080;padding:0 8px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;" title="'+escHtml(d)+'">'+(d?escHtml(d):'<span style="color:#d0dae6;">—</span>')+'</div>';})()
         +'<div style="font-size:11px;color:#8099b0;text-align:center;">'+lf.size+'</div>'
         +'<div style="font-size:11px;color:#8099b0;font-family:\'DM Mono\',monospace;text-align:center;">'+lf.date+'</div>'
         +visaDisp
@@ -1693,6 +1704,7 @@ function renderFolderFiles(){
             +'<span style="font-size:12px;color:#1a2a3a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+f.name+'</span>'
             +'<span style="font-size:10px;font-weight:700;color:#1a5fa8;background:rgba(34,79,147,0.08);padding:1px 7px;border-radius:8px;white-space:nowrap;flex-shrink:0;">Rev '+entry.revStr+'</span>'
             +'</div>'
+            +(function(){var d=_fileDescriptions[f.id]||'';return '<div style="font-size:11px;color:#4a6080;padding:0 8px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;" title="'+escHtml(d)+'">'+(d?escHtml(d):'<span style="color:#d0dae6;">—</span>')+'</div>';})()
             +'<div style="font-size:11px;color:#8099b0;text-align:center;">'+f.size+'</div>'
             +'<div style="font-size:11px;color:#8099b0;font-family:\'DM Mono\',monospace;text-align:center;">'+f.date+'</div>'
             +visaCells
@@ -1722,6 +1734,7 @@ function renderFolderFiles(){
         +'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="'+ic+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>'
         +'<span style="font-size:12px;color:#1a2a3a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+f.name+'</span>'
         +'</div>'
+        +(function(){var d=_fileDescriptions[f.id]||'';return '<div style="font-size:11px;color:#4a6080;padding:0 8px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;" title="'+escHtml(d)+'">'+(d?escHtml(d):'<span style="color:#d0dae6;">—</span>')+'</div>';})()
         +'<div style="font-size:11px;color:#8099b0;text-align:center;">'+f.size+'</div>'
         +'<div style="font-size:11px;color:#8099b0;font-family:\'DM Mono\',monospace;text-align:center;">'+f.date+'</div>'
         +visaCells
@@ -1975,6 +1988,9 @@ function openFileRenameModal(){
   var f=(folderFiles[currentFolderId]||[])[idxs[0]];
   if(!f)return;
   document.getElementById('rename-input').value=f.name;
+  document.getElementById('rename-desc-input').value=_fileDescriptions[f.id]||'';
+  document.getElementById('rename-desc-section').style.display='block';
+  document.getElementById('rename-modal-title').textContent='Rename File';
   document.getElementById('rename-err').style.display='none';
   document.getElementById('rename-modal').setAttribute('data-id','file:'+idxs[0]);
   document.getElementById('rename-modal').style.display='flex';
@@ -2597,6 +2613,7 @@ confirmRename=function(){
     var ffiles=folderFiles[currentFolderId]||[];
     var ff=ffiles[fidx];
     if(ff){ff.name=val;if(ff.id)sb.from('ged_files').update({name:val}).eq('id',ff.id).then(function(){});}
+    if(ff&&ff.id){var descEl=document.getElementById('rename-desc-input');var desc=(descEl?descEl.value||'':'').trim();if(desc){_fileDescriptions[ff.id]=desc;}else{delete _fileDescriptions[ff.id];}saveFileDescriptions();}
     closeRenameModal();
     renderFolderFiles();
   } else {

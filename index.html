@@ -551,9 +551,10 @@ window._installPWA = async function() {
           <div style="overflow-x:auto;border:1px solid rgba(34,79,147,0.12);border-radius:12px;">
             <div style="background:#fff;min-width:880px;">
               <!-- Header -->
-              <div style="display:grid;grid-template-columns:36px minmax(180px,1fr) 90px 100px 74px 62px 62px 62px 62px 62px 62px 72px 44px;align-items:center;padding:0 14px;height:46px;background:#f4f8fd;border-bottom:1px solid rgba(34,79,147,0.12);">
+              <div style="display:grid;grid-template-columns:36px minmax(180px,1fr) minmax(80px,150px) 90px 100px 74px 62px 62px 62px 62px 62px 62px 72px 44px;align-items:center;padding:0 14px;height:46px;background:#f4f8fd;border-bottom:1px solid rgba(34,79,147,0.12);">
                 <div style="display:flex;align-items:center;justify-content:center;"><input type="checkbox" id="fcheck-all" onchange="toggleAllFiles(this)" style="width:15px;height:15px;accent-color:#224F93;cursor:pointer;"></div>
                 <div class="del-hcell blue" onclick="sortFolderFiles('name')" style="cursor:pointer;user-select:none;">Name<span id="fsort-icon-name" style="font-size:10px;margin-left:3px;">▲</span></div>
+                <div class="del-hcell" style="color:#224F93;">Description</div>
                 <div class="del-hcell" style="text-align:center;">Size</div>
                 <div class="del-hcell" onclick="sortFolderFiles('date')" style="text-align:center;cursor:pointer;user-select:none;">Date<span id="fsort-icon-date" style="font-size:10px;opacity:0.4;margin-left:3px;"></span></div>
                 <div class="del-hcell" style="text-align:center;font-size:8px;line-height:1.3;color:#224F93;font-weight:700;">Batiglobe</div>
@@ -1021,20 +1022,26 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 <!-- ══ RENAME MODAL ══ -->
 <div id="rename-modal" data-id="" style="display:none;position:fixed;inset:0;background:rgba(20,40,80,0.45);z-index:10001;align-items:center;justify-content:center;">
-  <div style="background:#fff;border-radius:14px;width:400px;max-width:calc(100vw - 32px);padding:28px;box-shadow:0 20px 60px rgba(34,79,147,0.2);">
+  <div style="background:#fff;border-radius:14px;width:420px;max-width:calc(100vw - 32px);padding:28px;box-shadow:0 20px 60px rgba(34,79,147,0.2);">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
       <div>
-        <div style="font-size:15px;font-weight:700;color:#1a2a3a;">Rename Folder</div>
-        <div style="font-size:11px;color:#8099b0;margin-top:2px;">Enter a new name for this folder</div>
+        <div id="rename-modal-title" style="font-size:15px;font-weight:700;color:#1a2a3a;">Rename Folder</div>
+        <div style="font-size:11px;color:#8099b0;margin-top:2px;">Enter a new name for this item</div>
       </div>
       <button onclick="closeRenameModal()" style="width:28px;height:28px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:6px;cursor:pointer;font-size:14px;color:#8099b0;display:flex;align-items:center;justify-content:center;">✕</button>
     </div>
-    <label style="display:block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8099b0;margin-bottom:6px;">New Name</label>
-    <input id="rename-input" type="text" placeholder="Folder name"
-      style="width:100%;padding:10px 12px;border:1px solid rgba(34,79,147,0.25);border-radius:7px;font-family:'Barlow',sans-serif;font-size:13px;color:#1a2a3a;outline:none;background:#f4f8fd;"
+    <label style="display:block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8099b0;margin-bottom:6px;">Name</label>
+    <input id="rename-input" type="text" placeholder="Name"
+      style="width:100%;padding:10px 12px;border:1px solid rgba(34,79,147,0.25);border-radius:7px;font-family:'Barlow',sans-serif;font-size:13px;color:#1a2a3a;outline:none;background:#f4f8fd;box-sizing:border-box;"
       onfocus="this.style.borderColor='#224F93'" onblur="this.style.borderColor='rgba(34,79,147,0.25)'"
       onkeydown="if(event.key==='Enter')confirmRename()">
     <div id="rename-err" style="display:none;font-size:11px;color:#c02020;margin-top:6px;"></div>
+    <div id="rename-desc-section" style="display:none;margin-top:14px;">
+      <label style="display:block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8099b0;margin-bottom:6px;">Description</label>
+      <textarea id="rename-desc-input" placeholder="Optional description…" rows="3"
+        style="width:100%;padding:10px 12px;border:1px solid rgba(34,79,147,0.25);border-radius:7px;font-family:'Barlow',sans-serif;font-size:13px;color:#1a2a3a;outline:none;background:#f4f8fd;resize:vertical;box-sizing:border-box;"
+        onfocus="this.style.borderColor='#224F93'" onblur="this.style.borderColor='rgba(34,79,147,0.25)'"></textarea>
+    </div>
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px;">
       <button onclick="closeRenameModal()" style="padding:8px 16px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;color:#4a6080;">Cancel</button>
       <button onclick="confirmRename()" style="padding:8px 18px;background:#224F93;color:#fff;border:none;border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;cursor:pointer;" onmouseover="this.style.background='#2d65bd'" onmouseout="this.style.background='#224F93'">Save</button>
