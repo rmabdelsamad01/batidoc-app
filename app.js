@@ -1449,7 +1449,7 @@ function gedFmtSize(b){return b<1024?b+' B':b<1048576?(b/1024).toFixed(1)+' KB':
 async function gedLoadFiles(folderId,folderType){
   var {data,error}=await sb.from('ged_files').select('*').eq('project','batidoc').eq('folder_id',String(folderId)).eq('folder_type',folderType).order('created_at');
   if(error||!data)return [];
-  return data.map(function(r){var d=new Date(r.created_at);var ds=('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear();return {id:r.id,name:r.name,size:r.size_label||'—',date:ds,storage_path:r.storage_path,created_at:r.created_at};});
+  return data.map(function(r){var d=new Date(r.created_at);var ds=('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear();return {id:r.id,name:r.name,size:r.size_label||'—',date:ds,storage_path:r.storage_path,mime_type:r.mime_type||'',created_at:r.created_at};});
 }
 
 async function gedUploadFile(file,folderId,folderType){
@@ -1461,7 +1461,7 @@ async function gedUploadFile(file,folderId,folderType){
   var ds=('0'+today.getDate()).slice(-2)+'/'+('0'+(today.getMonth()+1)).slice(-2)+'/'+today.getFullYear();
   var {data:row,error:dbErr}=await sb.from('ged_files').insert({project:'batidoc',folder_id:String(folderId),folder_type:folderType,name:file.name,storage_path:path,size_bytes:file.size,size_label:gedFmtSize(file.size),mime_type:file.type||'',uploaded_by:(sbProfile&&(sbProfile.username||sbProfile.full_name))||''}).select().single();
   if(dbErr){showToast('Save error: '+file.name);return null;}
-  return {id:row.id,name:row.name,size:row.size_label,date:ds,storage_path:row.storage_path,created_at:row.created_at};
+  return {id:row.id,name:row.name,size:row.size_label,date:ds,storage_path:row.storage_path,mime_type:file.type||'',created_at:row.created_at};
 }
 
 async function gedDeleteFiles(files){
@@ -1625,8 +1625,9 @@ function renderFolderFiles(){
   // ── files ──
   sortedFiles.forEach(function(f,fi){
     var rowIdx=subs.length+fi;
-    var ext=f.name.split('.').pop().toLowerCase();
-    var ic=ext==='pdf'?'#e05555':ext==='docx'||ext==='doc'?'#2d65bd':ext==='xlsx'||ext==='xls'?'#1a9458':'#8099b0';
+    var ext=f.name.includes('.')?f.name.split('.').pop().toLowerCase():'';
+    var mime=f.mime_type||'';
+    var ic=(ext==='pdf'||mime.includes('pdf'))?'#e05555':(ext==='docx'||ext==='doc'||mime.includes('word'))?'#2d65bd':(ext==='xlsx'||ext==='xls'||mime.includes('spreadsheet')||mime.includes('excel'))?'#1a9458':'#8099b0';
     var bg=rowIdx%2===0?'#fff':'#fafcff';
     var visaCells=GED_INTERVENANTS.map(function(iv){
       var vs=getVisaStatus(f.id,iv.key);
