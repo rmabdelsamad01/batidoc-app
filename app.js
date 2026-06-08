@@ -1501,6 +1501,8 @@ function sortFolderFiles(col){
   else{_fileSortCol=col;_fileSortAsc=true;}
   renderFolderFiles();
 }
+var _expandedGroups={};
+function toggleRevGroup(key){_expandedGroups[key]=!_expandedGroups[key];renderFolderFiles();}
 
 async function openFolder(id){
   var d=deliverables.find(function(x){return x.id===id;});
@@ -1622,33 +1624,111 @@ function renderFolderFiles(){
       +'</div>';
   });
 
-  // ── files ──
-  sortedFiles.forEach(function(f,fi){
-    var origIdx=files.indexOf(f);
-    var rowIdx=subs.length+fi;
-    var ext=f.name.includes('.')?f.name.split('.').pop().toLowerCase():'';
-    var mime=f.mime_type||'';
-    var ic=(ext==='pdf'||mime.includes('pdf'))?'#e05555':(ext==='docx'||ext==='doc'||mime.includes('word'))?'#2d65bd':(ext==='xlsx'||ext==='xls'||mime.includes('spreadsheet')||mime.includes('excel'))?'#1a9458':'#8099b0';
-    var bg=rowIdx%2===0?'#fff':'#fafcff';
-    var visaCells=GED_INTERVENANTS.map(function(iv){
-      var vs=getVisaStatus(f.id,iv.key);
-      var badge=vs.status?visaBadge(vs.status):'<span style="color:#d0dae6;font-size:12px;">—</span>';
-      var autoMark=vs.source==='auto'?'<span style="font-size:8px;color:#b0bec5;" title="Auto from workflow">⚡</span>':'';
-      var dateEl=(vs.date&&vs.status!=='PI'&&vs.status!=='PR')?'<span style="display:block;font-size:12px;color:#b0bec5;margin-top:3px;line-height:1;">'+vs.date+'</span>':'';
-      var hasReply=vs.replyName?'<span style="display:block;width:5px;height:5px;border-radius:50%;background:#1a9458;position:absolute;top:4px;right:4px;" title="Reply attached"></span>':'';
-      return '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;padding:0 2px;transition:background 0.1s;border-left:1px solid rgba(34,79,147,0.05);" onclick="openVisaCell(\''+f.id+'\',\''+iv.key+'\',this)" onmouseover="this.style.background=\'rgba(34,79,147,0.04)\'" onmouseout="this.style.background=\'\'">'+badge+autoMark+dateEl+hasReply+'</div>';
-    }).join('');
-    html+='<div style="display:grid;grid-template-columns:'+FOLDER_GRID+';align-items:center;padding:0 14px;height:60px;background:'+bg+';border-bottom:1px solid rgba(34,79,147,0.05);">'
-      +'<div style="display:flex;align-items:center;justify-content:center;"><input type="checkbox" class="frow-check" data-idx="'+origIdx+'" onchange="updateFileToolbar()" style="width:15px;height:15px;accent-color:#224F93;cursor:pointer;"></div>'
-      +'<div style="display:flex;align-items:center;gap:9px;overflow:hidden;">'
-      +'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="'+ic+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>'
-      +'<span style="font-size:12px;color:#1a2a3a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+f.name+'</span>'
-      +'</div>'
-      +'<div style="font-size:11px;color:#8099b0;text-align:center;">'+f.size+'</div>'
-      +'<div style="font-size:11px;color:#8099b0;font-family:\'DM Mono\',monospace;text-align:center;">'+f.date+'</div>'
-      +visaCells
-      +'<div></div>'
-      +'</div>';
+  // ── Detect revision groups ──
+  var _revMap={};
+  sortedFiles.forEach(function(f){
+    var dot=f.name.lastIndexOf('.');
+    var noExt=dot!==-1?f.name.slice(0,dot):f.name;
+    var m=noExt.match(/^(.+)_([0-9]{2})$/);
+    if(m){if(!_revMap[m[1]])_revMap[m[1]]=[];_revMap[m[1]].push({file:f,rev:parseInt(m[2],10),revStr:m[2],origIdx:files.indexOf(f)});}
+  });
+  var _seenBases={},displayItems=[];
+  sortedFiles.forEach(function(f){
+    var dot=f.name.lastIndexOf('.');
+    var noExt=dot!==-1?f.name.slice(0,dot):f.name;
+    var m=noExt.match(/^(.+)_([0-9]{2})$/);
+    var base=m?m[1]:null,grp=base?_revMap[base]:null;
+    if(grp&&grp.length>1){
+      if(!_seenBases[base]){_seenBases[base]=true;var sg=grp.slice().sort(function(a,b){return b.rev-a.rev;});displayItems.push({type:'group',base:base,files:sg,latest:sg[0]});}
+    } else {displayItems.push({type:'file',file:f,origIdx:files.indexOf(f)});}
+  });
+
+  // ── Render files & groups ──
+  var fileRowIdx=0;
+  displayItems.forEach(function(item){
+    if(item.type==='group'){
+      var gk=(currentFolderId||'')+'::'+item.base;
+      var isExp=!!_expandedGroups[gk];
+      var lf=item.latest.file;
+      var visaDisp=GED_INTERVENANTS.map(function(iv){
+        var vs=getVisaStatus(lf.id,iv.key);
+        var badge=vs.status?visaBadge(vs.status):'<span style="color:#d0dae6;font-size:12px;">—</span>';
+        var dateEl=(vs.date&&vs.status!=='PI'&&vs.status!=='PR')?'<span style="display:block;font-size:10px;color:#b0bec5;margin-top:2px;line-height:1;">'+vs.date+'</span>':'';
+        return '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 2px;border-left:1px solid rgba(34,79,147,0.05);">'+badge+dateEl+'</div>';
+      }).join('');
+      var safeGk=gk.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      html+='<div style="display:grid;grid-template-columns:'+FOLDER_GRID+';align-items:center;padding:0 14px;min-height:54px;background:#eef4ff;border-bottom:1px solid #d4e2f5;cursor:pointer;transition:background 0.1s;" onclick="toggleRevGroup(\''+safeGk+'\')" onmouseover="this.style.background=\'#e4eeff\'" onmouseout="this.style.background=\'#eef4ff\'">'
+        +'<div></div>'
+        +'<div style="display:flex;align-items:center;gap:8px;overflow:hidden;padding:8px 0;">'
+        +'<span style="color:#224F93;font-size:10px;flex-shrink:0;display:inline-block;transform:rotate('+(isExp?'90':'0')+'deg);transition:transform 0.15s;">▶</span>'
+        +'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#224F93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>'
+        +'<span style="font-size:12px;font-weight:700;color:#1a2a3a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+item.base+'</span>'
+        +'<span style="font-size:10px;font-weight:700;color:#224F93;background:rgba(34,79,147,0.12);padding:2px 8px;border-radius:10px;white-space:nowrap;flex-shrink:0;">Rev '+item.latest.revStr+'</span>'
+        +'<span style="font-size:10px;color:#8099b0;white-space:nowrap;flex-shrink:0;">'+item.files.length+' rev'+(item.files.length>1?'s':'')+'</span>'
+        +'</div>'
+        +'<div style="font-size:11px;color:#8099b0;text-align:center;">'+lf.size+'</div>'
+        +'<div style="font-size:11px;color:#8099b0;font-family:\'DM Mono\',monospace;text-align:center;">'+lf.date+'</div>'
+        +visaDisp
+        +'<div></div>'
+        +'</div>';
+      fileRowIdx++;
+      if(isExp){
+        item.files.forEach(function(entry){
+          var f=entry.file;
+          var ext=f.name.includes('.')?f.name.split('.').pop().toLowerCase():'';
+          var mime=f.mime_type||'';
+          var ic=(ext==='pdf'||mime.includes('pdf'))?'#e05555':(ext==='docx'||ext==='doc'||mime.includes('word'))?'#2d65bd':(ext==='xlsx'||ext==='xls'||mime.includes('spreadsheet')||mime.includes('excel'))?'#1a9458':'#8099b0';
+          var visaCells=GED_INTERVENANTS.map(function(iv){
+            var vs=getVisaStatus(f.id,iv.key);
+            var badge=vs.status?visaBadge(vs.status):'<span style="color:#d0dae6;font-size:12px;">—</span>';
+            var autoMark=vs.source==='auto'?'<span style="font-size:8px;color:#b0bec5;" title="Auto from workflow">⚡</span>':'';
+            var dateEl=(vs.date&&vs.status!=='PI'&&vs.status!=='PR')?'<span style="display:block;font-size:12px;color:#b0bec5;margin-top:3px;line-height:1;">'+vs.date+'</span>':'';
+            var hasReply=vs.replyName?'<span style="display:block;width:5px;height:5px;border-radius:50%;background:#1a9458;position:absolute;top:4px;right:4px;" title="Reply attached"></span>':'';
+            return '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;padding:0 2px;transition:background 0.1s;border-left:1px solid rgba(34,79,147,0.05);" onclick="openVisaCell(\''+f.id+'\',\''+iv.key+'\',this)" onmouseover="this.style.background=\'rgba(34,79,147,0.04)\'" onmouseout="this.style.background=\'\'">'+badge+autoMark+dateEl+hasReply+'</div>';
+          }).join('');
+          html+='<div style="display:grid;grid-template-columns:'+FOLDER_GRID+';align-items:center;padding:0 14px 0 0;height:54px;background:#f7fbff;border-bottom:1px solid #e4eefc;border-left:3px solid rgba(34,79,147,0.25);transition:background 0.1s;" onmouseover="this.style.background=\'#eef4ff\'" onmouseout="this.style.background=\'#f7fbff\'">'
+            +'<div style="display:flex;align-items:center;justify-content:center;"><input type="checkbox" class="frow-check" data-idx="'+entry.origIdx+'" onchange="updateFileToolbar()" style="width:15px;height:15px;accent-color:#224F93;cursor:pointer;"></div>'
+            +'<div style="display:flex;align-items:center;gap:9px;overflow:hidden;padding-left:30px;">'
+            +'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="'+ic+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>'
+            +'<span style="font-size:12px;color:#1a2a3a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+f.name+'</span>'
+            +'<span style="font-size:10px;font-weight:700;color:#1a5fa8;background:rgba(34,79,147,0.08);padding:1px 7px;border-radius:8px;white-space:nowrap;flex-shrink:0;">Rev '+entry.revStr+'</span>'
+            +'</div>'
+            +'<div style="font-size:11px;color:#8099b0;text-align:center;">'+f.size+'</div>'
+            +'<div style="font-size:11px;color:#8099b0;font-family:\'DM Mono\',monospace;text-align:center;">'+f.date+'</div>'
+            +visaCells
+            +'<div></div>'
+            +'</div>';
+          fileRowIdx++;
+        });
+      }
+    } else {
+      var f=item.file,origIdx=item.origIdx;
+      var rowIdx=subs.length+fileRowIdx;
+      var ext=f.name.includes('.')?f.name.split('.').pop().toLowerCase():'';
+      var mime=f.mime_type||'';
+      var ic=(ext==='pdf'||mime.includes('pdf'))?'#e05555':(ext==='docx'||ext==='doc'||mime.includes('word'))?'#2d65bd':(ext==='xlsx'||ext==='xls'||mime.includes('spreadsheet')||mime.includes('excel'))?'#1a9458':'#8099b0';
+      var bg=rowIdx%2===0?'#fff':'#fafcff';
+      var visaCells=GED_INTERVENANTS.map(function(iv){
+        var vs=getVisaStatus(f.id,iv.key);
+        var badge=vs.status?visaBadge(vs.status):'<span style="color:#d0dae6;font-size:12px;">—</span>';
+        var autoMark=vs.source==='auto'?'<span style="font-size:8px;color:#b0bec5;" title="Auto from workflow">⚡</span>':'';
+        var dateEl=(vs.date&&vs.status!=='PI'&&vs.status!=='PR')?'<span style="display:block;font-size:12px;color:#b0bec5;margin-top:3px;line-height:1;">'+vs.date+'</span>':'';
+        var hasReply=vs.replyName?'<span style="display:block;width:5px;height:5px;border-radius:50%;background:#1a9458;position:absolute;top:4px;right:4px;" title="Reply attached"></span>':'';
+        return '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;padding:0 2px;transition:background 0.1s;border-left:1px solid rgba(34,79,147,0.05);" onclick="openVisaCell(\''+f.id+'\',\''+iv.key+'\',this)" onmouseover="this.style.background=\'rgba(34,79,147,0.04)\'" onmouseout="this.style.background=\'\'">'+badge+autoMark+dateEl+hasReply+'</div>';
+      }).join('');
+      html+='<div style="display:grid;grid-template-columns:'+FOLDER_GRID+';align-items:center;padding:0 14px;height:60px;background:'+bg+';border-bottom:1px solid rgba(34,79,147,0.05);">'
+        +'<div style="display:flex;align-items:center;justify-content:center;"><input type="checkbox" class="frow-check" data-idx="'+origIdx+'" onchange="updateFileToolbar()" style="width:15px;height:15px;accent-color:#224F93;cursor:pointer;"></div>'
+        +'<div style="display:flex;align-items:center;gap:9px;overflow:hidden;">'
+        +'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="'+ic+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>'
+        +'<span style="font-size:12px;color:#1a2a3a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+f.name+'</span>'
+        +'</div>'
+        +'<div style="font-size:11px;color:#8099b0;text-align:center;">'+f.size+'</div>'
+        +'<div style="font-size:11px;color:#8099b0;font-family:\'DM Mono\',monospace;text-align:center;">'+f.date+'</div>'
+        +visaCells
+        +'<div></div>'
+        +'</div>';
+      fileRowIdx++;
+    }
   });
 
   container.innerHTML=html;
