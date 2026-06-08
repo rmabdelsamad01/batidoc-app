@@ -1064,6 +1064,26 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
   </div>
 </div>
 
+<!-- ══ FILE DELETE CONFIRM MODAL ══ -->
+<div id="file-delete-confirm-modal" style="display:none;position:fixed;inset:0;background:rgba(20,40,80,0.45);z-index:10002;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;width:400px;max-width:calc(100vw - 32px);padding:28px;box-shadow:0 20px 60px rgba(34,79,147,0.2);">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+      <div style="width:42px;height:42px;background:rgba(192,32,32,0.08);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c02020" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+      </div>
+      <div>
+        <div style="font-size:15px;font-weight:700;color:#1a2a3a;">Delete File<span id="fdel-plural"></span></div>
+        <div style="font-size:11px;color:#8099b0;margin-top:2px;">This action cannot be undone</div>
+      </div>
+    </div>
+    <div style="background:rgba(192,32,32,0.05);border:1px solid rgba(192,32,32,0.15);border-radius:8px;padding:12px 14px;margin-bottom:20px;font-size:12px;color:#4a6080;" id="fdel-body"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button onclick="closeFileDeleteConfirm()" style="padding:8px 16px;background:#f0f4f9;border:1px solid rgba(34,79,147,0.15);border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;color:#4a6080;">Cancel</button>
+      <button onclick="confirmFileDelete()" style="padding:8px 18px;background:#c02020;color:#fff;border:none;border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;cursor:pointer;" onmouseover="this.style.background='#a01818'" onmouseout="this.style.background='#c02020'">Delete</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ DOWNLOAD MODAL ══ -->
 <div id="download-modal" style="display:none;position:fixed;inset:0;background:rgba(20,40,80,0.45);z-index:10001;align-items:center;justify-content:center;">
   <div style="background:#fff;border-radius:14px;width:420px;max-width:calc(100vw - 32px);padding:28px;box-shadow:0 20px 60px rgba(34,79,147,0.2);">

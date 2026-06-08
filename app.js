@@ -1980,15 +1980,48 @@ function downloadFile(){
   document.getElementById('download-modal').style.display='flex';
 }
 
-async function deleteFile(){
+var _pendingFileDelete=null;
+
+function deleteFile(){
   var idxs=getCheckedFileIdxs().sort(function(a,b){return b-a;});
   var files=folderFiles[currentFolderId]||[];
   var toDelete=idxs.map(function(i){return files[i];}).filter(Boolean);
-  await gedDeleteFiles(toDelete);
-  idxs.forEach(function(i){files.splice(i,1);});
-  document.getElementById('fcheck-all').checked=false;
-  renderFolderFiles();
-  showToast(idxs.length+' file'+(idxs.length===1?' deleted':'s deleted'));
+  if(!toDelete.length) return;
+  _pendingFileDelete={idxs:idxs,toDelete:toDelete,type:'file'};
+  var n=toDelete.length;
+  document.getElementById('fdel-plural').textContent=n>1?'s':'';
+  var body=n===1
+    ?'Are you sure you want to delete <strong style="color:#1a2a3a;">'+escHtml(toDelete[0].name)+'</strong>?'
+    :'Are you sure you want to delete <strong style="color:#1a2a3a;">'+n+' files</strong>?';
+  document.getElementById('fdel-body').innerHTML=body;
+  document.getElementById('file-delete-confirm-modal').style.display='flex';
+}
+
+function closeFileDeleteConfirm(){
+  document.getElementById('file-delete-confirm-modal').style.display='none';
+  _pendingFileDelete=null;
+}
+
+async function confirmFileDelete(){
+  closeFileDeleteConfirm();
+  if(!_pendingFileDelete) return;
+  var idxs=_pendingFileDelete.idxs;
+  var toDelete=_pendingFileDelete.toDelete;
+  var isPay=_pendingFileDelete.type==='payfile';
+  if(isPay){
+    var files=payFolderFiles[currentPayFolderId]||[];
+    await gedDeleteFiles(toDelete);
+    idxs.forEach(function(i){files.splice(i,1);});
+    document.getElementById('payf-check-all').checked=false;
+    renderPayFileList();
+  } else {
+    var files=folderFiles[currentFolderId]||[];
+    await gedDeleteFiles(toDelete);
+    idxs.forEach(function(i){files.splice(i,1);});
+    document.getElementById('fcheck-all').checked=false;
+    renderFolderFiles();
+  }
+  showToast(toDelete.length+' file'+(toDelete.length===1?' deleted':'s deleted'));
 }
 
 function handleDropZoneClick(){document.getElementById('file-input').click();}
@@ -2445,15 +2478,19 @@ function removePayFile(i){
   payFolderFiles[currentPayFolderId].splice(i,1);
   renderPayFileList();
 }
-async function deletePayFile(){
+function deletePayFile(){
   var idxs=Array.from(document.querySelectorAll('.payf-row-check:checked')).map(function(c){return parseInt(c.getAttribute('data-idx'));}).sort(function(a,b){return b-a;});
   var files=payFolderFiles[currentPayFolderId]||[];
   var toDelete=idxs.map(function(i){return files[i];}).filter(Boolean);
-  await gedDeleteFiles(toDelete);
-  idxs.forEach(function(i){files.splice(i,1);});
-  document.getElementById('payf-check-all').checked=false;
-  renderPayFileList();
-  showToast(idxs.length+' file'+(idxs.length===1?' deleted':'s deleted'));
+  if(!toDelete.length) return;
+  _pendingFileDelete={idxs:idxs,toDelete:toDelete,type:'payfile'};
+  var n=toDelete.length;
+  document.getElementById('fdel-plural').textContent=n>1?'s':'';
+  var body=n===1
+    ?'Are you sure you want to delete <strong style="color:#1a2a3a;">'+escHtml(toDelete[0].name)+'</strong>?'
+    :'Are you sure you want to delete <strong style="color:#1a2a3a;">'+n+' files</strong>?';
+  document.getElementById('fdel-body').innerHTML=body;
+  document.getElementById('file-delete-confirm-modal').style.display='flex';
 }
 
 // unified confirmRename: handles payfile, pay folder, file, and deliverable folder
