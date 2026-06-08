@@ -54,9 +54,6 @@ body{font-family:var(--font);background:#f0f4f9;color:var(--text);font-size:13px
 .visa-legend{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;margin-top:10px;padding:8px 12px;background:#fff;border:1px solid rgba(34,79,147,0.1);border-radius:8px;}
 .visa-legend-item{display:flex;align-items:center;gap:5px;font-size:10px;color:#4a6080;}
 .visa-legend-item b{font-weight:700;}
-.col-rh{position:absolute;right:-3px;top:4px;bottom:4px;width:6px;cursor:col-resize;background:transparent;border-radius:3px;z-index:5;transition:background 0.15s;}
-.col-rh:hover,.col-rh.active{background:rgba(34,79,147,0.35);}
-.folder-grid-row{display:grid;}
 
 .content{flex:1;overflow-y:auto;padding:28px 32px;background:#f0f4f9;}
 
@@ -554,20 +551,20 @@ window._installPWA = async function() {
           <div style="overflow-x:auto;border:1px solid rgba(34,79,147,0.12);border-radius:12px;">
             <div style="background:#fff;min-width:880px;">
               <!-- Header -->
-              <div id="folder-file-header" class="folder-grid-row" style="align-items:center;padding:0 14px;height:46px;background:#f4f8fd;border-bottom:1px solid rgba(34,79,147,0.12);">
+              <div style="display:grid;grid-template-columns:36px minmax(180px,1fr) minmax(80px,150px) 90px 100px 74px 62px 62px 62px 62px 62px 62px 72px 44px;align-items:center;padding:0 14px;height:46px;background:#f4f8fd;border-bottom:1px solid rgba(34,79,147,0.12);">
                 <div style="display:flex;align-items:center;justify-content:center;"><input type="checkbox" id="fcheck-all" onchange="toggleAllFiles(this)" style="width:15px;height:15px;accent-color:#224F93;cursor:pointer;"></div>
-                <div class="del-hcell blue" onclick="sortFolderFiles('name')" style="cursor:pointer;user-select:none;position:relative;">Name<span id="fsort-icon-name" style="font-size:10px;margin-left:3px;">▲</span><div class="col-rh" data-col="1"></div></div>
-                <div class="del-hcell" style="color:#224F93;position:relative;">Description<div class="col-rh" data-col="2"></div></div>
-                <div class="del-hcell" style="text-align:center;position:relative;">Size<div class="col-rh" data-col="3"></div></div>
-                <div class="del-hcell" onclick="sortFolderFiles('date')" style="text-align:center;cursor:pointer;user-select:none;position:relative;">Date<span id="fsort-icon-date" style="font-size:10px;opacity:0.4;margin-left:3px;"></span><div class="col-rh" data-col="4"></div></div>
-                <div class="del-hcell" style="text-align:center;font-size:8px;line-height:1.3;color:#224F93;font-weight:700;position:relative;">Batiglobe<div class="col-rh" data-col="5"></div></div>
-                <div class="del-hcell" style="text-align:center;font-size:8px;line-height:1.3;position:relative;">BET<br><span style="color:#1a2a3a;font-weight:700;">Ferres</span><div class="col-rh" data-col="6"></div></div>
-                <div class="del-hcell" style="text-align:center;font-size:8px;line-height:1.3;position:relative;">BCT<br><span style="color:#1a2a3a;font-weight:700;">Save</span><div class="col-rh" data-col="7"></div></div>
-                <div class="del-hcell" style="text-align:center;font-size:8px;line-height:1.3;position:relative;">Archi.<br><span style="color:#1a2a3a;font-weight:700;">OZA/KREA</span><div class="col-rh" data-col="8"></div></div>
-                <div class="del-hcell" style="text-align:center;font-size:8px;line-height:1.3;position:relative;">SSI<br><span style="color:#1a2a3a;font-weight:700;">Sepsi</span><div class="col-rh" data-col="9"></div></div>
-                <div class="del-hcell" style="text-align:center;font-size:8px;line-height:1.3;position:relative;">Acous.<br><span style="color:#1a2a3a;font-weight:700;">Accoustichok</span><div class="col-rh" data-col="10"></div></div>
-                <div class="del-hcell" style="text-align:center;font-size:8px;line-height:1.3;position:relative;">HQE<br><span style="color:#1a2a3a;font-weight:700;">EESM</span><div class="col-rh" data-col="11"></div></div>
-                <div class="del-hcell" style="text-align:center;font-size:8px;line-height:1.3;color:#224F93;font-weight:700;border-left:2px solid rgba(34,79,147,0.2);padding-left:4px;position:relative;">Final<br>Status<div class="col-rh" data-col="12"></div></div>
+                <div class="del-hcell blue" onclick="sortFolderFiles('name')" style="cursor:pointer;user-select:none;">Name<span id="fsort-icon-name" style="font-size:10px;margin-left:3px;">▲</span></div>
+                <div class="del-hcell" style="color:#224F93;">Description</div>
+                <div class="del-hcell" style="text-align:center;">Size</div>
+                <div class="del-hcell" onclick="sortFolderFiles('date')" style="text-align:center;cursor:pointer;user-select:none;">Date<span id="fsort-icon-date" style="font-size:10px;opacity:0.4;margin-left:3px;"></span></div>
+                <div class="del-hcell" style="text-align:center;font-size:8px;line-height:1.3;color:#224F93;font-weight:700;">Batiglobe</div>
+                <div class="del-hcell" style="text-align:center;font-size:8px;line-height:1.3;">BET<br><span style="color:#1a2a3a;font-weight:700;">Ferres</span></div>
+                <div class="del-hcell" style="text-align:center;font-size:8px;line-height:1.3;">BCT<br><span style="color:#1a2a3a;font-weight:700;">Save</span></div>
+                <div class="del-hcell" style="text-align:center;font-size:8px;line-height:1.3;">Archi.<br><span style="color:#1a2a3a;font-weight:700;">OZA/KREA</span></div>
+                <div class="del-hcell" style="text-align:center;font-size:8px;line-height:1.3;">SSI<br><span style="color:#1a2a3a;font-weight:700;">Sepsi</span></div>
+                <div class="del-hcell" style="text-align:center;font-size:8px;line-height:1.3;">Acous.<br><span style="color:#1a2a3a;font-weight:700;">Accoustichok</span></div>
+                <div class="del-hcell" style="text-align:center;font-size:8px;line-height:1.3;">HQE<br><span style="color:#1a2a3a;font-weight:700;">EESM</span></div>
+                <div class="del-hcell" style="text-align:center;font-size:8px;line-height:1.3;color:#224F93;font-weight:700;border-left:2px solid rgba(34,79,147,0.2);padding-left:4px;">Final<br>Status</div>
                 <div></div>
               </div>
               <div id="folder-file-list">
