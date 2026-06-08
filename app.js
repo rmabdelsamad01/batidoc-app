@@ -1983,11 +1983,11 @@ function downloadFile(){
 var _pendingFileDelete=null;
 
 function deleteFile(){
-  var idxs=getCheckedFileIdxs().sort(function(a,b){return b-a;});
+  var idxs=getCheckedFileIdxs();
   var files=folderFiles[currentFolderId]||[];
   var toDelete=idxs.map(function(i){return files[i];}).filter(Boolean);
   if(!toDelete.length) return;
-  _pendingFileDelete={idxs:idxs,toDelete:toDelete,type:'file'};
+  _pendingFileDelete={toDelete:toDelete,type:'file'};
   var n=toDelete.length;
   document.getElementById('fdel-plural').textContent=n>1?'s':'';
   var body=n===1
@@ -2003,21 +2003,22 @@ function closeFileDeleteConfirm(){
 }
 
 async function confirmFileDelete(){
+  // Save pending BEFORE closing (closeFileDeleteConfirm nulls _pendingFileDelete)
+  var pending=_pendingFileDelete;
   closeFileDeleteConfirm();
-  if(!_pendingFileDelete) return;
-  var idxs=_pendingFileDelete.idxs;
-  var toDelete=_pendingFileDelete.toDelete;
-  var isPay=_pendingFileDelete.type==='payfile';
+  if(!pending) return;
+  var toDelete=pending.toDelete;
+  var isPay=pending.type==='payfile';
+  // Build a set of IDs to remove — safe regardless of sort order
+  var deletedIds={};
+  toDelete.forEach(function(f){if(f.id) deletedIds[f.id]=true;});
+  await gedDeleteFiles(toDelete);
   if(isPay){
-    var files=payFolderFiles[currentPayFolderId]||[];
-    await gedDeleteFiles(toDelete);
-    idxs.forEach(function(i){files.splice(i,1);});
+    payFolderFiles[currentPayFolderId]=(payFolderFiles[currentPayFolderId]||[]).filter(function(f){return !deletedIds[f.id];});
     document.getElementById('payf-check-all').checked=false;
     renderPayFileList();
   } else {
-    var files=folderFiles[currentFolderId]||[];
-    await gedDeleteFiles(toDelete);
-    idxs.forEach(function(i){files.splice(i,1);});
+    folderFiles[currentFolderId]=(folderFiles[currentFolderId]||[]).filter(function(f){return !deletedIds[f.id];});
     document.getElementById('fcheck-all').checked=false;
     renderFolderFiles();
   }
@@ -2479,11 +2480,11 @@ function removePayFile(i){
   renderPayFileList();
 }
 function deletePayFile(){
-  var idxs=Array.from(document.querySelectorAll('.payf-row-check:checked')).map(function(c){return parseInt(c.getAttribute('data-idx'));}).sort(function(a,b){return b-a;});
+  var idxs=Array.from(document.querySelectorAll('.payf-row-check:checked')).map(function(c){return parseInt(c.getAttribute('data-idx'));});
   var files=payFolderFiles[currentPayFolderId]||[];
   var toDelete=idxs.map(function(i){return files[i];}).filter(Boolean);
   if(!toDelete.length) return;
-  _pendingFileDelete={idxs:idxs,toDelete:toDelete,type:'payfile'};
+  _pendingFileDelete={toDelete:toDelete,type:'payfile'};
   var n=toDelete.length;
   document.getElementById('fdel-plural').textContent=n>1?'s':'';
   var body=n===1
