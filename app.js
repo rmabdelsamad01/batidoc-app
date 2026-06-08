@@ -1648,7 +1648,7 @@ function renderFolderFiles(){
     var noExt=dot!==-1?f.name.slice(0,dot):f.name;
     var m=noExt.match(/^(.+)_([0-9]{2})$/);
     var base=m?m[1]:null,grp=base?_revMap[base]:null;
-    if(grp&&grp.length>1){
+    if(grp&&grp.length>=1){
       if(!_seenBases[base]){_seenBases[base]=true;var sg=grp.slice().sort(function(a,b){return b.rev-a.rev;});displayItems.push({type:'group',base:base,files:sg,latest:sg[0]});}
     } else {displayItems.push({type:'file',file:f,origIdx:files.indexOf(f)});}
   });
