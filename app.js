@@ -1,15 +1,81 @@
+// ── Multi-project support ─────────────────────────────────────
+var currentProjectId = 'shift-tower';
+var _gedProjects = [];
+var _gedDirFilter = null;
+
+const _GED_DIR_LABELS = {raed:'Raed Abdel Samad', anas:'Anas Filali', nabil:'Nabil Gaich'};
+
+async function loadGedProjects(){
+  try{
+    // Always include shift-tower as a baseline
+    var base = [{id:'shift-tower', name:'Shift Tower', director:'raed', active:true}];
+    var {data,error} = await sb.from('ged_projects').select('*').order('created_at');
+    if(!error && data){
+      // Merge: shift-tower from DB takes precedence, then add rest
+      var ids = new Set(base.map(function(p){return p.id;}));
+      data.forEach(function(p){ if(!ids.has(p.id)){base.push(p);ids.add(p.id);} else { var idx=base.findIndex(function(b){return b.id===p.id;}); if(idx>=0) base[idx]=p; } });
+    }
+    _gedProjects = base;
+  }catch(e){ _gedProjects=[{id:'shift-tower',name:'Shift Tower',director:'raed',active:true}]; }
+}
+
+function setGedDirFilter(dir){
+  _gedDirFilter = (_gedDirFilter===dir) ? null : dir;
+  renderGedProjectScreen();
+}
+
+function renderGedProjectScreen(){
+  var grid = document.getElementById('ged-project-grid');
+  if(!grid) return;
+
+  // Render director filter
+  var filterWrap = document.getElementById('ged-dir-filter');
+  if(filterWrap){
+    var dirs = Object.keys(_GED_DIR_LABELS);
+    filterWrap.innerHTML = dirs.map(function(d){
+      var active = _gedDirFilter===d;
+      return '<button onclick="setGedDirFilter(\''+d+'\')" style="padding:5px 14px;border-radius:20px;border:1.5px solid '+(active?'#224F93':'rgba(34,79,147,0.25)')+';background:'+(active?'#224F93':'#f0f4f9')+';color:'+(active?'#fff':'#1a2a3a')+';font-family:\'Barlow\',sans-serif;font-size:13px;font-weight:600;cursor:pointer;">'+_GED_DIR_LABELS[d]+'</button>';
+    }).join('');
+  }
+
+  var visible = _gedProjects.filter(function(p){
+    if(!p.active) return false;
+    if(_gedDirFilter && p.director !== _gedDirFilter) return false;
+    // Access control for batidoc_user
+    if(sbProfile && sbProfile.role==='batidoc_user'){
+      var allowed = Array.isArray(sbProfile.ged_projects) ? sbProfile.ged_projects : [];
+      if(allowed.length && !allowed.includes(p.id)) return false;
+    }
+    return true;
+  });
+
+  var cardSVG = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>';
+
+  grid.innerHTML = visible.length ? visible.map(function(p){
+    return '<div data-project-id="'+p.id+'" onclick="openProject(\''+p.id+'\')" '+
+      'style="background:#fff;border:2px solid #1a9458;border-radius:14px;padding:24px;cursor:pointer;position:relative;overflow:hidden;transition:transform 0.15s,box-shadow 0.15s;" '+
+      'onmouseover="this.style.transform=\'translateY(-3px)\';this.style.boxShadow=\'0 8px 28px rgba(26,148,88,0.18)\'" '+
+      'onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\'">'+
+      '<div style="position:absolute;top:14px;right:14px;background:#1a9458;color:#fff;font-size:9px;font-weight:700;letter-spacing:0.1em;padding:3px 8px;border-radius:20px;text-transform:uppercase;">ACTIVE</div>'+
+      '<div style="width:48px;height:48px;background:rgba(26,148,88,0.08);border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;color:#1a9458;">'+cardSVG+'</div>'+
+      '<div style="font-size:17px;font-weight:700;color:#1a2a3a;margin-bottom:14px;">'+p.name+'</div>'+
+      '<div style="font-size:10px;font-weight:700;font-family:\'DM Mono\',monospace;color:#1a9458;">Open →</div>'+
+    '</div>';
+  }).join('') : '<div style="padding:40px;text-align:center;color:#8099b0;font-size:13px;">No projects available.</div>';
+}
+
 // ── deliverables persistence ──────────────────────────────────
 async function saveDeliv(){
   try{
     var json=JSON.stringify(deliverables);
-    await sb.from('project_info').delete().eq('project','batidoc').eq('key','deliverables');
+    await sb.from('project_info').delete().eq('project',currentProjectId).eq('key','deliverables');
     await sb.from('project_info').insert({project:'batidoc',key:'deliverables',value:json,updated_at:new Date().toISOString()});
   }catch(e){console.error('saveDeliv',e);}
 }
 async function loadDeliv(){
   renderDeliverables(); // show defaults immediately — never leave blank
   try{
-    var {data,error}=await sb.from('project_info').select('value').eq('project','batidoc').eq('key','deliverables').maybeSingle();
+    var {data,error}=await sb.from('project_info').select('value').eq('project',currentProjectId).eq('key','deliverables').maybeSingle();
     if(!error&&data&&data.value){
       var arr=JSON.parse(data.value);
       if(Array.isArray(arr)&&arr.length){deliverables=arr;renderDeliverables();}
@@ -19,13 +85,13 @@ async function loadDeliv(){
 
 async function saveVisaStatuses(){
   try{
-    await sb.from('project_info').delete().eq('project','batidoc').eq('key','visa_statuses');
+    await sb.from('project_info').delete().eq('project',currentProjectId).eq('key','visa_statuses');
     await sb.from('project_info').insert({project:'batidoc',key:'visa_statuses',value:JSON.stringify(_visaStatuses),updated_at:new Date().toISOString()});
   }catch(e){console.error('saveVisaStatuses',e);}
 }
 async function loadVisaStatuses(){
   try{
-    var {data,error}=await sb.from('project_info').select('value').eq('project','batidoc').eq('key','visa_statuses').maybeSingle();
+    var {data,error}=await sb.from('project_info').select('value').eq('project',currentProjectId).eq('key','visa_statuses').maybeSingle();
     if(!error&&data&&data.value){
       _visaStatuses=JSON.parse(data.value)||{};
       if(currentFolderId) renderFolderFiles();
@@ -55,26 +121,18 @@ function showScreen(id){
 
 function goProjects(){
   showScreen('project-screen');
-  // Lock non-allowed project cards based on batimon access
-  var allowed = window._allowedProjects;
-  if(Array.isArray(allowed)){
-    document.querySelectorAll('[data-project-id]').forEach(function(card){
-      var pid = card.getAttribute('data-project-id');
-      if(!allowed.includes(pid)){
-        card.style.pointerEvents = 'none';
-        card.style.opacity = '0.4';
-        card.style.cursor = 'not-allowed';
-      }
-    });
-  }
+  renderGedProjectScreen();
 }
 
 function openProject(id){
-  // Enforce project access from batimon
   var allowed = window._allowedProjects;
-  if(Array.isArray(allowed) && !allowed.includes(id)){
-    return; // silently block
-  }
+  if(Array.isArray(allowed) && !allowed.includes(id)) return;
+  currentProjectId = id;
+  var proj = _gedProjects.find(function(p){return p.id===id;});
+  var projName = proj ? proj.name : (id==='shift-tower'?'Shift Tower':id);
+  var sbNameEl = document.querySelector('.sb-name');
+  if(sbNameEl) sbNameEl.textContent = projName;
+  var ddProjEl = document.querySelector('#user-dropdown .sb-name, #user-dropdown [style*="Shift Tower"]');
   showScreen('main-screen');
   setPage('deliverables');
   loadDeliv();
@@ -107,7 +165,7 @@ async function loadContacts(){
   var list=document.getElementById('contacts-list');
   if(!list)return;
   list.innerHTML='<div style="padding:24px;text-align:center;color:#8099b0;font-size:12px;">Loading…</div>';
-  var {data,error}=await sb.from('ged_contacts').select('*').order('name');
+  var {data,error}=await sb.from('ged_contacts').select('*').eq('project',currentProjectId).order('name');
   if(error){list.innerHTML='<div style="padding:24px;text-align:center;color:#c02020;font-size:12px;">Error loading contacts</div>';return;}
   _allContacts=data||[];
   updateSortIcons();
@@ -219,7 +277,8 @@ async function saveContact(){
     company:document.getElementById('ct-company').value.trim()||null,
     email:document.getElementById('ct-email').value.trim()||null,
     phone:document.getElementById('ct-phone').value.trim()||null,
-    created_by:(sbProfile&&(sbProfile.username||sbProfile.full_name))||''
+    created_by:(sbProfile&&(sbProfile.username||sbProfile.full_name))||'',
+    project:currentProjectId
   };
   var error;
   if(_editingContactId){
@@ -252,7 +311,7 @@ var _wfRouting='series'; // 'series' | 'parallel' | 'custom'
 
 async function loadGedWorkflows(){
   try{
-    var {data,error}=await sb.from('ged_workflows').select('*').order('created_at');
+    var {data,error}=await sb.from('ged_workflows').select('*').eq('project',currentProjectId).order('created_at');
     if(!error&&data){gedWorkflows=data;}
   }catch(e){console.error('loadGedWorkflows',e);}
 }
@@ -584,7 +643,7 @@ function collectStepRecipients(card){
 async function saveWorkflow(){
   var name=document.getElementById('wf-name-input').value.trim();
   if(!name){showToast('Please enter a workflow name');return;}
-  var wfData={name:name,type:_wfType,routing:_wfRouting};
+  var wfData={name:name,type:_wfType,routing:_wfRouting,project:currentProjectId};
   if(_wfRouting==='custom'){
     var groups=[];
     document.querySelectorAll('#wf-groups-list > .wf-group-card').forEach(function(card){
@@ -1446,7 +1505,7 @@ var _visaAutoStatuses={};
 var _visaCellTarget=null;
 var _fileDescriptions={};
 async function loadFileDescriptions(){
-  try{var {data,error}=await sb.from('project_info').select('value').eq('project','batidoc').eq('key','file_descriptions').maybeSingle();if(!error&&data&&data.value)_fileDescriptions=JSON.parse(data.value)||{};}catch(e){}
+  try{var {data,error}=await sb.from('project_info').select('value').eq('project',currentProjectId).eq('key','file_descriptions').maybeSingle();if(!error&&data&&data.value)_fileDescriptions=JSON.parse(data.value)||{};}catch(e){}
 }
 async function saveFileDescriptions(){
   try{await sb.from('project_info').upsert({project:'batidoc',key:'file_descriptions',value:JSON.stringify(_fileDescriptions)},{onConflict:'project,key'});}catch(e){}
@@ -1455,7 +1514,7 @@ async function saveFileDescriptions(){
 function gedFmtSize(b){return b<1024?b+' B':b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(1)+' MB';}
 
 async function gedLoadFiles(folderId,folderType){
-  var {data,error}=await sb.from('ged_files').select('*').eq('project','batidoc').eq('folder_id',String(folderId)).eq('folder_type',folderType).order('created_at');
+  var {data,error}=await sb.from('ged_files').select('*').eq('project',currentProjectId).eq('folder_id',String(folderId)).eq('folder_type',folderType).order('created_at');
   if(error||!data)return [];
   return data.map(function(r){var d=new Date(r.created_at);var ds=('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear();return {id:r.id,name:r.name,size:r.size_label||'—',date:ds,storage_path:r.storage_path,mime_type:r.mime_type||'',created_at:r.created_at};});
 }

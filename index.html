@@ -216,48 +216,11 @@ window._installPWA = async function() {
 
   <div style="flex:1;overflow-y:auto;padding:40px 32px;">
     <div style="max-width:960px;margin:0 auto;">
-      <div style="margin-bottom:8px;font-size:22px;font-weight:700;color:#1a2a3a;">Select a Project</div>
-      <div style="margin-bottom:32px;font-size:13px;color:#8099b0;">Choose a project to open the document management sheet</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px;">
-
-        <div data-project-id="shift-tower" onclick="openProject('shift-tower')"
-          style="background:#fff;border:2px solid #224F93;border-radius:14px;padding:24px;cursor:pointer;position:relative;overflow:hidden;transition:transform 0.15s,box-shadow 0.15s;"
-          onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 28px rgba(34,79,147,0.18)'"
-          onmouseout="this.style.transform='';this.style.boxShadow=''">
-          <div style="position:absolute;top:14px;right:14px;background:#224F93;color:#fff;font-size:9px;font-weight:700;letter-spacing:0.1em;padding:3px 8px;border-radius:20px;text-transform:uppercase;">Active</div>
-          <div style="width:48px;height:48px;background:rgba(34,79,147,0.08);border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#224F93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-          </div>
-          <div style="font-size:17px;font-weight:700;color:#1a2a3a;margin-bottom:14px;">Shift Tower</div>
-          <div style="font-size:10px;font-weight:700;font-family:'DM Mono',monospace;color:#224F93;">Open →</div>
-        </div>
-
-        <div style="background:#fff;border:1px solid rgba(34,79,147,0.12);border-radius:14px;padding:24px;cursor:not-allowed;opacity:0.5;position:relative;">
-          <div style="position:absolute;top:14px;right:14px;background:#b0bec5;color:#fff;font-size:9px;font-weight:700;letter-spacing:0.1em;padding:3px 8px;border-radius:20px;text-transform:uppercase;">Coming soon</div>
-          <div style="width:48px;height:48px;background:#f0f4f9;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#b0bec5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div>
-          <div style="font-size:17px;font-weight:700;color:#8099b0;">Tanger MED</div>
-        </div>
-        <div style="background:#fff;border:1px solid rgba(34,79,147,0.12);border-radius:14px;padding:24px;cursor:not-allowed;opacity:0.5;position:relative;">
-          <div style="position:absolute;top:14px;right:14px;background:#b0bec5;color:#fff;font-size:9px;font-weight:700;letter-spacing:0.1em;padding:3px 8px;border-radius:20px;text-transform:uppercase;">Coming soon</div>
-          <div style="width:48px;height:48px;background:#f0f4f9;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#b0bec5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div>
-          <div style="font-size:17px;font-weight:700;color:#8099b0;">Riad El Andalous</div>
-        </div>
-        <div style="background:#fff;border:1px solid rgba(34,79,147,0.12);border-radius:14px;padding:24px;cursor:not-allowed;opacity:0.5;position:relative;">
-          <div style="position:absolute;top:14px;right:14px;background:#b0bec5;color:#fff;font-size:9px;font-weight:700;letter-spacing:0.1em;padding:3px 8px;border-radius:20px;text-transform:uppercase;">Coming soon</div>
-          <div style="width:48px;height:48px;background:#f0f4f9;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#b0bec5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div>
-          <div style="font-size:17px;font-weight:700;color:#8099b0;">ANP</div>
-        </div>
-        <div style="background:#fff;border:1px solid rgba(34,79,147,0.12);border-radius:14px;padding:24px;cursor:not-allowed;opacity:0.5;position:relative;">
-          <div style="position:absolute;top:14px;right:14px;background:#b0bec5;color:#fff;font-size:9px;font-weight:700;letter-spacing:0.1em;padding:3px 8px;border-radius:20px;text-transform:uppercase;">Coming soon</div>
-          <div style="width:48px;height:48px;background:#f0f4f9;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#b0bec5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div>
-          <div style="font-size:17px;font-weight:700;color:#8099b0;">Taghazout</div>
-        </div>
-        <div style="background:#fff;border:1px solid rgba(34,79,147,0.12);border-radius:14px;padding:24px;cursor:not-allowed;opacity:0.5;position:relative;">
-          <div style="position:absolute;top:14px;right:14px;background:#b0bec5;color:#fff;font-size:9px;font-weight:700;letter-spacing:0.1em;padding:3px 8px;border-radius:20px;text-transform:uppercase;">Coming soon</div>
-          <div style="width:48px;height:48px;background:#f0f4f9;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#b0bec5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div>
-          <div style="font-size:17px;font-weight:700;color:#8099b0;">Casaone</div>
-        </div>
-
+      <div style="margin-bottom:8px;font-size:22px;font-weight:700;color:#1a2a3a;">Select a Director</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:28px;flex-wrap:wrap;" id="ged-dir-filter"></div>
+      <div style="margin-bottom:28px;font-size:13px;color:#8099b0;">Choose a project to open the document management sheet</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px;" id="ged-project-grid">
+        <div style="padding:40px;text-align:center;color:#8099b0;font-size:13px;">Loading projects…</div>
       </div>
     </div>
   </div>

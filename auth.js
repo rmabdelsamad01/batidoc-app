@@ -164,10 +164,14 @@ async function afterLogin(user){
   }
   // Show main app
   const displayName = prof?.full_name||prof?.username||user.email||'';
+  updateUserChip(displayName);
+  if(typeof loadGedProjects==='function'){
+    await loadGedProjects();
+  }
   document.querySelectorAll('.screen').forEach(function(el){el.style.display='none';el.classList.remove('active');});
   const ps=document.getElementById('project-screen');
   if(ps){ps.style.display='flex';ps.classList.add('active');}
-  updateUserChip(displayName);
+  if(typeof renderGedProjectScreen==='function') renderGedProjectScreen();
 }
 
 function updateUserChip(name){
@@ -236,12 +240,15 @@ window.addEventListener('message', function(e){
       var ms = document.getElementById('main-screen');
       if(ms){ms.style.display='flex';ms.classList.add('active');}
       var targetPage = payload.page || 'deliverables';
+      var targetProjectId = payload.projectId || 'shift-tower';
       // Defer render until app.js is fully parsed
-      setTimeout(function(){
+      setTimeout(async function(){
+        if(typeof loadGedProjects==='function') await loadGedProjects();
+        if(typeof openProject==='function') openProject(targetProjectId);
         if(typeof setPage === 'function') setPage(targetPage);
         if(targetPage === 'deliverables'){
-          if(typeof renderDeliverables === 'function') renderDeliverables(); // always show immediately
-          if(typeof loadDeliv === 'function') loadDeliv(); // sync from Supabase in background
+          if(typeof renderDeliverables === 'function') renderDeliverables();
+          if(typeof loadDeliv === 'function') loadDeliv();
         } else if(targetPage === 'payments' && typeof renderPayFolders === 'function') renderPayFolders();
       }, 0);
     } catch(err){ console.error('batidoc iframe init error', err); }
