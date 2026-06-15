@@ -135,6 +135,7 @@ function openProject(id){
   var ddProjEl = document.querySelector('#user-dropdown .sb-name, #user-dropdown [style*="Shift Tower"]');
   showScreen('main-screen');
   setPage('deliverables');
+  loadGedIntervenants().then(function(){ renderFolderHeader(); });
   loadDeliv();
 }
 
@@ -1479,16 +1480,17 @@ var GED_BUCKET='ged-documents';
 var _downloadFileRefs=[];
 
 // ── Visa / Intervenant constants ──────────────────────────────
-var GED_INTERVENANTS=[
-  {key:'batiglobe',   short:'Batiglobe'},
-  {key:'bet-facade',  short:'BET Fac.'},
-  {key:'bct-facade',  short:'BCT Fac.'},
-  {key:'architecte',  short:'Archi.'},
-  {key:'bet-ssi',     short:'SSI'},
-  {key:'bet-acous',   short:'Acous.'},
-  {key:'amo-hqe',     short:'HQE'},
-  {key:'final',       short:'Final'},
+var _GED_IV_DEFAULT=[
+  {key:'batiglobe', label:'Batiglobe'},
+  {key:'bet-facade', label:'BET\nFerres'},
+  {key:'bct-facade', label:'BCT\nSave'},
+  {key:'architecte', label:'Archi.\nOZA/KREA'},
+  {key:'bet-ssi',    label:'SSI\nSepsi'},
+  {key:'bet-acous',  label:'Acous.\nAccoustichok'},
+  {key:'amo-hqe',    label:'HQE\nEESM'},
+  {key:'final',      label:'Final\nStatus'},
 ];
+var GED_INTERVENANTS=_GED_IV_DEFAULT.map(function(x){return Object.assign({},x);});
 var GED_IV_COMPANY_MAP={
   'Batiglobe':'batiglobe',
   'Ferres':'bet-facade',
@@ -1499,7 +1501,113 @@ var GED_IV_COMPANY_MAP={
   'EESM':'amo-hqe',
 };
 var WF_TO_VISA={approved:'VSO',noted:'VAO',rejected:'REJ'};
-var FOLDER_GRID='36px minmax(180px,1fr) minmax(80px,150px) 90px 100px 74px 62px 62px 62px 62px 62px 62px 72px 44px';
+
+function gedGridCols(){
+  var cols='36px minmax(180px,1fr) minmax(80px,150px) 90px 100px ';
+  GED_INTERVENANTS.forEach(function(iv){
+    cols+=(iv.key==='batiglobe'?'74px':iv.key==='final'?'72px':'62px')+' ';
+  });
+  return cols+'44px';
+}
+
+function _gedIsDev(){
+  if(!sbProfile) return false;
+  var r=sbProfile.roles;
+  return Array.isArray(r)?r.includes('admin'):sbProfile.role==='admin';
+}
+
+async function loadGedIntervenants(){
+  try{
+    var {data,error}=await sb.from('project_info').select('value').eq('project',currentProjectId).eq('key','intervenants').maybeSingle();
+    if(!error&&data&&data.value){
+      var loaded=JSON.parse(data.value);
+      if(Array.isArray(loaded)&&loaded.length>=2) GED_INTERVENANTS=loaded;
+      else GED_INTERVENANTS=_GED_IV_DEFAULT.map(function(x){return Object.assign({},x);});
+    } else {
+      GED_INTERVENANTS=_GED_IV_DEFAULT.map(function(x){return Object.assign({},x);});
+    }
+  }catch(e){GED_INTERVENANTS=_GED_IV_DEFAULT.map(function(x){return Object.assign({},x);});}
+}
+
+async function saveGedIntervenants(){
+  try{await sb.from('project_info').upsert({project:currentProjectId,key:'intervenants',value:JSON.stringify(GED_INTERVENANTS)},{onConflict:'project,key'});}catch(e){}
+}
+
+function renderFolderHeader(){
+  var el=document.getElementById('folder-col-header');
+  if(!el) return;
+  var dev=_gedIsDev();
+  var grid=gedGridCols();
+  el.style.cssText='display:grid;grid-template-columns:'+grid+';align-items:center;padding:0 14px;height:46px;background:#f4f8fd;border-bottom:1px solid rgba(34,79,147,0.12);';
+  var html='<div style="display:flex;align-items:center;justify-content:center;"><input type="checkbox" id="fcheck-all" onchange="toggleAllFiles(this)" style="width:15px;height:15px;accent-color:#224F93;cursor:pointer;"></div>';
+  html+='<div class="del-hcell blue" onclick="sortFolderFiles(\'name\')" style="cursor:pointer;user-select:none;">Name<span id="fsort-icon-name" style="font-size:10px;margin-left:3px;">▲</span></div>';
+  html+='<div class="del-hcell" style="color:#224F93;">Description</div>';
+  html+='<div class="del-hcell" style="text-align:center;">Size</div>';
+  html+='<div class="del-hcell" onclick="sortFolderFiles(\'date\')" style="text-align:center;cursor:pointer;user-select:none;">Date<span id="fsort-icon-date" style="font-size:10px;opacity:0.4;margin-left:3px;"></span></div>';
+  GED_INTERVENANTS.forEach(function(iv){
+    var parts=iv.label?iv.label.split('\n'):['',''];
+    var line1=escHtml(parts[0]||'');
+    var line2=parts[1]?'<br><span style="color:#1a2a3a;font-weight:700;">'+escHtml(parts[1])+'</span>':'';
+    if(iv.key==='batiglobe'){
+      html+='<div class="del-hcell" style="text-align:center;font-size:8px;line-height:1.3;color:#224F93;font-weight:700;">'+line1+line2+'</div>';
+    } else if(iv.key==='final'){
+      html+='<div class="del-hcell" style="text-align:center;font-size:8px;line-height:1.3;color:#224F93;font-weight:700;border-left:2px solid rgba(34,79,147,0.2);padding-left:4px;">'+line1+line2+'</div>';
+    } else {
+      var safeKey=iv.key.replace(/'/g,"\\'");
+      var devBtns=dev
+        ?'<div style="display:flex;justify-content:center;gap:2px;margin-top:2px;">'
+          +'<span onclick="gedRenameCol(\''+safeKey+'\')" style="font-size:9px;color:#224F93;cursor:pointer;padding:1px 3px;border-radius:3px;background:rgba(34,79,147,0.1);" title="Rename">✎</span>'
+          +'<span onclick="gedDeleteCol(\''+safeKey+'\')" style="font-size:9px;color:#c02020;cursor:pointer;padding:1px 3px;border-radius:3px;background:rgba(192,32,32,0.08);" title="Delete">✕</span>'
+          +'</div>'
+        :'';
+      html+='<div class="del-hcell" style="text-align:center;font-size:8px;line-height:1.3;">'+line1+line2+devBtns+'</div>';
+    }
+  });
+  if(dev){
+    html+='<div style="display:flex;align-items:center;justify-content:center;">'
+      +'<button onclick="gedAddCol()" title="Add column" style="background:rgba(34,79,147,0.1);border:none;cursor:pointer;color:#224F93;font-size:16px;font-weight:700;width:24px;height:24px;border-radius:4px;display:flex;align-items:center;justify-content:center;padding:0;">+</button>'
+      +'</div>';
+  } else {
+    html+='<div></div>';
+  }
+  el.innerHTML=html;
+}
+
+function gedRenameCol(key){
+  var iv=GED_INTERVENANTS.find(function(x){return x.key===key;});
+  if(!iv) return;
+  var parts=(iv.label||'').split('\n');
+  var line1=prompt('Column label (top line):',parts[0]||'');
+  if(line1===null) return;
+  var line2=prompt('Company name (bottom line, leave empty for none):',parts[1]||'');
+  if(line2===null) return;
+  iv.label=line1.trim()+(line2.trim()?'\n'+line2.trim():'');
+  saveGedIntervenants();
+  renderFolderHeader();
+  renderFolderFiles();
+}
+
+function gedDeleteCol(key){
+  if(!confirm('Delete this column? Visa data for it will be kept but hidden.')) return;
+  GED_INTERVENANTS=GED_INTERVENANTS.filter(function(x){return x.key!==key;});
+  saveGedIntervenants();
+  renderFolderHeader();
+  renderFolderFiles();
+}
+
+function gedAddCol(){
+  var line1=prompt('New column label (top line):','');
+  if(!line1||!line1.trim()) return;
+  var line2=prompt('Company name (bottom line, leave empty for none):','');
+  var newKey='custom-'+Date.now();
+  var finalIdx=GED_INTERVENANTS.findIndex(function(x){return x.key==='final';});
+  var newCol={key:newKey,label:line1.trim()+(line2&&line2.trim()?'\n'+line2.trim():'')};
+  if(finalIdx>=0) GED_INTERVENANTS.splice(finalIdx,0,newCol);
+  else GED_INTERVENANTS.push(newCol);
+  saveGedIntervenants();
+  renderFolderHeader();
+  renderFolderFiles();
+}
 var _visaStatuses={};
 var _visaAutoStatuses={};
 var _visaCellTarget=null;
@@ -1584,6 +1692,7 @@ async function openFolder(id){
   renderBreadcrumb();
   document.getElementById('view-list').style.display='none';
   document.getElementById('view-folder').style.display='block';
+  renderFolderHeader();
   folderFiles[id]=await gedLoadFiles(id,'deliverable');
   await loadVisaStatuses();
   await loadFileDescriptions();
@@ -1680,7 +1789,7 @@ function renderFolderFiles(){
   // ── subfolders ──
   subs.forEach(function(sub,si){
     var bg=si%2===0?'#fff':'#fafcff';
-    html+='<div style="display:grid;grid-template-columns:'+FOLDER_GRID+';align-items:center;padding:0 14px;height:46px;background:'+bg+';border-bottom:1px solid rgba(34,79,147,0.05);transition:background 0.1s;" onmouseover="this.style.background=\'#eef4ff\'" onmouseout="this.style.background=\''+bg+'\'">'
+    html+='<div style="display:grid;grid-template-columns:'+gedGridCols()+';align-items:center;padding:0 14px;height:46px;background:'+bg+';border-bottom:1px solid rgba(34,79,147,0.05);transition:background 0.1s;" onmouseover="this.style.background=\'#eef4ff\'" onmouseout="this.style.background=\''+bg+'\'">'
       +'<div style="display:flex;align-items:center;justify-content:center;"><input type="checkbox" class="frow-check" data-idx="sub:'+si+'" onchange="updateFileToolbar()" style="width:15px;height:15px;accent-color:#224F93;cursor:pointer;"></div>'
       +'<div style="display:flex;align-items:center;gap:8px;overflow:hidden;cursor:pointer;" onclick="openSubFolder(\''+currentFolderId+'\','+sub.id+')">'
       +'<svg width="18" height="15" viewBox="0 0 24 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><path fill="#90a4ae" d="M10 2H2C.9 2 0 2.9 0 4v12c0 1.1.9 2 2 2h20c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H12L10 2z"/></svg>'
@@ -1729,7 +1838,7 @@ function renderFolderFiles(){
         return '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 2px;border-left:1px solid rgba(34,79,147,0.05);">'+badge+dateEl+'</div>';
       }).join('');
       var safeGk=gk.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-      html+='<div style="display:grid;grid-template-columns:'+FOLDER_GRID+';align-items:center;padding:0 14px;min-height:54px;background:#eef4ff;border-bottom:1px solid #d4e2f5;cursor:pointer;transition:background 0.1s;" onclick="toggleRevGroup(\''+safeGk+'\')" onmouseover="this.style.background=\'#e4eeff\'" onmouseout="this.style.background=\'#eef4ff\'">'
+      html+='<div style="display:grid;grid-template-columns:'+gedGridCols()+';align-items:center;padding:0 14px;min-height:54px;background:#eef4ff;border-bottom:1px solid #d4e2f5;cursor:pointer;transition:background 0.1s;" onclick="toggleRevGroup(\''+safeGk+'\')" onmouseover="this.style.background=\'#e4eeff\'" onmouseout="this.style.background=\'#eef4ff\'">'
         +'<div></div>'
         +'<div style="display:flex;align-items:center;gap:8px;overflow:hidden;padding:8px 0;">'
         +'<span style="color:#224F93;font-size:10px;flex-shrink:0;display:inline-block;transform:rotate('+(isExp?'90':'0')+'deg);transition:transform 0.15s;">▶</span>'
@@ -1759,7 +1868,7 @@ function renderFolderFiles(){
             var hasReply=vs.replyName?'<span style="display:block;width:5px;height:5px;border-radius:50%;background:#1a9458;position:absolute;top:4px;right:4px;" title="Reply attached"></span>':'';
             return '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;padding:0 2px;transition:background 0.1s;border-left:1px solid rgba(34,79,147,0.05);" onclick="openVisaCell(\''+f.id+'\',\''+iv.key+'\',this)" onmouseover="this.style.background=\'rgba(34,79,147,0.04)\'" onmouseout="this.style.background=\'\'">'+badge+autoMark+dateEl+hasReply+'</div>';
           }).join('');
-          html+='<div style="display:grid;grid-template-columns:'+FOLDER_GRID+';align-items:center;padding:0 14px 0 0;height:54px;background:#f7fbff;border-bottom:1px solid #e4eefc;border-left:3px solid rgba(34,79,147,0.25);transition:background 0.1s;" onmouseover="this.style.background=\'#eef4ff\'" onmouseout="this.style.background=\'#f7fbff\'">'
+          html+='<div style="display:grid;grid-template-columns:'+gedGridCols()+';align-items:center;padding:0 14px 0 0;height:54px;background:#f7fbff;border-bottom:1px solid #e4eefc;border-left:3px solid rgba(34,79,147,0.25);transition:background 0.1s;" onmouseover="this.style.background=\'#eef4ff\'" onmouseout="this.style.background=\'#f7fbff\'">'
             +'<div style="display:flex;align-items:center;justify-content:center;"><input type="checkbox" class="frow-check" data-idx="'+entry.origIdx+'" onchange="updateFileToolbar()" style="width:15px;height:15px;accent-color:#224F93;cursor:pointer;"></div>'
             +'<div style="display:flex;align-items:center;gap:9px;overflow:hidden;padding-left:30px;">'
             +'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="'+ic+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>'
@@ -1790,7 +1899,7 @@ function renderFolderFiles(){
         var hasReply=vs.replyName?'<span style="display:block;width:5px;height:5px;border-radius:50%;background:#1a9458;position:absolute;top:4px;right:4px;" title="Reply attached"></span>':'';
         return '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;padding:0 2px;transition:background 0.1s;border-left:1px solid rgba(34,79,147,0.05);" onclick="openVisaCell(\''+f.id+'\',\''+iv.key+'\',this)" onmouseover="this.style.background=\'rgba(34,79,147,0.04)\'" onmouseout="this.style.background=\'\'">'+badge+autoMark+dateEl+hasReply+'</div>';
       }).join('');
-      html+='<div style="display:grid;grid-template-columns:'+FOLDER_GRID+';align-items:center;padding:0 14px;height:60px;background:'+bg+';border-bottom:1px solid rgba(34,79,147,0.05);">'
+      html+='<div style="display:grid;grid-template-columns:'+gedGridCols()+';align-items:center;padding:0 14px;height:60px;background:'+bg+';border-bottom:1px solid rgba(34,79,147,0.05);">'
         +'<div style="display:flex;align-items:center;justify-content:center;"><input type="checkbox" class="frow-check" data-idx="'+origIdx+'" onchange="updateFileToolbar()" style="width:15px;height:15px;accent-color:#224F93;cursor:pointer;"></div>'
         +'<div style="display:flex;align-items:center;gap:9px;overflow:hidden;">'
         +'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="'+ic+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>'
