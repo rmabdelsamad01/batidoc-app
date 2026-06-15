@@ -875,37 +875,16 @@ function openManageAccount(){
   document.getElementById('acc-name').value=s.full_name||'';
   document.getElementById('acc-username').value=s.username||'';
   document.getElementById('acc-pass').value='';
-  var phone=s.phone||'';
-  var code=s.phone_code||'+212';
-  document.getElementById('acc-phone').value=phone;
+  document.getElementById('acc-phone').value=s.phone||'';
   var codeEl=document.getElementById('acc-phone-code');
-  if(codeEl){
-    for(var i=0;i<codeEl.options.length;i++){
-      if(codeEl.options[i].value===code){codeEl.selectedIndex=i;break;}
-    }
-  }
-  selectRole(s.role||'Viewer');
+  if(codeEl){var code=s.phone_code||'+212';for(var i=0;i<codeEl.options.length;i++){if(codeEl.options[i].value===code){codeEl.selectedIndex=i;break;}}}
   document.getElementById('acc-err').style.display='none';
   document.getElementById('acc-ok').style.display='none';
   document.getElementById('account-modal').style.display='flex';
 }
 function closeAccountModal(){document.getElementById('account-modal').style.display='none';}
 
-var selectedRole='Viewer';
-function selectRole(role){
-  selectedRole=role;
-  ['Admin','Editor','Viewer'].forEach(function(r){
-    var el=document.getElementById('role-'+r.toLowerCase());
-    if(!el)return;
-    var active=r===role;
-    el.style.borderColor=active?'#224F93':'rgba(34,79,147,0.2)';
-    el.style.background=active?'rgba(34,79,147,0.06)':'transparent';
-    var span=el.querySelector('span');
-    if(span) span.style.color=active?'#224F93':'#1a2a3a';
-  });
-}
-
-function saveAccount(){
+async function saveAccount(){
   var name=document.getElementById('acc-name').value.trim();
   var pass=document.getElementById('acc-pass').value;
   var phone=document.getElementById('acc-phone').value.trim();
@@ -915,10 +894,14 @@ function saveAccount(){
   err.style.display='none'; ok.style.display='none';
   if(!name){err.textContent='Full name is required.';err.style.display='block';return;}
   if(!sbProfile){return;}
-  sbProfile.full_name=name;
-  sbProfile.phone=phone;
-  sbProfile.phone_code=phoneCode;
-  sbProfile.role=selectedRole;
+  var update={full_name:name,phone:phone,phone_code:phoneCode,updated_at:new Date().toISOString()};
+  var {error:dbErr}=await sb.from('profiles').update(update).eq('id',sbProfile.id);
+  if(dbErr){err.textContent='Save failed: '+dbErr.message;err.style.display='block';return;}
+  if(pass){
+    var {error:pwErr}=await sb.auth.updateUser({password:pass});
+    if(pwErr){err.textContent='Profile saved but password change failed: '+pwErr.message;err.style.display='block';}
+  }
+  sbProfile.full_name=name;sbProfile.phone=phone;sbProfile.phone_code=phoneCode;
   updateUserChip(name);
   ok.textContent='Account updated successfully!';
   ok.style.display='block';
