@@ -869,6 +869,32 @@ function openMyProfile(){
 }
 function closeProfileModal(){document.getElementById('profile-modal').style.display='none';}
 
+var _accSelectedRole=null;
+var _ACC_ROLE_META={
+  'admin':      {label:'Admin',       sub:'Full access',    icon:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>'},
+  'editor':     {label:'Editor',      sub:'Can edit',       icon:'<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>'},
+  'viewer':     {label:'Viewer',      sub:'Read only',      icon:'<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>'},
+  'batidoc_user':{label:'BatiGED User',sub:'GED access',   icon:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>'},
+};
+
+function _renderAccRolePicker(){
+  var el=document.getElementById('acc-role-picker');
+  if(!el) return;
+  var roles=Array.isArray(sbProfile&&sbProfile.roles)?sbProfile.roles:[(sbProfile&&sbProfile.role)||'viewer'];
+  if(!roles.length){el.innerHTML='<span style="font-size:11px;color:#b0bec5;">No roles assigned.</span>';return;}
+  el.innerHTML=roles.map(function(r){
+    var m=_ACC_ROLE_META[r]||{label:r,sub:'',icon:'<circle cx="12" cy="12" r="10"/>'};
+    var active=r===_accSelectedRole;
+    return '<label onclick="_accSelectRole(\''+r+'\')" style="flex:1;min-width:80px;display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 6px;border:1.5px solid '+(active?'#224F93':'rgba(34,79,147,0.2)')+';border-radius:9px;cursor:pointer;background:'+(active?'rgba(34,79,147,0.06)':'transparent')+';transition:all 0.15s;text-align:center;">'
+      +'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="'+(active?'#224F93':'#8099b0')+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+m.icon+'</svg>'
+      +'<span style="font-size:11px;font-weight:700;color:'+(active?'#224F93':'#1a2a3a')+';">'+escHtml(m.label)+'</span>'
+      +(m.sub?'<span style="font-size:9px;color:#8099b0;line-height:1.3;">'+escHtml(m.sub)+'</span>':'')
+      +'</label>';
+  }).join('');
+}
+
+function _accSelectRole(r){_accSelectedRole=r;_renderAccRolePicker();}
+
 function openManageAccount(){
   document.getElementById('user-dropdown').style.display='none';
   var s=sbProfile||{};
@@ -878,6 +904,8 @@ function openManageAccount(){
   document.getElementById('acc-phone').value=s.phone||'';
   var codeEl=document.getElementById('acc-phone-code');
   if(codeEl){var code=s.phone_code||'+212';for(var i=0;i<codeEl.options.length;i++){if(codeEl.options[i].value===code){codeEl.selectedIndex=i;break;}}}
+  _accSelectedRole=s.role||null;
+  _renderAccRolePicker();
   document.getElementById('acc-err').style.display='none';
   document.getElementById('acc-ok').style.display='none';
   document.getElementById('account-modal').style.display='flex';
@@ -895,6 +923,7 @@ async function saveAccount(){
   if(!name){err.textContent='Full name is required.';err.style.display='block';return;}
   if(!sbProfile){return;}
   var update={full_name:name,phone:phone,phone_code:phoneCode,updated_at:new Date().toISOString()};
+  if(_accSelectedRole) update.role=_accSelectedRole;
   var {error:dbErr}=await sb.from('profiles').update(update).eq('id',sbProfile.id);
   if(dbErr){err.textContent='Save failed: '+dbErr.message;err.style.display='block';return;}
   if(pass){
@@ -902,6 +931,7 @@ async function saveAccount(){
     if(pwErr){err.textContent='Profile saved but password change failed: '+pwErr.message;err.style.display='block';}
   }
   sbProfile.full_name=name;sbProfile.phone=phone;sbProfile.phone_code=phoneCode;
+  if(_accSelectedRole) sbProfile.role=_accSelectedRole;
   updateUserChip(name);
   ok.textContent='Account updated successfully!';
   ok.style.display='block';
