@@ -69,7 +69,7 @@ async function saveDeliv(){
   try{
     var json=JSON.stringify(deliverables);
     await sb.from('project_info').delete().eq('project',currentProjectId).eq('key','deliverables');
-    await sb.from('project_info').insert({project:'batidoc',key:'deliverables',value:json,updated_at:new Date().toISOString()});
+    await sb.from('project_info').insert({project:currentProjectId,key:'deliverables',value:json,updated_at:new Date().toISOString()});
   }catch(e){console.error('saveDeliv',e);}
 }
 async function loadDeliv(){
@@ -86,7 +86,7 @@ async function loadDeliv(){
 async function saveVisaStatuses(){
   try{
     await sb.from('project_info').delete().eq('project',currentProjectId).eq('key','visa_statuses');
-    await sb.from('project_info').insert({project:'batidoc',key:'visa_statuses',value:JSON.stringify(_visaStatuses),updated_at:new Date().toISOString()});
+    await sb.from('project_info').insert({project:currentProjectId,key:'visa_statuses',value:JSON.stringify(_visaStatuses),updated_at:new Date().toISOString()});
   }catch(e){console.error('saveVisaStatuses',e);}
 }
 async function loadVisaStatuses(){
@@ -1508,7 +1508,7 @@ async function loadFileDescriptions(){
   try{var {data,error}=await sb.from('project_info').select('value').eq('project',currentProjectId).eq('key','file_descriptions').maybeSingle();if(!error&&data&&data.value)_fileDescriptions=JSON.parse(data.value)||{};}catch(e){}
 }
 async function saveFileDescriptions(){
-  try{await sb.from('project_info').upsert({project:'batidoc',key:'file_descriptions',value:JSON.stringify(_fileDescriptions)},{onConflict:'project,key'});}catch(e){}
+  try{await sb.from('project_info').upsert({project:currentProjectId,key:'file_descriptions',value:JSON.stringify(_fileDescriptions)},{onConflict:'project,key'});}catch(e){}
 }
 
 function gedFmtSize(b){return b<1024?b+' B':b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(1)+' MB';}
@@ -1521,12 +1521,12 @@ async function gedLoadFiles(folderId,folderType){
 
 async function gedUploadFile(file,folderId,folderType){
   var fileId=(typeof crypto!=='undefined'&&crypto.randomUUID)?crypto.randomUUID():(Date.now()+'_'+Math.random().toString(36).slice(2));
-  var path='batidoc/'+folderType+'/'+String(folderId)+'/'+fileId+'/'+file.name;
+  var path=currentProjectId+'/'+folderType+'/'+String(folderId)+'/'+fileId+'/'+file.name;
   var {error:upErr}=await sb.storage.from(GED_BUCKET).upload(path,file,{upsert:false});
   if(upErr){showToast('Upload failed: '+file.name);return null;}
   var today=new Date();
   var ds=('0'+today.getDate()).slice(-2)+'/'+('0'+(today.getMonth()+1)).slice(-2)+'/'+today.getFullYear();
-  var {data:row,error:dbErr}=await sb.from('ged_files').insert({project:'batidoc',folder_id:String(folderId),folder_type:folderType,name:file.name,storage_path:path,size_bytes:file.size,size_label:gedFmtSize(file.size),mime_type:file.type||'',uploaded_by:(sbProfile&&(sbProfile.username||sbProfile.full_name))||''}).select().single();
+  var {data:row,error:dbErr}=await sb.from('ged_files').insert({project:currentProjectId,folder_id:String(folderId),folder_type:folderType,name:file.name,storage_path:path,size_bytes:file.size,size_label:gedFmtSize(file.size),mime_type:file.type||'',uploaded_by:(sbProfile&&(sbProfile.username||sbProfile.full_name))||''}).select().single();
   if(dbErr){showToast('Save error: '+file.name);return null;}
   return {id:row.id,name:row.name,size:row.size_label,date:ds,storage_path:row.storage_path,mime_type:file.type||'',created_at:row.created_at};
 }
