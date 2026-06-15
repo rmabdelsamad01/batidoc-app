@@ -1523,11 +1523,11 @@ async function gedUploadFile(file,folderId,folderType){
   var fileId=(typeof crypto!=='undefined'&&crypto.randomUUID)?crypto.randomUUID():(Date.now()+'_'+Math.random().toString(36).slice(2));
   var path=currentProjectId+'/'+folderType+'/'+String(folderId)+'/'+fileId+'/'+file.name;
   var {error:upErr}=await sb.storage.from(GED_BUCKET).upload(path,file,{upsert:false});
-  if(upErr){console.error('Storage upload error:',upErr);showToast('Storage error: '+(upErr.message||upErr.error||JSON.stringify(upErr)));return null;}
+  if(upErr){console.error('Storage upload error:',upErr);return {_err:'Storage: '+(upErr.message||upErr.error||upErr.statusCode||JSON.stringify(upErr))};}
   var today=new Date();
   var ds=('0'+today.getDate()).slice(-2)+'/'+('0'+(today.getMonth()+1)).slice(-2)+'/'+today.getFullYear();
   var {data:row,error:dbErr}=await sb.from('ged_files').insert({project:currentProjectId,folder_id:String(folderId),folder_type:folderType,name:file.name,storage_path:path,size_bytes:file.size,size_label:gedFmtSize(file.size),mime_type:file.type||'',uploaded_by:(sbProfile&&(sbProfile.username||sbProfile.full_name))||''}).select().single();
-  if(dbErr){console.error('DB insert error:',dbErr);showToast('DB error: '+(dbErr.message||dbErr.code||JSON.stringify(dbErr)));return null;}
+  if(dbErr){console.error('DB insert error:',dbErr);return {_err:'DB: '+(dbErr.message||dbErr.code||JSON.stringify(dbErr))};}
   return {id:row.id,name:row.name,size:row.size_label,date:ds,storage_path:row.storage_path,mime_type:file.type||'',created_at:row.created_at};
 }
 
@@ -2203,14 +2203,15 @@ async function handleFiles(fileList){
   if(!folderFiles[currentFolderId])folderFiles[currentFolderId]=[];
   var arr=Array.from(fileList);
   showToast('Uploading '+arr.length+' file'+(arr.length===1?'':'s')+'…');
-  var ok=0;
+  var ok=0;var lastErr=null;
   for(var i=0;i<arr.length;i++){
     var rec=await gedUploadFile(arr[i],currentFolderId,'deliverable');
-    if(rec){folderFiles[currentFolderId].push(rec);ok++;}
+    if(rec&&!rec._err){folderFiles[currentFolderId].push(rec);ok++;}
+    else if(rec&&rec._err){lastErr=rec._err;}
   }
   renderFolderFiles();
   if(ok>0)showToast(ok+' file'+(ok===1?' uploaded':'s uploaded'));
-  else showToast('Upload failed — please try again');
+  else showToast('Upload failed: '+(lastErr||'unknown error'));
 }
 
 // ── payments folders ──────────────────────────────────────────
