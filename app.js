@@ -933,6 +933,7 @@ async function saveAccount(){
   sbProfile.full_name=name;sbProfile.phone=phone;sbProfile.phone_code=phoneCode;
   if(_accSelectedRole) sbProfile.role=_accSelectedRole;
   updateUserChip(name);
+  renderFolderHeader();
   ok.textContent='Account updated successfully!';
   ok.style.display='block';
   showToast('Account saved');
