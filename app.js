@@ -2600,12 +2600,15 @@ async function handlePayFileInput(input){
   var arr=Array.from(input.files);
   input.value='';
   showToast('Uploading '+arr.length+' file'+(arr.length===1?'':'s')+'…');
+  var ok=0;var lastErr=null;
   for(var i=0;i<arr.length;i++){
     var rec=await gedUploadFile(arr[i],currentPayFolderId,'payment');
-    if(rec) payFolderFiles[currentPayFolderId].push(rec);
+    if(rec&&!rec._err){payFolderFiles[currentPayFolderId].push(rec);ok++;}
+    else if(rec&&rec._err){lastErr=rec._err;}
   }
   renderPayFileList();
-  showToast(arr.length+' file'+(arr.length===1?' uploaded':'s uploaded'));
+  if(ok>0)showToast(ok+' file'+(ok===1?' uploaded':'s uploaded'));
+  else showToast('Upload failed: '+(lastErr||'unknown error'));
 }
 
 // ── pay subfolders ────────────────────────────────────────────
