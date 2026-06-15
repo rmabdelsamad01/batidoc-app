@@ -1519,11 +1519,13 @@ async function gedLoadFiles(folderId,folderType){
   return data.map(function(r){var d=new Date(r.created_at);var ds=('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear();return {id:r.id,name:r.name,size:r.size_label||'—',date:ds,storage_path:r.storage_path,mime_type:r.mime_type||'',created_at:r.created_at};});
 }
 
+var GED_MAX_BYTES=50*1024*1024;
 async function gedUploadFile(file,folderId,folderType){
+  if(file.size>GED_MAX_BYTES)return {_err:'File too large (max '+Math.round(GED_MAX_BYTES/1048576)+'MB): '+gedFmtSize(file.size)};
   var fileId=(typeof crypto!=='undefined'&&crypto.randomUUID)?crypto.randomUUID():(Date.now()+'_'+Math.random().toString(36).slice(2));
   var path=currentProjectId+'/'+folderType+'/'+String(folderId)+'/'+fileId+'/'+file.name;
   var {error:upErr}=await sb.storage.from(GED_BUCKET).upload(path,file,{upsert:false});
-  if(upErr){console.error('Storage upload error:',upErr);return {_err:'Storage: '+(upErr.message||upErr.error||upErr.statusCode||JSON.stringify(upErr))};}
+  if(upErr){console.error('Storage upload error:',JSON.stringify(upErr));return {_err:'Storage: '+(upErr.message||upErr.error||upErr.statusCode||JSON.stringify(upErr))};}
   var today=new Date();
   var ds=('0'+today.getDate()).slice(-2)+'/'+('0'+(today.getMonth()+1)).slice(-2)+'/'+today.getFullYear();
   var {data:row,error:dbErr}=await sb.from('ged_files').insert({project:currentProjectId,folder_id:String(folderId),folder_type:folderType,name:file.name,storage_path:path,size_bytes:file.size,size_label:gedFmtSize(file.size),mime_type:file.type||'',uploaded_by:(sbProfile&&(sbProfile.username||sbProfile.full_name))||''}).select().single();
