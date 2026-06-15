@@ -1526,7 +1526,8 @@ function gedGridCols(){
 function _gedIsDev(){
   if(!sbProfile) return false;
   var r=sbProfile.roles;
-  return Array.isArray(r)?r.includes('admin'):sbProfile.role==='admin';
+  if(Array.isArray(r)) return r.includes('developer')||r.includes('admin');
+  return sbProfile.role==='developer'||sbProfile.role==='admin';
 }
 
 async function loadGedIntervenants(){
