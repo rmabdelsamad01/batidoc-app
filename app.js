@@ -1634,6 +1634,70 @@ async function saveFileDescriptions(){
   try{await sb.from('project_info').upsert({project:currentProjectId,key:'file_descriptions',value:JSON.stringify(_fileDescriptions)},{onConflict:'project,key'});}catch(e){}
 }
 
+function _gedDescCell(fileId){
+  var d=_fileDescriptions[fileId]||'';
+  return '<div oncontextmenu="openFileNote(\''+fileId+'\',event);event.preventDefault();" style="font-size:11px;color:#4a6080;padding:0 8px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;cursor:default;position:relative;" title="'+(d?escHtml(d):'Right-click to add a note')+'">'
+    +(d?'<span style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:14px;">'+escHtml(d)+'</span><span style="position:absolute;right:5px;top:50%;transform:translateY(-50%);font-size:8px;color:#224F93;opacity:0.55;pointer-events:none;">●</span>'
+       :'<span style="color:#d0dae6;">—</span>')
+    +'</div>';
+}
+
+function openFileNote(fileId, event){
+  event.preventDefault();
+  closeFileNote();
+  var d=_fileDescriptions[fileId]||'';
+  var popup=document.createElement('div');
+  popup.id='file-note-popup';
+  popup.style.cssText='position:fixed;z-index:99999;background:#fff;border:1.5px solid #dde7f5;border-radius:12px;box-shadow:0 8px 32px rgba(34,79,147,0.18);padding:14px 16px;width:300px;font-family:\'Barlow\',sans-serif;';
+  var x=event.clientX, y=event.clientY;
+  if(x+315>window.innerWidth) x=window.innerWidth-318;
+  if(y+210>window.innerHeight) y=y-215;
+  if(y<4) y=4;
+  popup.style.left=x+'px'; popup.style.top=y+'px';
+  popup.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">'
+    +'<span style="font-size:12px;font-weight:700;color:#224F93;">📝 Note</span>'
+    +'<button onclick="closeFileNote()" style="border:none;background:transparent;cursor:pointer;color:#8099b0;font-size:16px;line-height:1;padding:0;">✕</button>'
+    +'</div>'
+    +'<textarea id="file-note-text" placeholder="Type your note here…" style="width:100%;height:84px;border:1.5px solid #dde3ee;border-radius:8px;padding:8px 10px;font-family:\'Barlow\',sans-serif;font-size:12px;color:#1a2a3a;resize:vertical;outline:none;box-sizing:border-box;line-height:1.5;"></textarea>'
+    +'<div style="display:flex;gap:8px;margin-top:10px;justify-content:flex-end;">'
+    +'<button onclick="deleteFileNote(\''+fileId+'\')" style="padding:6px 14px;border:1.5px solid #fca5a5;background:#fff;color:#c02020;border-radius:7px;font-family:\'Barlow\',sans-serif;font-size:12px;font-weight:600;cursor:pointer;" onmouseover="this.style.background=\'#fef2f2\'" onmouseout="this.style.background=\'#fff\'">Delete Note</button>'
+    +'<button onclick="saveFileNote(\''+fileId+'\')" style="padding:6px 16px;border:none;background:#224F93;color:#fff;border-radius:7px;font-family:\'Barlow\',sans-serif;font-size:12px;font-weight:700;cursor:pointer;" onmouseover="this.style.background=\'#2d65bd\'" onmouseout="this.style.background=\'#224F93\'">Save Note</button>'
+    +'</div>';
+  document.body.appendChild(popup);
+  var ta=document.getElementById('file-note-text');
+  if(ta){ta.value=d;ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);}
+  setTimeout(function(){
+    document.addEventListener('click',_fileNoteOutsideHandler);
+    document.addEventListener('contextmenu',_fileNoteOutsideHandler);
+  },10);
+}
+function _fileNoteOutsideHandler(e){
+  var p=document.getElementById('file-note-popup');
+  if(p&&!p.contains(e.target)) closeFileNote();
+}
+function closeFileNote(){
+  var p=document.getElementById('file-note-popup');
+  if(p) p.remove();
+  document.removeEventListener('click',_fileNoteOutsideHandler);
+  document.removeEventListener('contextmenu',_fileNoteOutsideHandler);
+}
+async function saveFileNote(fileId){
+  var ta=document.getElementById('file-note-text');
+  if(!ta) return;
+  var text=ta.value.trim();
+  if(text) _fileDescriptions[fileId]=text;
+  else delete _fileDescriptions[fileId];
+  closeFileNote();
+  await saveFileDescriptions();
+  renderFolderFiles();
+}
+async function deleteFileNote(fileId){
+  delete _fileDescriptions[fileId];
+  closeFileNote();
+  await saveFileDescriptions();
+  renderFolderFiles();
+}
+
 function gedFmtSize(b){return b<1024?b+' B':b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(1)+' MB';}
 
 async function gedLoadFiles(folderId,folderType){
@@ -1862,7 +1926,7 @@ function renderFolderFiles(){
         +'<span style="font-size:10px;font-weight:700;color:#224F93;background:rgba(34,79,147,0.12);padding:2px 8px;border-radius:10px;white-space:nowrap;flex-shrink:0;">Rev '+item.latest.revStr+'</span>'
         +'<span style="font-size:10px;color:#8099b0;white-space:nowrap;flex-shrink:0;">'+item.files.length+' rev'+(item.files.length>1?'s':'')+'</span>'
         +'</div>'
-        +(function(){var d=_fileDescriptions[lf.id]||'';return '<div style="font-size:11px;color:#4a6080;padding:0 8px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;" title="'+escHtml(d)+'">'+(d?escHtml(d):'<span style="color:#d0dae6;">—</span>')+'</div>';})()
+        +_gedDescCell(lf.id)
         +'<div style="font-size:11px;color:#8099b0;text-align:center;">'+lf.size+'</div>'
         +'<div style="font-size:11px;color:#8099b0;font-family:\'DM Mono\',monospace;text-align:center;">'+lf.date+'</div>'
         +visaDisp
@@ -1890,7 +1954,7 @@ function renderFolderFiles(){
             +'<span style="font-size:12px;color:#1a2a3a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+f.name+'</span>'
             +'<span style="font-size:10px;font-weight:700;color:#1a5fa8;background:rgba(34,79,147,0.08);padding:1px 7px;border-radius:8px;white-space:nowrap;flex-shrink:0;">Rev '+entry.revStr+'</span>'
             +'</div>'
-            +(function(){var d=_fileDescriptions[f.id]||'';return '<div style="font-size:11px;color:#4a6080;padding:0 8px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;" title="'+escHtml(d)+'">'+(d?escHtml(d):'<span style="color:#d0dae6;">—</span>')+'</div>';})()
+            +_gedDescCell(f.id)
             +'<div style="font-size:11px;color:#8099b0;text-align:center;">'+f.size+'</div>'
             +'<div style="font-size:11px;color:#8099b0;font-family:\'DM Mono\',monospace;text-align:center;">'+f.date+'</div>'
             +visaCells
@@ -1920,7 +1984,7 @@ function renderFolderFiles(){
         +'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="'+ic+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>'
         +'<span style="font-size:12px;color:#1a2a3a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+f.name+'</span>'
         +'</div>'
-        +(function(){var d=_fileDescriptions[f.id]||'';return '<div style="font-size:11px;color:#4a6080;padding:0 8px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;" title="'+escHtml(d)+'">'+(d?escHtml(d):'<span style="color:#d0dae6;">—</span>')+'</div>';})()
+        +_gedDescCell(f.id)
         +'<div style="font-size:11px;color:#8099b0;text-align:center;">'+f.size+'</div>'
         +'<div style="font-size:11px;color:#8099b0;font-family:\'DM Mono\',monospace;text-align:center;">'+f.date+'</div>'
         +visaCells
