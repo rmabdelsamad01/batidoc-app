@@ -1634,18 +1634,27 @@ async function saveFileDescriptions(){
   try{await sb.from('project_info').upsert({project:currentProjectId,key:'file_descriptions',value:JSON.stringify(_fileDescriptions)},{onConflict:'project,key'});}catch(e){}
 }
 
+var _fileNotes={};
+async function loadFileNotes(){
+  try{var {data,error}=await sb.from('project_info').select('value').eq('project',currentProjectId).eq('key','file_notes').maybeSingle();if(!error&&data&&data.value)_fileNotes=JSON.parse(data.value)||{};}catch(e){}
+}
+async function saveFileNotes(){
+  try{await sb.from('project_info').upsert({project:currentProjectId,key:'file_notes',value:JSON.stringify(_fileNotes)},{onConflict:'project,key'});}catch(e){}
+}
+
 function _gedDescCell(fileId){
   var d=_fileDescriptions[fileId]||'';
-  return '<div oncontextmenu="openFileNote(\''+fileId+'\',event);event.preventDefault();" style="font-size:11px;color:#4a6080;padding:0 8px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;cursor:default;position:relative;" title="'+(d?escHtml(d):'Right-click to add a note')+'">'
-    +(d?'<span style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:14px;">'+escHtml(d)+'</span><span style="position:absolute;right:5px;top:50%;transform:translateY(-50%);font-size:8px;color:#224F93;opacity:0.55;pointer-events:none;">●</span>'
-       :'<span style="color:#d0dae6;">—</span>')
+  var hasNote=!!_fileNotes[fileId];
+  return '<div oncontextmenu="openFileNote(\''+fileId+'\',event);event.preventDefault();" style="font-size:11px;color:#4a6080;padding:0 8px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;cursor:default;position:relative;" title="'+(d?escHtml(d):'')+(hasNote?' [has note]':'')+'">'
+    +(d?'<span style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:'+(hasNote?'16px':'0')+';">'+escHtml(d)+'</span>':'<span style="color:#d0dae6;">—</span>')
+    +(hasNote?'<span style="position:absolute;right:5px;top:50%;transform:translateY(-50%);font-size:8px;color:#f59e0b;opacity:0.9;pointer-events:none;" title="Has note">●</span>':'')
     +'</div>';
 }
 
 function openFileNote(fileId, event){
   event.preventDefault();
   closeFileNote();
-  var d=_fileDescriptions[fileId]||'';
+  var d=_fileNotes[fileId]||'';
   var popup=document.createElement('div');
   popup.id='file-note-popup';
   popup.style.cssText='position:fixed;z-index:99999;background:#fff;border:1.5px solid #dde7f5;border-radius:12px;box-shadow:0 8px 32px rgba(34,79,147,0.18);padding:14px 16px;width:300px;font-family:\'Barlow\',sans-serif;';
@@ -1685,16 +1694,16 @@ async function saveFileNote(fileId){
   var ta=document.getElementById('file-note-text');
   if(!ta) return;
   var text=ta.value.trim();
-  if(text) _fileDescriptions[fileId]=text;
-  else delete _fileDescriptions[fileId];
+  if(text) _fileNotes[fileId]=text;
+  else delete _fileNotes[fileId];
   closeFileNote();
-  await saveFileDescriptions();
+  await saveFileNotes();
   renderFolderFiles();
 }
 async function deleteFileNote(fileId){
-  delete _fileDescriptions[fileId];
+  delete _fileNotes[fileId];
   closeFileNote();
-  await saveFileDescriptions();
+  await saveFileNotes();
   renderFolderFiles();
 }
 
@@ -1775,6 +1784,7 @@ async function openFolder(id){
   folderFiles[id]=await gedLoadFiles(id,'deliverable');
   await loadVisaStatuses();
   await loadFileDescriptions();
+  await loadFileNotes();
   renderFolderFiles();
   loadFolderVisaFromWorkflow(folderFiles[id]);
 }
