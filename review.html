@@ -128,16 +128,6 @@ async function respond(status){
     return;
   }
 
-  // Check if all recipients responded → update instance status
-  var {data:allRecips}=await sb.from('ged_workflow_recipients').select('status').eq('instance_id',_recipient.instance_id);
-  if(allRecips){
-    var allDone=allRecips.every(function(r){return r.status!=='pending';});
-    if(allDone){
-      var anyRej=allRecips.some(function(r){return r.status==='REJ'||r.status==='VAOB';});
-      await sb.from('ged_workflow_instances').update({status:anyRej?'rejected':'approved'}).eq('id',_recipient.instance_id);
-    }
-  }
-
   showSuccess(status);
 }
 
