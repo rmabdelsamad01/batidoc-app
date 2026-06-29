@@ -986,49 +986,6 @@ function renderDeliverables(){
       +'<div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;">'+actionsSVG()+'</div>'
       +'</div>';
   }).join('');
-  loadDeliverablesBadges();
-}
-
-function wfBadgePill(text,color,bg){
-  return '<span style="display:inline-flex;align-items:center;font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;background:'+bg+';color:'+color+';border:1px solid '+color+'33;white-space:nowrap;line-height:1.6;">'+text+'</span>';
-}
-
-async function loadDeliverablesBadges(){
-  var {data:instances}=await sb.from('ged_workflow_instances').select('*').order('applied_at',{ascending:false});
-  if(!instances)instances=[];
-  var recips=[];
-  if(instances.length){
-    var ids=instances.map(function(i){return i.id;});
-    var {data:r}=await sb.from('ged_workflow_recipients').select('instance_id,status,action').in('instance_id',ids);
-    if(r)recips=r;
-  }
-  deliverables.forEach(function(d){
-    var el=document.getElementById('wf-badge-'+d.id);
-    if(!el)return;
-    var name=d.name.toLowerCase();
-    var matching=instances.filter(function(inst){
-      return inst.document_names&&inst.document_names.toLowerCase().indexOf(name)!==-1;
-    });
-    if(matching.length===0){el.innerHTML='';return;}
-    var inst=matching[0];
-    var ir=recips.filter(function(r){return r.instance_id===inst.id;});
-    var total=ir.length;
-    if(inst.status==='pending'){el.innerHTML=wfBadgePill('In Progress','#d97706','#fffbeb');return;}
-    var approvedCnt=ir.filter(function(r){return r.status==='approved'||r.status==='noted';}).length;
-    var rejectedCnt=ir.filter(function(r){return r.status==='rejected';}).length;
-    if(rejectedCnt>0){
-      var parts=[];
-      if(approvedCnt>0)parts.push(approvedCnt+'/'+total+' Approved');
-      parts.push(rejectedCnt+'/'+total+' Rejected');
-      el.innerHTML=wfBadgePill(parts.join(' · '),'#e53e3e','#fff5f5');
-      return;
-    }
-    var lbl={approved:'Approved',signed:'Signed',noted:'Acknowledged',completed:'Approved'}[inst.status]||'Approved';
-    var col={approved:'#1a9458',signed:'#7c3aed',noted:'#224F93',completed:'#1a9458'}[inst.status]||'#1a9458';
-    var bg={approved:'#f0fdf4',signed:'#faf5ff',noted:'#eff6ff',completed:'#f0fdf4'}[inst.status]||'#f0fdf4';
-    var txt=total>1?approvedCnt+'/'+total+' '+lbl:lbl;
-    el.innerHTML=wfBadgePill(txt,col,bg);
-  });
 }
 
 function closeDashboard(){
