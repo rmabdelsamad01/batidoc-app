@@ -1499,18 +1499,67 @@ function renderFolderHeader(){
   el.innerHTML=html;
 }
 
+var _colEditKey=null; // null = new column
+
+async function _openColEditModal(title, line1, line2, company){
+  document.getElementById('col-edit-title').textContent=title;
+  document.getElementById('col-edit-line1').value=line1||'';
+  document.getElementById('col-edit-line2').value=line2||'';
+  // load companies from contacts
+  var sel=document.getElementById('col-edit-company');
+  sel.innerHTML='<option value="">— No company linked —</option>';
+  if(_allContacts.length===0){
+    var {data}=await sb.from('ged_contacts').select('company').eq('project',currentProjectId);
+    if(data) _allContacts=data;
+  }
+  var seen={};
+  _allContacts.forEach(function(c){
+    if(c.company&&!seen[c.company]){
+      seen[c.company]=1;
+      var opt=document.createElement('option');
+      opt.value=c.company;
+      opt.textContent=c.company;
+      if(c.company===company) opt.selected=true;
+      sel.appendChild(opt);
+    }
+  });
+  document.getElementById('col-edit-modal').style.display='flex';
+  setTimeout(function(){document.getElementById('col-edit-line1').focus();},80);
+}
+
+function closeColEditModal(){
+  document.getElementById('col-edit-modal').style.display='none';
+  _colEditKey=null;
+}
+
+function confirmColEdit(){
+  var line1=document.getElementById('col-edit-line1').value.trim();
+  if(!line1) return;
+  var line2=document.getElementById('col-edit-line2').value.trim();
+  var company=document.getElementById('col-edit-company').value;
+  var label=line1+(line2?'\n'+line2:'');
+  if(_colEditKey){
+    var iv=GED_INTERVENANTS.find(function(x){return x.key===_colEditKey;});
+    if(iv){iv.label=label;iv.company=company||'';}
+  } else {
+    var newKey='custom-'+Date.now();
+    var finalIdx=GED_INTERVENANTS.findIndex(function(x){return x.key==='final';});
+    var newCol={key:newKey,label:label,company:company||''};
+    if(finalIdx>=0) GED_INTERVENANTS.splice(finalIdx,0,newCol);
+    else GED_INTERVENANTS.push(newCol);
+  }
+  closeColEditModal();
+  saveGedIntervenants();
+  renderFolderHeader();
+  renderFolderFiles();
+}
+
 function gedRenameCol(key){
   var iv=GED_INTERVENANTS.find(function(x){return x.key===key;});
   if(!iv) return;
   var parts=(iv.label||'').split('\n');
-  var line1=prompt('Column label (top line):',parts[0]||'');
-  if(line1===null) return;
-  var line2=prompt('Company name (bottom line, leave empty for none):',parts[1]||'');
-  if(line2===null) return;
-  iv.label=line1.trim()+(line2.trim()?'\n'+line2.trim():'');
-  saveGedIntervenants();
-  renderFolderHeader();
-  renderFolderFiles();
+  _colEditKey=key;
+  _openColEditModal('Edit Column', parts[0]||'', parts[1]||'', iv.company||'');
 }
 
 function gedDeleteCol(key){
@@ -1522,17 +1571,8 @@ function gedDeleteCol(key){
 }
 
 function gedAddCol(){
-  var line1=prompt('New column label (top line):','');
-  if(!line1||!line1.trim()) return;
-  var line2=prompt('Company name (bottom line, leave empty for none):','');
-  var newKey='custom-'+Date.now();
-  var finalIdx=GED_INTERVENANTS.findIndex(function(x){return x.key==='final';});
-  var newCol={key:newKey,label:line1.trim()+(line2&&line2.trim()?'\n'+line2.trim():'')};
-  if(finalIdx>=0) GED_INTERVENANTS.splice(finalIdx,0,newCol);
-  else GED_INTERVENANTS.push(newCol);
-  saveGedIntervenants();
-  renderFolderHeader();
-  renderFolderFiles();
+  _colEditKey=null;
+  _openColEditModal('New Column','','','');
 }
 var _visaStatuses={};
 var _visaAutoStatuses={};
@@ -1947,7 +1987,7 @@ function getVisaStatus(fileId, ivKey){
   var m=(_visaStatuses[fileId]||{})[ivKey];
   if(m) return {status:m.status,source:'manual',replyName:m.replyName||'',date:m.date||''};
   var a=(_visaAutoStatuses[fileId]||{})[ivKey];
-  if(a) return {status:a,source:'auto',date:''};
+  if(a) return {status:a.status||a,source:'auto',date:a.date||''};
   return {};
 }
 
@@ -2065,11 +2105,17 @@ async function downloadVisaReply(path, name){
   document.body.removeChild(a);
 }
 
+function _fmtAutoDate(iso){
+  if(!iso) return '';
+  var d=new Date(iso);
+  return ('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+String(d.getFullYear()).slice(-2);
+}
+
 async function loadFolderVisaFromWorkflow(files){
   _visaAutoStatuses={};
   if(!files||!files.length) return;
   try{
-    var {data:instances}=await sb.from('ged_workflow_instances').select('id,document_names').order('applied_at',{ascending:false});
+    var {data:instances}=await sb.from('ged_workflow_instances').select('id,document_names,applied_at').order('applied_at',{ascending:false});
     if(!instances||!instances.length) return;
     var names=files.map(function(f){return f.name.toLowerCase();});
     var relevant=instances.filter(function(inst){
@@ -2077,18 +2123,27 @@ async function loadFolderVisaFromWorkflow(files){
     });
     if(!relevant.length) return;
     var ids=relevant.map(function(i){return i.id;});
-    var {data:recips}=await sb.from('ged_workflow_recipients').select('instance_id,company,status').in('instance_id',ids).neq('status','pending');
-    if(!recips||!recips.length) return;
+    var {data:recips}=await sb.from('ged_workflow_recipients').select('instance_id,company,status,responded_at').in('instance_id',ids).neq('status','pending').neq('status','noted');
     files.forEach(function(f){
       var fname=f.name.toLowerCase();
       relevant.forEach(function(inst){
         if(!inst.document_names||inst.document_names.toLowerCase().indexOf(fname)===-1) return;
+        // Batiglobe → Sou on workflow application date
+        var bgKey='batiglobe';
+        if(!(_visaAutoStatuses[f.id]&&_visaAutoStatuses[f.id][bgKey])){
+          if(!_visaAutoStatuses[f.id]) _visaAutoStatuses[f.id]={};
+          _visaAutoStatuses[f.id][bgKey]={status:'Sou',date:_fmtAutoDate(inst.applied_at)};
+        }
+        // Recipients → their company's column
+        if(!recips) return;
         recips.filter(function(r){return r.instance_id===inst.id;}).forEach(function(r){
-          var ivKey=GED_IV_COMPANY_MAP[r.company||''];
+          var iv=GED_INTERVENANTS.find(function(x){return x.company&&x.company===(r.company||'');});
           var visa=VISA_STATUSES.includes(r.status)?r.status:null;
-          if(ivKey&&visa){
+          if(iv&&visa){
             if(!_visaAutoStatuses[f.id]) _visaAutoStatuses[f.id]={};
-            if(!_visaAutoStatuses[f.id][ivKey]) _visaAutoStatuses[f.id][ivKey]=visa;
+            if(!_visaAutoStatuses[f.id][iv.key]){
+              _visaAutoStatuses[f.id][iv.key]={status:visa,date:_fmtAutoDate(r.responded_at)};
+            }
           }
         });
       });
