@@ -1492,7 +1492,17 @@ function renderFolderHeader(){
           +'<span onclick="gedDeleteCol(\''+safeKey+'\')" style="font-size:9px;color:#c02020;cursor:pointer;padding:1px 3px;border-radius:3px;background:rgba(192,32,32,0.08);" title="Delete">✕</span>'
           +'</div>'
         :'';
-      html+='<div class="del-hcell" style="text-align:center;font-size:8px;line-height:1.3;">'+line1+line2+devBtns+'</div>';
+      if(dev){
+        html+='<div class="del-hcell ged-col-drag" draggable="true"'
+          +' data-col-key="'+safeKey+'"'
+          +' ondragstart="gedColDragStart(event,\''+safeKey+'\')"'
+          +' ondragover="gedColDragOver(event,\''+safeKey+'\')"'
+          +' ondragleave="gedColDragLeave(event)"'
+          +' ondrop="gedColDrop(event,\''+safeKey+'\')"'
+          +' style="text-align:center;font-size:8px;line-height:1.3;cursor:grab;">'+line1+line2+devBtns+'</div>';
+      } else {
+        html+='<div class="del-hcell" style="text-align:center;font-size:8px;line-height:1.3;">'+line1+line2+'</div>';
+      }
     }
   });
   html+='<div></div>';
@@ -1561,6 +1571,44 @@ function gedRenameCol(key){
   var parts=(iv.label||'').split('\n');
   _colEditKey=key;
   _openColEditModal('Edit Column', parts[0]||'', parts[1]||'', iv.company||'');
+}
+
+var _gedDragKey=null;
+
+function gedColDragStart(e,key){
+  _gedDragKey=key;
+  e.dataTransfer.effectAllowed='move';
+  e.currentTarget.style.opacity='0.4';
+  e.currentTarget.addEventListener('dragend',function(){
+    e.currentTarget.style.opacity='';
+    _gedDragKey=null;
+  },{once:true});
+}
+
+function gedColDragOver(e,key){
+  if(!_gedDragKey||_gedDragKey===key) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect='move';
+  e.currentTarget.style.borderLeft='3px solid #224F93';
+}
+
+function gedColDragLeave(e){
+  e.currentTarget.style.borderLeft='';
+}
+
+function gedColDrop(e,targetKey){
+  e.preventDefault();
+  e.currentTarget.style.borderLeft='';
+  if(!_gedDragKey||_gedDragKey===targetKey) return;
+  var fromIdx=GED_INTERVENANTS.findIndex(function(x){return x.key===_gedDragKey;});
+  var toIdx=GED_INTERVENANTS.findIndex(function(x){return x.key===targetKey;});
+  if(fromIdx===-1||toIdx===-1) return;
+  var moved=GED_INTERVENANTS.splice(fromIdx,1)[0];
+  GED_INTERVENANTS.splice(toIdx,0,moved);
+  _gedDragKey=null;
+  saveGedIntervenants();
+  renderFolderHeader();
+  renderFolderFiles();
 }
 
 function gedDeleteCol(key){
