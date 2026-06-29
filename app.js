@@ -1428,7 +1428,7 @@ var GED_IV_COMPANY_MAP={
 var WF_TO_VISA={approved:'VSO',noted:'VAO',rejected:'REJ'};
 
 function gedGridCols(){
-  var cols='36px minmax(180px,1fr) minmax(80px,150px) 90px 100px ';
+  var cols='36px minmax(220px,2fr) minmax(140px,1.5fr) 90px 100px ';
   GED_INTERVENANTS.forEach(function(iv){
     cols+=(iv.key==='batiglobe'?'74px':iv.key==='final'?'72px':'62px')+' ';
   });
