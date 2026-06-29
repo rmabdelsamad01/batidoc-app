@@ -152,7 +152,7 @@ function setPage(page){
   document.getElementById('nav-workflow').classList.toggle('active',page==='workflow');
   document.getElementById('nav-contacts').classList.toggle('active',page==='contacts');
   if(page==='payments') renderPayFolders();
-  if(page==='workflow'){loadGedWorkflows().then(renderWorkflows);loadWorkflowInstances();}
+  if(page==='workflow'){loadGedWorkflows().then(renderWorkflows);}
   if(page==='contacts') loadContacts();
 }
 
@@ -424,52 +424,6 @@ function renderWorkflows(){
   }).join('');
 }
 
-async function loadWorkflowInstances(){
-  var el=document.getElementById('workflow-instances-list');
-  if(!el)return;
-  el.innerHTML='<p style="font-size:12px;color:#8099b0;">Loading…</p>';
-  var {data:instances,error}=await sb.from('ged_workflow_instances').select('*').order('applied_at',{ascending:false}).limit(20);
-  if(error||!instances||instances.length===0){el.innerHTML='<p style="font-size:12px;color:#8099b0;">No workflows sent yet.</p>';return;}
-
-  var statusColors={pending:'#f59e0b',completed:'#1a9458',approved:'#1a9458',signed:'#7c3aed',noted:'#224F93',rejected:'#e53e3e'};
-  var statusLabels={pending:'In Progress',completed:'Completed',approved:'Approved',signed:'Signed',noted:'Acknowledged',rejected:'Rejected'};
-  var recipStatusColors={pending:'#8099b0',approved:'#1a9458',rejected:'#e53e3e',noted:'#224F93'};
-  var recipStatusLabels={pending:'Pending',approved:'Approved',rejected:'Rejected',noted:'Acknowledged'};
-
-  // Load all recipients for these instances
-  var ids=instances.map(function(i){return i.id;});
-  var {data:allRecips}=await sb.from('ged_workflow_recipients').select('*').in('instance_id',ids);
-
-  el.innerHTML=instances.map(function(inst){
-    var recips=(allRecips||[]).filter(function(r){return r.instance_id===inst.id;});
-    var statusColor=statusColors[inst.status]||'#8099b0';
-    var statusLabel=statusLabels[inst.status]||inst.status;
-    var date=inst.applied_at?new Date(inst.applied_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'}):'';
-    var recipHtml=recips.map(function(r){
-      var sc=recipStatusColors[r.status]||'#8099b0';
-      var sl=recipStatusLabels[r.status]||r.status;
-      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 12px;background:#fff;border:1px solid rgba(34,79,147,0.08);border-radius:7px;">'+
-        '<div>'+
-          '<div style="font-size:12px;font-weight:600;color:#1a2a3a;">'+escHtml(r.name)+'</div>'+
-          '<div style="font-size:10px;color:#8099b0;">'+escHtml(r.company||'')+(r.comment?'<span style="margin-left:6px;color:#4a6080;font-style:italic;">"'+escHtml(r.comment)+'"</span>':'')+'</div>'+
-        '</div>'+
-        '<span style="font-size:11px;font-weight:700;color:'+sc+';">'+sl+'</span>'+
-      '</div>';
-    }).join('');
-    return '<div style="background:#f8fafd;border:1px solid rgba(34,79,147,0.1);border-radius:10px;overflow:hidden;margin-bottom:12px;">'+
-      '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid rgba(34,79,147,0.08);">'+
-        '<div>'+
-          '<div style="font-size:13px;font-weight:700;color:#1a2a3a;">'+escHtml(inst.document_names||'—')+'</div>'+
-          '<div style="font-size:11px;color:#8099b0;margin-top:2px;">'+escHtml(inst.workflow_name||'')+(inst.applied_by?' · by '+escHtml(inst.applied_by):'')+(date?' · '+date:'')+'</div>'+
-        '</div>'+
-        '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:'+statusColor+'1a;color:'+statusColor+';">'+statusLabel+'</span>'+
-      '</div>'+
-      '<div style="padding:10px 14px;display:flex;flex-direction:column;gap:6px;">'+
-        (recipHtml||'<p style="font-size:12px;color:#8099b0;margin:0;">No recipients found.</p>')+
-      '</div>'+
-    '</div>';
-  }).join('');
-}
 
 async function openNewWorkflowModal(){
   _editingWfId=null;
