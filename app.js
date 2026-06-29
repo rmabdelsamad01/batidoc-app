@@ -1464,6 +1464,11 @@ function renderFolderHeader(){
   if(!el) return;
   var dev=_gedIsDev();
   var grid=gedGridCols();
+  // set min-width on the table container so the + button is never cut off
+  var minW=36+220+140+90+100+44;
+  GED_INTERVENANTS.forEach(function(iv){minW+=(iv.key==='batiglobe'?74:iv.key==='final'?72:62);});
+  var inner=document.getElementById('folder-table-inner');
+  if(inner) inner.style.minWidth=minW+'px';
   el.style.cssText='display:grid;grid-template-columns:'+grid+';align-items:center;padding:0 14px;height:46px;background:#f4f8fd;border-bottom:1px solid rgba(34,79,147,0.12);';
   var html='<div style="display:flex;align-items:center;justify-content:center;"><input type="checkbox" id="fcheck-all" onchange="toggleAllFiles(this)" style="width:15px;height:15px;accent-color:#224F93;cursor:pointer;"></div>';
   html+='<div class="del-hcell blue" onclick="sortFolderFiles(\'name\')" style="cursor:pointer;user-select:none;">Name<span id="fsort-icon-name" style="font-size:10px;margin-left:3px;">▲</span></div>';
