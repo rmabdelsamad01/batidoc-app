@@ -1482,7 +1482,8 @@ function renderFolderHeader(){
     if(iv.key==='batiglobe'){
       html+='<div class="del-hcell" style="text-align:center;font-size:8px;line-height:1.3;color:#224F93;font-weight:700;">'+line1+line2+'</div>';
     } else if(iv.key==='final'){
-      html+='<div class="del-hcell" style="text-align:center;font-size:8px;line-height:1.3;color:#224F93;font-weight:700;border-left:2px solid rgba(34,79,147,0.2);padding-left:4px;">'+line1+line2+'</div>';
+      var addBtn=dev?'<div style="display:flex;justify-content:center;margin-top:3px;"><button onclick="gedAddCol()" title="Add column" style="background:rgba(34,79,147,0.1);border:none;cursor:pointer;color:#224F93;font-size:12px;font-weight:700;width:18px;height:18px;border-radius:3px;display:flex;align-items:center;justify-content:center;padding:0;line-height:1;">+</button></div>':''
+      html+='<div class="del-hcell" style="text-align:center;font-size:8px;line-height:1.3;color:#224F93;font-weight:700;border-left:2px solid rgba(34,79,147,0.2);padding-left:4px;">'+line1+line2+addBtn+'</div>';
     } else {
       var safeKey=iv.key.replace(/'/g,"\\'");
       var devBtns=dev
@@ -1494,13 +1495,7 @@ function renderFolderHeader(){
       html+='<div class="del-hcell" style="text-align:center;font-size:8px;line-height:1.3;">'+line1+line2+devBtns+'</div>';
     }
   });
-  if(dev){
-    html+='<div style="display:flex;align-items:center;justify-content:center;">'
-      +'<button onclick="gedAddCol()" title="Add column" style="background:rgba(34,79,147,0.1);border:none;cursor:pointer;color:#224F93;font-size:16px;font-weight:700;width:24px;height:24px;border-radius:4px;display:flex;align-items:center;justify-content:center;padding:0;">+</button>'
-      +'</div>';
-  } else {
-    html+='<div></div>';
-  }
+  html+='<div></div>';
   el.innerHTML=html;
 }
 
