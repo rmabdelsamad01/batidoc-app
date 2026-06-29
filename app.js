@@ -1508,12 +1508,13 @@ async function _openColEditModal(title, line1, line2, company){
   // load companies from contacts
   var sel=document.getElementById('col-edit-company');
   sel.innerHTML='<option value="">— No company linked —</option>';
-  if(_allContacts.length===0){
-    var {data}=await sb.from('ged_contacts').select('company').eq('project',currentProjectId);
-    if(data) _allContacts=data;
+  var contactsForModal=_allContacts;
+  if(!contactsForModal.length){
+    var {data:cdata}=await sb.from('ged_contacts').select('company').eq('project',currentProjectId);
+    contactsForModal=cdata||[];
   }
   var seen={};
-  _allContacts.forEach(function(c){
+  contactsForModal.forEach(function(c){
     if(c.company&&!seen[c.company]){
       seen[c.company]=1;
       var opt=document.createElement('option');
