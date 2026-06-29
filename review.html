@@ -103,13 +103,16 @@ function showForm(rec,inst){
       '</p>'+
     '</div>'+
     '<textarea class="comment-area" id="comment-input" placeholder="Add a comment (optional)…"></textarea>'+
-    '<div class="btn-row">'+
-      (isInfo
-        ? '<button class="btn btn-info" onclick="respond(\'noted\')">✓ Acknowledge</button>'
-        : '<button class="btn btn-approve" onclick="respond(\'approved\')">✓ '+(rec.action==='signature'?'Sign':'Approve')+'</button>'+
-          '<button class="btn btn-reject" onclick="respond(\'rejected\')">✕ Reject</button>'
-      )+
-    '</div>';
+    (isInfo
+      ? '<div class="btn-row"><button class="btn btn-info" onclick="respond(\'noted\')">✓ Acknowledge</button></div>'
+      : '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px;">'+
+          '<button class="btn" style="background:#dcfce7;color:#14532d;border:2px solid #14532d;" onclick="respond(\'VSO\')">VSO</button>'+
+          '<button class="btn" style="background:#f0fdf4;color:#16a34a;border:2px solid #16a34a;" onclick="respond(\'VAO\')">VAO</button>'+
+          '<button class="btn" style="background:#fee2e2;color:#dc2626;border:2px solid #dc2626;" onclick="respond(\'VAOB\')">VAOB</button>'+
+          '<button class="btn" style="background:#fecaca;color:#991b1b;border:2px solid #991b1b;" onclick="respond(\'REJ\')">REJ</button>'+
+          '<button class="btn" style="background:#dcfce7;color:#14532d;border:2px solid #14532d;grid-column:1/-1;" onclick="respond(\'NC\')">NC</button>'+
+        '</div>'
+    );
 }
 
 async function respond(status){
@@ -130,20 +133,8 @@ async function respond(status){
   if(allRecips){
     var allDone=allRecips.every(function(r){return r.status!=='pending';});
     if(allDone){
-      var anyRejected=allRecips.some(function(r){return r.status==='rejected';});
-      var finalStatus;
-      if(anyRejected){
-        finalStatus='rejected';
-      }else{
-        var allNoted=allRecips.every(function(r){return r.status==='noted';});
-        if(allNoted){
-          finalStatus='noted';
-        }else{
-          var wfType=_instance?(_instance.workflow_type||'approval'):'approval';
-          finalStatus=wfType==='signature'?'signed':'approved';
-        }
-      }
-      await sb.from('ged_workflow_instances').update({status:finalStatus}).eq('id',_recipient.instance_id);
+      var anyRej=allRecips.some(function(r){return r.status==='REJ'||r.status==='VAOB';});
+      await sb.from('ged_workflow_instances').update({status:anyRej?'rejected':'approved'}).eq('id',_recipient.instance_id);
     }
   }
 
@@ -151,24 +142,22 @@ async function respond(status){
 }
 
 function showSuccess(status){
-  var icons={approved:'✅',rejected:'❌',noted:'✓'};
-  var messages={approved:'Your approval has been recorded.',rejected:'Your rejection has been recorded.',noted:'Your acknowledgement has been recorded.'};
+  var icons={VSO:'✅',VAO:'✅',VAOB:'❌',REJ:'❌',NC:'✓',noted:'✓'};
   document.getElementById('content').innerHTML=
     '<div class="success">'+
       '<div class="success-icon">'+(icons[status]||'✓')+'</div>'+
       '<h2>Response submitted</h2>'+
-      '<p>'+(messages[status]||'Your response has been recorded.')+'</p>'+
+      '<p>Your response <strong>'+status+'</strong> has been recorded.</p>'+
       '<p style="margin-top:8px;font-size:12px;">You may now close this page.</p>'+
     '</div>';
 }
 
 function showAlreadyResponded(rec){
-  var labels={approved:'Approved',rejected:'Rejected',noted:'Acknowledged'};
   document.getElementById('content').innerHTML=
     '<div class="success">'+
       '<div class="success-icon">ℹ️</div>'+
       '<h2>Already responded</h2>'+
-      '<p>You already submitted your response: <strong>'+(labels[rec.status]||rec.status)+'</strong></p>'+
+      '<p>You already submitted your response: <strong>'+escHtml(rec.status)+'</strong></p>'+
       '<p style="margin-top:8px;font-size:12px;">You may now close this page.</p>'+
     '</div>';
 }

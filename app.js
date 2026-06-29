@@ -1425,7 +1425,7 @@ var GED_IV_COMPANY_MAP={
   'Accoustichok':'bet-acous',
   'EESM':'amo-hqe',
 };
-var WF_TO_VISA={approved:'VSO',noted:'VAO',rejected:'REJ'};
+var VISA_STATUSES=['VSO','VAO','VAOB','REJ','NC','EA','PR','PI','Sou','NS'];
 
 function gedGridCols(){
   var cols='36px minmax(220px,2fr) minmax(140px,1.5fr) 90px 100px ';
@@ -2085,7 +2085,7 @@ async function loadFolderVisaFromWorkflow(files){
         if(!inst.document_names||inst.document_names.toLowerCase().indexOf(fname)===-1) return;
         recips.filter(function(r){return r.instance_id===inst.id;}).forEach(function(r){
           var ivKey=GED_IV_COMPANY_MAP[r.company||''];
-          var visa=WF_TO_VISA[r.status];
+          var visa=VISA_STATUSES.includes(r.status)?r.status:null;
           if(ivKey&&visa){
             if(!_visaAutoStatuses[f.id]) _visaAutoStatuses[f.id]={};
             if(!_visaAutoStatuses[f.id][ivKey]) _visaAutoStatuses[f.id][ivKey]=visa;
