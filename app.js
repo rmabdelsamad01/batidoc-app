@@ -1426,6 +1426,20 @@ var GED_IV_COMPANY_MAP={
   'EESM':'amo-hqe',
 };
 var VISA_STATUSES=['VSO','VAO','VAOB','REJ','NC','EA','PR','PI','Sou','NS'];
+var _FINAL_PRIORITY=['NS','EA','REJ','VAOB','VAO','VSO','NC','PI','PR','Sou'];
+
+function getFinalStatus(fileId){
+  var best=null;var bestRank=999;
+  GED_INTERVENANTS.forEach(function(iv){
+    if(iv.key==='final') return;
+    var vs=getVisaStatus(fileId,iv.key);
+    if(!vs.status) return;
+    var rank=_FINAL_PRIORITY.indexOf(vs.status);
+    if(rank===-1) return;
+    if(rank<bestRank){bestRank=rank;best={status:vs.status,date:vs.date||''};}
+  });
+  return best||{};
+}
 
 function gedGridCols(){
   var cols='36px minmax(220px,2fr) minmax(140px,1.5fr) 90px 100px ';
@@ -1955,6 +1969,9 @@ function renderFolderFiles(){
             var autoMark=vs.source==='auto'?'<span style="font-size:8px;color:#b0bec5;" title="Auto from workflow">⚡</span>':'';
             var dateEl=(vs.date&&vs.status!=='PI'&&vs.status!=='PR')?'<span style="display:block;font-size:12px;color:#b0bec5;margin-top:3px;line-height:1;">'+vs.date+'</span>':'';
             var hasReply=vs.replyName?'<span style="display:block;width:5px;height:5px;border-radius:50%;background:#1a9458;position:absolute;top:4px;right:4px;" title="Reply attached"></span>':'';
+            if(iv.key==='final'){
+              return '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;padding:0 2px;border-left:2px solid rgba(34,79,147,0.15);">'+badge+dateEl+'</div>';
+            }
             return '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;padding:0 2px;transition:background 0.1s;border-left:1px solid rgba(34,79,147,0.05);" onclick="openVisaCell(\''+f.id+'\',\''+iv.key+'\',this)" onmouseover="this.style.background=\'rgba(34,79,147,0.04)\'" onmouseout="this.style.background=\'\'">'+badge+autoMark+dateEl+hasReply+'</div>';
           }).join('');
           html+='<div style="display:grid;grid-template-columns:'+gedGridCols()+';align-items:center;padding:0 14px 0 0;height:54px;background:#f7fbff;border-bottom:1px solid #e4eefc;border-left:3px solid rgba(34,79,147,0.25);transition:background 0.1s;" onmouseover="this.style.background=\'#eef4ff\'" onmouseout="this.style.background=\'#f7fbff\'">'
@@ -2033,6 +2050,7 @@ function visaBadge(status){
 }
 
 function getVisaStatus(fileId, ivKey){
+  if(ivKey==='final') return getFinalStatus(fileId);
   var m=(_visaStatuses[fileId]||{})[ivKey];
   if(m) return {status:m.status,source:'manual',replyName:m.replyName||'',date:m.date||''};
   var a=(_visaAutoStatuses[fileId]||{})[ivKey];
