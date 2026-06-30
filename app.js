@@ -1438,7 +1438,7 @@ function getFinalStatus(fileId){
     if(rank===-1) return;
     if(rank<bestRank){bestRank=rank;best={status:vs.status,date:vs.date||''};}
   });
-  return best||{};
+  return best?{status:best.status,date:best.date,source:'auto'}:{};
 }
 
 function gedGridCols(){
@@ -1970,7 +1970,8 @@ function renderFolderFiles(){
             var dateEl=(vs.date&&vs.status!=='PI'&&vs.status!=='PR')?'<span style="display:block;font-size:12px;color:#b0bec5;margin-top:3px;line-height:1;">'+vs.date+'</span>':'';
             var hasReply=vs.replyName?'<span style="display:block;width:5px;height:5px;border-radius:50%;background:#1a9458;position:absolute;top:4px;right:4px;" title="Reply attached"></span>':'';
             if(iv.key==='final'){
-              return '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;padding:0 2px;border-left:2px solid rgba(34,79,147,0.15);">'+badge+dateEl+'</div>';
+              var finalAutoMark=vs.status?'<span style="font-size:8px;color:#b0bec5;" title="Auto-computed">⚡</span>':'';
+              return '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;padding:0 2px;border-left:2px solid rgba(34,79,147,0.15);">'+badge+finalAutoMark+dateEl+'</div>';
             }
             return '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;padding:0 2px;transition:background 0.1s;border-left:1px solid rgba(34,79,147,0.05);" onclick="openVisaCell(\''+f.id+'\',\''+iv.key+'\',this)" onmouseover="this.style.background=\'rgba(34,79,147,0.04)\'" onmouseout="this.style.background=\'\'">'+badge+autoMark+dateEl+hasReply+'</div>';
           }).join('');
