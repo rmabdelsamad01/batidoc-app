@@ -952,7 +952,13 @@ async function openDashboard(){
   if(!m)return;
   m.style.display='flex';
   var sel=document.getElementById('dashboard-iv-select');
-  if(sel)sel.value='final';
+  if(sel){
+    sel.innerHTML=GED_INTERVENANTS.map(function(iv){
+      var label=iv.label.replace(/\n/g,' ');
+      return '<option value="'+iv.key+'">'+label+'</option>';
+    }).join('');
+    sel.value='final';
+  }
   await renderDashboard('final');
 }
 
