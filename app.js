@@ -980,7 +980,7 @@ async function renderDashboard(ivKey){
     var files=folderFiles[d.id]||[];
     var counts={};statuses.forEach(function(s){counts[s]=0;});
     files.forEach(function(f){
-      var vs=(_visaStatuses[f.id]||{})[ivKey]||{};
+      var vs=ivKey==='final'?getFinalStatus(f.id):(_visaStatuses[f.id]||{})[ivKey]||{};
       var st=vs.status;
       if(st&&counts[st]!==undefined)counts[st]++;
     });
