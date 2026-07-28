@@ -942,9 +942,58 @@ function renderDeliverables(){
   }).join('');
 }
 
+var _engPlanningActive=false;
+var _dashIvKey='final';
+
+function _parseFileDate(ds){
+  if(!ds)return null;
+  var p=ds.split('-');
+  if(p.length!==3)return null;
+  return new Date(+p[0],+p[1]-1,+p[2]);
+}
+
+function _gedEngPlanningCols(){
+  var now=new Date();
+  var dow=now.getDay()||7; // Mon=1..Sun=7
+  var monday=new Date(now); monday.setDate(now.getDate()-(dow-1)); monday.setHours(0,0,0,0);
+  var cols=[];
+  // 8 weekly columns
+  for(var w=0;w<8;w++){
+    var s=new Date(monday); s.setDate(monday.getDate()+w*7);
+    var e=new Date(s); e.setDate(s.getDate()+6); e.setHours(23,59,59,999);
+    var dd=('0'+s.getDate()).slice(-2);
+    var mm=('0'+(s.getMonth()+1)).slice(-2);
+    cols.push({label:dd+'/'+mm,start:s,end:e,isMonth:false});
+  }
+  // 4 monthly columns — first starts day after week 8 ends
+  var monthStart=new Date(cols[7].end); monthStart.setDate(monthStart.getDate()+1); monthStart.setHours(0,0,0,0);
+  for(var mo=0;mo<4;mo++){
+    var mStart,mEnd;
+    if(mo===0){
+      mStart=new Date(monthStart);
+    } else {
+      mStart=new Date(monthStart.getFullYear(),monthStart.getMonth()+mo,1);
+    }
+    mEnd=new Date(mStart.getFullYear(),mStart.getMonth()+1,0,23,59,59,999);
+    var MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    cols.push({label:MONTHS[mStart.getMonth()],start:mStart,end:mEnd,isMonth:true});
+  }
+  return cols;
+}
+
+function toggleEngPlanning(){
+  if(_engPlanningActive)return;
+  _engPlanningActive=true;
+  renderDashboard(_dashIvKey);
+}
+
 function closeDashboard(){
   var m=document.getElementById('dashboard-modal');
   if(m)m.style.display='none';
+  _engPlanningActive=false;
+  // remove plan headers
+  var tr=document.getElementById('dashboard-thead-row');
+  if(tr){tr.querySelectorAll('th.plan-th').forEach(function(th){th.remove();});}
 }
 
 async function openDashboard(){
@@ -963,12 +1012,35 @@ async function openDashboard(){
 }
 
 async function renderDashboard(ivKey){
-  document.getElementById('dashboard-body').innerHTML='<tr><td colspan="13" style="text-align:center;padding:32px;color:#8099b0;">Loading…</td></tr>';
+  _dashIvKey=ivKey;
+  var planCols=_engPlanningActive?_gedEngPlanningCols():[];
+  var totalCols=13+planCols.length;
+  document.getElementById('dashboard-body').innerHTML='<tr><td colspan="'+totalCols+'" style="text-align:center;padding:32px;color:#8099b0;">Loading…</td></tr>';
+
+  // sync plan headers in thead
+  var tr=document.getElementById('dashboard-thead-row');
+  if(tr){
+    tr.querySelectorAll('th.plan-th').forEach(function(th){th.remove();});
+    if(_engPlanningActive){
+      planCols.forEach(function(col,ci){
+        var th=document.createElement('th');
+        th.className='plan-th';
+        var borderLeft=ci===0?'border-left:2px solid #a0bce0;':'';
+        var borderLeft2=(!col.isMonth&&ci>0&&planCols[ci-1]&&planCols[ci-1].isMonth===false&&ci===8)?'border-left:2px solid #a0bce0;':'';
+        // separator: first month col (ci===8)
+        var sep=(ci===8)?'border-left:2px solid rgba(255,255,255,0.5);':'';
+        th.setAttribute('style','padding:9px 8px;font-size:10px;font-weight:700;text-align:center;white-space:nowrap;min-width:52px;'+(ci===0?'border-left:2px solid rgba(255,255,255,0.4);':'')+(ci===8?'border-left:2px solid rgba(255,255,255,0.4);':''));
+        th.textContent=col.label;
+        tr.appendChild(th);
+      });
+    }
+  }
 
   await loadVisaStatuses();
 
   var statuses=['VSO','VAO','VAOB','REJ','EA','NC','PR','PI','Sou','NS'];
   var totals={};statuses.forEach(function(s){totals[s]=0;});
+  var planTotals=planCols.map(function(){return 0;});
   var totalQty=0;
   var rows=[];
 
@@ -979,14 +1051,21 @@ async function renderDashboard(ivKey){
     }
     var files=folderFiles[d.id]||[];
     var counts={};statuses.forEach(function(s){counts[s]=0;});
+    var planCounts=planCols.map(function(col){
+      return files.filter(function(f){
+        var fd=_parseFileDate(f.date);
+        return fd&&fd>=col.start&&fd<=col.end;
+      }).length;
+    });
     files.forEach(function(f){
       var vs=ivKey==='final'?getFinalStatus(f.id):(_visaStatuses[f.id]||{})[ivKey]||{};
       var st=vs.status;
       if(st&&counts[st]!==undefined)counts[st]++;
     });
     statuses.forEach(function(s){totals[s]+=counts[s];});
+    planCounts.forEach(function(v,ci){planTotals[ci]+=v;});
     totalQty+=files.length;
-    rows.push({d:d,counts:counts,qty:files.length,num:(i+1)*100});
+    rows.push({d:d,counts:counts,qty:files.length,num:(i+1)*100,planCounts:planCounts});
   }
 
   var STATUS_COLORS={
@@ -1006,6 +1085,11 @@ async function renderDashboard(ivKey){
         var col=v>0?STATUS_COLORS[s]:'#d0dae6';
         return '<td style="padding:7px 12px;font-size:12px;text-align:center;color:'+col+';font-weight:'+(v>0?'700':'400')+';">'+(v>0?v:'—')+'</td>';
       }).join('')
+      +r.planCounts.map(function(v,ci){
+        var sep=ci===0?'border-left:2px solid #e0e8f4;':'';
+        var sep2=ci===8?'border-left:2px solid #e0e8f4;':'';
+        return '<td style="padding:7px 8px;font-size:12px;text-align:center;color:'+(v>0?'#224F93':'#d0dae6')+';font-weight:'+(v>0?'700':'400')+';'+(ci===0?'border-left:2px solid #e0e8f4;':'')+(ci===8?'border-left:2px solid #e0e8f4;':'')+';">'+(v>0?v:'—')+'</td>';
+      }).join('')
       +'</tr>';
   }).join('');
 
@@ -1015,6 +1099,9 @@ async function renderDashboard(ivKey){
     +statuses.map(function(s){
       return '<td style="padding:9px 12px;font-size:12px;font-weight:700;text-align:center;color:#224F93;">'+totals[s]+'</td>';
     }).join('')
+    +planTotals.map(function(v,ci){
+      return '<td style="padding:9px 8px;font-size:12px;font-weight:700;text-align:center;color:#224F93;'+(ci===0?'border-left:2px solid #c0d0e8;':'')+(ci===8?'border-left:2px solid #c0d0e8;':'')+';">'+v+'</td>';
+    }).join('')
     +'</tr>';
 
   html+='<tr style="background:#eef4ff;">'
@@ -1023,6 +1110,7 @@ async function renderDashboard(ivKey){
       var pct=totalQty>0?Math.round(totals[s]/totalQty*100):0;
       return '<td style="padding:6px 12px;font-size:11px;text-align:center;color:#8099b0;">'+pct+'%</td>';
     }).join('')
+    +planCols.map(function(){return '<td></td>';}).join('')
     +'</tr>';
 
   document.getElementById('dashboard-body').innerHTML=html;

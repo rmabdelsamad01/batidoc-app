@@ -1445,13 +1445,15 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
       <div style="display:flex;align-items:center;gap:14px;">
         <span style="font-size:15px;font-weight:700;color:#224F93;letter-spacing:0.01em;">Dashboard Visa</span>
         <select id="dashboard-iv-select" onchange="renderDashboard(this.value)" style="font-size:12px;font-weight:600;color:#224F93;border:1px solid rgba(34,79,147,0.3);border-radius:8px;padding:5px 10px;background:#fff;cursor:pointer;font-family:'Barlow',sans-serif;outline:none;"></select>
+        <button onclick="toggleEngPlanning()" id="eng-planning-btn" style="font-size:11px;font-weight:600;color:#1a3d72;border:1px solid rgba(34,79,147,0.3);border-radius:8px;padding:5px 12px;background:#e8f0fb;cursor:pointer;font-family:'Barlow',sans-serif;white-space:nowrap;">Engineering Planning</button>
+        <button id="detailed-lod-btn" style="font-size:11px;font-weight:600;color:#1a3d72;border:1px solid rgba(34,79,147,0.3);border-radius:8px;padding:5px 12px;background:#e8f0fb;cursor:pointer;font-family:'Barlow',sans-serif;white-space:nowrap;">Detailed LOD</button>
       </div>
       <button onclick="closeDashboard()" style="background:none;border:none;cursor:pointer;font-size:20px;color:#8099b0;line-height:1;padding:2px 6px;">&times;</button>
     </div>
     <div style="overflow:auto;flex:1;">
       <table id="dashboard-table" style="width:100%;border-collapse:collapse;min-width:700px;">
         <thead>
-          <tr style="background:#224F93;color:#fff;position:sticky;top:0;z-index:1;">
+          <tr id="dashboard-thead-row" style="background:#224F93;color:#fff;position:sticky;top:0;z-index:1;">
             <th style="padding:9px 12px;font-size:11px;font-weight:700;text-align:left;white-space:nowrap;">N°</th>
             <th style="padding:9px 12px;font-size:11px;font-weight:700;text-align:left;white-space:nowrap;">Description</th>
             <th style="padding:9px 12px;font-size:11px;font-weight:700;text-align:center;white-space:nowrap;">Qté</th>
