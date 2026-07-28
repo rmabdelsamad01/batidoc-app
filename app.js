@@ -984,6 +984,8 @@ function _gedEngPlanningCols(){
 function toggleEngPlanning(){
   if(_engPlanningActive)return;
   _engPlanningActive=true;
+  var inner=document.querySelector('#dashboard-modal > div');
+  if(inner){inner.style.width='98%';inner.style.maxWidth='none';inner.style.maxHeight='92vh';}
   renderDashboard(_dashIvKey);
 }
 
@@ -991,6 +993,8 @@ function closeDashboard(){
   var m=document.getElementById('dashboard-modal');
   if(m)m.style.display='none';
   _engPlanningActive=false;
+  var inner=document.querySelector('#dashboard-modal > div');
+  if(inner){inner.style.width='95%';inner.style.maxWidth='980px';inner.style.maxHeight='85vh';}
   // remove plan headers
   var tr=document.getElementById('dashboard-thead-row');
   if(tr){tr.querySelectorAll('th.plan-th').forEach(function(th){th.remove();});}
