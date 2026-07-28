@@ -1446,7 +1446,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
         <span style="font-size:15px;font-weight:700;color:#224F93;letter-spacing:0.01em;">Dashboard Visa</span>
         <select id="dashboard-iv-select" onchange="renderDashboard(this.value)" style="font-size:12px;font-weight:600;color:#224F93;border:1px solid rgba(34,79,147,0.3);border-radius:8px;padding:5px 10px;background:#fff;cursor:pointer;font-family:'Barlow',sans-serif;outline:none;"></select>
         <button onclick="toggleEngPlanning()" id="eng-planning-btn" style="font-size:11px;font-weight:600;color:#1a3d72;border:1px solid rgba(34,79,147,0.3);border-radius:8px;padding:5px 12px;background:#e8f0fb;cursor:pointer;font-family:'Barlow',sans-serif;white-space:nowrap;">Engineering Planning</button>
-        <button id="detailed-lod-btn" style="font-size:11px;font-weight:600;color:#1a3d72;border:1px solid rgba(34,79,147,0.3);border-radius:8px;padding:5px 12px;background:#e8f0fb;cursor:pointer;font-family:'Barlow',sans-serif;white-space:nowrap;">Detailed LOD</button>
+        <button onclick="toggleDetailedLod()" id="detailed-lod-btn" style="font-size:11px;font-weight:600;color:#1a3d72;border:1px solid rgba(34,79,147,0.3);border-radius:8px;padding:5px 12px;background:#e8f0fb;cursor:pointer;font-family:'Barlow',sans-serif;white-space:nowrap;">Detailed LOD</button>
       </div>
       <button onclick="closeDashboard()" style="background:none;border:none;cursor:pointer;font-size:20px;color:#8099b0;line-height:1;padding:2px 6px;">&times;</button>
     </div>

@@ -943,6 +943,7 @@ function renderDeliverables(){
 }
 
 var _engPlanningActive=false;
+var _detailedLodActive=false;
 var _dashIvKey='final';
 
 function _parseFileDate(ds){
@@ -989,10 +990,19 @@ function toggleEngPlanning(){
   renderDashboard(_dashIvKey);
 }
 
+function toggleDetailedLod(){
+  if(_detailedLodActive)return;
+  _detailedLodActive=true;
+  var inner=document.querySelector('#dashboard-modal > div');
+  if(inner){inner.style.width='98%';inner.style.maxWidth='none';inner.style.maxHeight='92vh';}
+  renderDashboard(_dashIvKey);
+}
+
 function closeDashboard(){
   var m=document.getElementById('dashboard-modal');
   if(m)m.style.display='none';
   _engPlanningActive=false;
+  _detailedLodActive=false;
   var inner=document.querySelector('#dashboard-modal > div');
   if(inner){inner.style.width='95%';inner.style.maxWidth='980px';inner.style.maxHeight='85vh';}
   // remove plan headers
@@ -1069,7 +1079,7 @@ async function renderDashboard(ivKey){
     statuses.forEach(function(s){totals[s]+=counts[s];});
     planCounts.forEach(function(v,ci){planTotals[ci]+=v;});
     totalQty+=files.length;
-    rows.push({d:d,counts:counts,qty:files.length,num:(i+1)*100,planCounts:planCounts});
+    rows.push({d:d,counts:counts,qty:files.length,num:(i+1)*100,planCounts:planCounts,files:files});
   }
 
   var STATUS_COLORS={
@@ -1080,9 +1090,9 @@ async function renderDashboard(ivKey){
   var html=rows.map(function(r,ri){
     var bg=ri%2===0?'#ffffff':'#fafcff';
     var dn=r.d.code?'('+r.d.code+') '+r.d.name:r.d.name;
-    return '<tr style="background:'+bg+';border-bottom:1px solid rgba(34,79,147,0.07);">'
+    var parentRow='<tr style="background:'+bg+';border-bottom:1px solid rgba(34,79,147,0.07);">'
       +'<td style="padding:7px 12px;font-size:11px;color:#8099b0;font-family:\'DM Mono\',monospace;white-space:nowrap;">'+r.num+'</td>'
-      +'<td style="padding:7px 12px;font-size:12px;color:#1a2a3a;font-weight:600;width:280px;min-width:280px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+dn+'</td>'
+      +'<td style="padding:7px 12px;font-size:12px;color:#1a2a3a;font-weight:600;width:280px;min-width:280px;max-width:280px;word-break:break-word;white-space:normal;">'+dn+'</td>'
       +'<td style="padding:7px 12px;font-size:12px;color:#224F93;font-weight:700;text-align:center;">'+r.qty+'</td>'
       +statuses.map(function(s){
         var v=r.counts[s];
@@ -1090,11 +1100,31 @@ async function renderDashboard(ivKey){
         return '<td style="padding:7px 12px;font-size:12px;text-align:center;color:'+col+';font-weight:'+(v>0?'700':'400')+';">'+(v>0?v:'—')+'</td>';
       }).join('')
       +r.planCounts.map(function(v,ci){
-        var sep=ci===0?'border-left:2px solid #e0e8f4;':'';
-        var sep2=ci===8?'border-left:2px solid #e0e8f4;':'';
         return '<td style="padding:7px 8px;font-size:12px;text-align:center;color:'+(v>0?'#224F93':'#d0dae6')+';font-weight:'+(v>0?'700':'400')+';'+(ci===0?'border-left:2px solid #e0e8f4;':'')+(ci===8?'border-left:2px solid #e0e8f4;':'')+';">'+(v>0?v:'—')+'</td>';
       }).join('')
       +'</tr>';
+
+    if(!_detailedLodActive) return parentRow;
+
+    var subRows=r.files.map(function(f,fi){
+      var fileNum=r.num+(fi+1);
+      var vs=_dashIvKey==='final'?getFinalStatus(f.id):(_visaStatuses[f.id]||{})[_dashIvKey]||{};
+      var st=vs.status;
+      return '<tr style="background:#f0f5ff;border-bottom:1px solid rgba(34,79,147,0.05);">'
+        +'<td style="padding:5px 12px;font-size:10px;color:#a0b4cc;font-family:\'DM Mono\',monospace;white-space:nowrap;padding-left:20px;">'+fileNum+'</td>'
+        +'<td style="padding:5px 12px 5px 24px;font-size:11px;color:#3a5070;width:280px;min-width:280px;max-width:280px;word-break:break-word;white-space:normal;">'+f.name+'</td>'
+        +'<td style="padding:5px 12px;font-size:11px;color:#7090b0;text-align:center;">1</td>'
+        +statuses.map(function(s){
+          var hit=st===s;
+          return '<td style="padding:5px 12px;font-size:11px;text-align:center;color:'+(hit?STATUS_COLORS[s]:'#d0dae6')+';font-weight:'+(hit?'700':'400')+';">'+(hit?'1':'—')+'</td>';
+        }).join('')
+        +r.planCounts.map(function(_,ci){
+          return '<td style="'+(ci===0?'border-left:2px solid #e0e8f4;':'')+(ci===8?'border-left:2px solid #e0e8f4;':'')+'"></td>';
+        }).join('')
+        +'</tr>';
+    }).join('');
+
+    return parentRow+subRows;
   }).join('');
 
   html+='<tr style="background:#f4f8fd;border-top:2px solid #224F93;">'
