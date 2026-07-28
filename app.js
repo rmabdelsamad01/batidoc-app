@@ -1019,6 +1019,9 @@ function closeDashboard(){
   if(tr){tr.querySelectorAll('th.plan-th').forEach(function(th){th.remove();});}
 }
 
+function openLodAllProjects(){}
+function openDecompteAllProjects(){}
+
 async function openDashboard(){
   var m=document.getElementById('dashboard-modal');
   if(!m)return;

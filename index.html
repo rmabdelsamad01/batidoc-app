@@ -217,7 +217,13 @@ window._installPWA = async function() {
   <div style="flex:1;overflow-y:auto;padding:40px 32px;">
     <div style="max-width:960px;margin:0 auto;">
       <div style="margin-bottom:8px;font-size:22px;font-weight:700;color:#1a2a3a;">Select a Director</div>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:28px;flex-wrap:wrap;" id="ged-dir-filter"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:28px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;" id="ged-dir-filter"></div>
+        <div style="display:flex;gap:12px;">
+          <button onclick="openLodAllProjects()" style="font-size:12px;font-weight:600;color:#1a3d72;border:1.5px solid rgba(34,79,147,0.3);border-radius:10px;padding:10px 20px;background:#e8f0fb;cursor:pointer;font-family:'Barlow',sans-serif;white-space:nowrap;">LOD of all projects</button>
+          <button onclick="openDecompteAllProjects()" style="font-size:12px;font-weight:600;color:#1a3d72;border:1.5px solid rgba(34,79,147,0.3);border-radius:10px;padding:10px 20px;background:#e8f0fb;cursor:pointer;font-family:'Barlow',sans-serif;white-space:nowrap;">Decompte All projects</button>
+        </div>
+      </div>
       <div style="margin-bottom:28px;font-size:13px;color:#8099b0;">Choose a project to open the document management sheet</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px;" id="ged-project-grid">
         <div style="padding:40px;text-align:center;color:#8099b0;font-size:13px;">Loading projects…</div>
