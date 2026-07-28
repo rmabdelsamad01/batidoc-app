@@ -1311,7 +1311,8 @@ function emailToBet(){
         var p=f.expected_date.split('-');
         var dateStr=p[2]+'/'+p[1]+'/'+p[0];
         projLines.push('- '+f.name);
-        projLines.push('  '+desc+' — '+dateStr);
+        projLines.push('  '+desc);
+        projLines.push('  Date de soumission : '+dateStr);
       });
     });
     if(projLines.length){
