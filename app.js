@@ -1339,6 +1339,39 @@ function copyEmailBet(){
     setTimeout(function(){btn.textContent=orig;},1500);
   });
 }
+
+async function sendEmailBet(){
+  var ta=document.getElementById('email-bet-body');
+  if(!ta||!ta.value.trim()){showToast('No email content to send');return;}
+  var week1=_gedEngPlanningCols()[0];
+  var d=week1.start;
+  var dd=('0'+d.getDate()).slice(-2);
+  var mm=('0'+(d.getMonth()+1)).slice(-2);
+  var subject='[BatiGED] Documents à finaliser — Semaine du '+dd+'/'+mm+'/'+d.getFullYear();
+  var bodyHtml=ta.value.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\n/g,'<br>');
+  var html='<!DOCTYPE html><html><body style="font-family:Barlow,Arial,sans-serif;font-size:14px;color:#1a2a3a;line-height:1.7;padding:24px;">'+bodyHtml+'</body></html>';
+  var from='BatiGED <ged@batimon.com>';
+  var to=['R.balla@batiglobe.com','N.nadir@batiglobe.com'];
+  var cc=['w.benani@batiglobe.com','obt@batiglobe.com','y.sbyk@batiglobe.com','a.filali@batiglobe.com','r.abdelsamad@batiglobe.com'];
+  var sendBtn=document.querySelector('#email-bet-modal button[onclick="sendEmailBet()"]');
+  if(sendBtn){sendBtn.textContent='Sending…';sendBtn.disabled=true;}
+  try{
+    var res=await fetch('https://batidoc-email.rmabdelsamad01.workers.dev',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({to:to,cc:cc,subject:subject,html:html,from:from})
+    });
+    if(res.ok){
+      showToast('✓ Email sent to BET team');
+      document.getElementById('email-bet-modal').style.display='none';
+    }else{
+      showToast('Failed to send email');
+    }
+  }catch(e){showToast('Failed to send email');}
+  if(sendBtn){sendBtn.textContent='Send';sendBtn.disabled=false;}
+}
+
 function openDecompteAllProjects(){}
 
 async function openDashboard(){
