@@ -1324,6 +1324,12 @@ function emailToBet(){
   lines.push('');
   lines.push('BatiGED');
 
+  var week1s=_gedEngPlanningCols()[0].start;
+  var dd=('0'+week1s.getDate()).slice(-2);
+  var mm=('0'+(week1s.getMonth()+1)).slice(-2);
+  var subj='[BatiGED] Documents à finaliser — Semaine du '+dd+'/'+mm+'/'+week1s.getFullYear();
+  var subEl=document.getElementById('email-bet-subject');
+  if(subEl)subEl.textContent=subj;
   var ta=document.getElementById('email-bet-body');
   if(ta)ta.value=lines.join('\n');
   document.getElementById('email-bet-modal').style.display='flex';
