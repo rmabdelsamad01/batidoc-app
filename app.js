@@ -982,19 +982,22 @@ function _gedEngPlanningCols(){
   return cols;
 }
 
+function _dashExpandModal(){
+  var inner=document.querySelector('#dashboard-modal > div');
+  if(inner){inner.style.width='98%';inner.style.maxWidth='none';inner.style.maxHeight='92vh';}
+}
+
 function toggleEngPlanning(){
   if(_engPlanningActive)return;
   _engPlanningActive=true;
-  var inner=document.querySelector('#dashboard-modal > div');
-  if(inner){inner.style.width='98%';inner.style.maxWidth='none';inner.style.maxHeight='92vh';}
+  _dashExpandModal();
   renderDashboard(_dashIvKey);
 }
 
 function toggleDetailedLod(){
   if(_detailedLodActive)return;
   _detailedLodActive=true;
-  var inner=document.querySelector('#dashboard-modal > div');
-  if(inner){inner.style.width='98%';inner.style.maxWidth='none';inner.style.maxHeight='92vh';}
+  _dashExpandModal();
   renderDashboard(_dashIvKey);
 }
 
