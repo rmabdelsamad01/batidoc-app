@@ -1045,69 +1045,72 @@ async function openLodAllProjects(){
   var grandQty=0;
   var STATUS_COLORS={VSO:'#14532d',VAO:'#16a34a',VAOB:'#dc2626',REJ:'#991b1b',EA:'#ca8a04',NC:'#14532d',PR:'#0891b2',PI:'#0891b2',Sou:'#14532d',NS:'#6b7280'};
 
-  // Load workflow data once for all projects (matched by filename)
-  var _wfInstances=[];var _wfRecips=[];
-  try{
-    var {data:wi}=await sb.from('ged_workflow_instances').select('id,document_names,applied_at').order('applied_at',{ascending:false});
-    if(wi) _wfInstances=wi;
-    if(_wfInstances.length){
-      var wids=_wfInstances.map(function(i){return i.id;});
-      var {data:wr}=await sb.from('ged_workflow_recipients').select('instance_id,company,status,responded_at').in('instance_id',wids).neq('status','pending').neq('status','noted');
-      if(wr) _wfRecips=wr;
-    }
-  }catch(e){}
+  var projectIds=projects.map(function(p){return p.id;});
 
+  // ── Phase 1: all bulk queries in parallel ──────────────────
+  var results=await Promise.all([
+    sb.from('project_info').select('project,key,value').in('project',projectIds).in('key',['deliverables','visa_statuses','intervenants']),
+    sb.from('ged_files').select('id,name,project,folder_id').in('project',projectIds).eq('folder_type','deliverable'),
+    sb.from('ged_workflow_instances').select('id,document_names,applied_at').order('applied_at',{ascending:false})
+  ]);
+
+  var piRows=results[0].data||[];
+  var allFiles=results[1].data||[];
+  var wfInstances=results[2].data||[];
+
+  // Load recipients if there are instances
+  var wfRecips=[];
+  if(wfInstances.length){
+    var wids=wfInstances.map(function(i){return i.id;});
+    var {data:wr}=await sb.from('ged_workflow_recipients').select('instance_id,company,status,responded_at').in('instance_id',wids).neq('status','pending').neq('status','noted');
+    wfRecips=wr||[];
+  }
+
+  // ── Phase 2: index everything locally ──────────────────────
+  // project_info map: {projId: {key: parsed_value}}
+  var piMap={};
+  piRows.forEach(function(row){
+    if(!piMap[row.project])piMap[row.project]={};
+    try{piMap[row.project][row.key]=JSON.parse(row.value);}catch(e){}
+  });
+
+  // files map: {projId: {folderId: [{id,name}]}}
+  var filesMap={};
+  allFiles.forEach(function(f){
+    if(!filesMap[f.project])filesMap[f.project]={};
+    var fid=String(f.folder_id);
+    if(!filesMap[f.project][fid])filesMap[f.project][fid]=[];
+    filesMap[f.project][fid].push(f);
+  });
+
+  // ── Phase 3: render ────────────────────────────────────────
   var html='';
 
-  for(var pi=0;pi<projects.length;pi++){
-    var proj=projects[pi];
+  projects.forEach(function(proj){
+    var info=piMap[proj.id]||{};
 
-    // Load deliverables
-    var projDelivs=deliverables.map(function(d){return Object.assign({},d);});
-    try{
-      var {data:dd}=await sb.from('project_info').select('value').eq('project',proj.id).eq('key','deliverables').maybeSingle();
-      if(dd&&dd.value){var arr=JSON.parse(dd.value);if(Array.isArray(arr)&&arr.length)projDelivs=arr;}
-    }catch(e){}
+    var projDelivs=(Array.isArray(info.deliverables)&&info.deliverables.length)?info.deliverables:deliverables.map(function(d){return Object.assign({},d);});
+    var projVisa=info.visa_statuses||{};
+    var projIv=(Array.isArray(info.intervenants)&&info.intervenants.length>=2)?info.intervenants:_GED_IV_DEFAULT.map(function(x){return Object.assign({},x);});
 
-    // Load manual visa statuses
-    var projVisa={};
-    try{
-      var {data:vd}=await sb.from('project_info').select('value').eq('project',proj.id).eq('key','visa_statuses').maybeSingle();
-      if(vd&&vd.value)projVisa=JSON.parse(vd.value)||{};
-    }catch(e){}
+    var bgKey='batiglobe';
+    var bgIv=projIv.find(function(x){return x.company==='Batiglobe';});
+    if(bgIv)bgKey=bgIv.key;
 
-    // Load intervenants
-    var projIv=_GED_IV_DEFAULT.map(function(x){return Object.assign({},x);});
-    try{
-      var {data:ivd}=await sb.from('project_info').select('value').eq('project',proj.id).eq('key','intervenants').maybeSingle();
-      if(ivd&&ivd.value){var lv=JSON.parse(ivd.value);if(Array.isArray(lv)&&lv.length>=2)projIv=lv;}
-    }catch(e){}
-
-    // Project header row
     html+='<tr style="background:#1a3a6e;"><td colspan="13" style="padding:10px 16px;font-size:13px;font-weight:700;color:#fff;letter-spacing:0.02em;">'+proj.name+'</td></tr>';
 
-    for(var di=0;di<projDelivs.length;di++){
-      var deliv=projDelivs[di];
+    projDelivs.forEach(function(deliv,di){
+      var files=(filesMap[proj.id]||{})[String(deliv.id)]||[];
 
-      // Load files
-      var files=[];
-      try{
-        var {data:fd}=await sb.from('ged_files').select('id,name').eq('project',proj.id).eq('folder_id',String(deliv.id)).eq('folder_type','deliverable').order('created_at');
-        if(fd)files=fd;
-      }catch(e){}
-
-      // Compute auto-statuses for these files using pre-loaded workflow data
+      // Compute auto-statuses via workflow matching
       var projAutoVisa={};
-      var bgKey='batiglobe';
-      var bgIv=projIv.find(function(x){return x.company==='Batiglobe';});
-      if(bgIv)bgKey=bgIv.key;
       files.forEach(function(f){
         var fname=f.name.toLowerCase();
-        _wfInstances.forEach(function(inst){
+        wfInstances.forEach(function(inst){
           if(!inst.document_names||inst.document_names.toLowerCase().indexOf(fname)===-1)return;
           if(!projAutoVisa[f.id])projAutoVisa[f.id]={};
           if(!projAutoVisa[f.id][bgKey])projAutoVisa[f.id][bgKey]={status:'Sou',date:_fmtAutoDate(inst.applied_at)};
-          _wfRecips.filter(function(r){return r.instance_id===inst.id;}).forEach(function(r){
+          wfRecips.filter(function(r){return r.instance_id===inst.id;}).forEach(function(r){
             var iv=projIv.find(function(x){return x.company&&x.company===(r.company||'');});
             var visa=VISA_STATUSES.includes(r.status)?r.status:null;
             if(iv&&visa&&!projAutoVisa[f.id][iv.key])projAutoVisa[f.id][iv.key]={status:visa,date:_fmtAutoDate(r.responded_at)};
@@ -1115,14 +1118,14 @@ async function openLodAllProjects(){
         });
       });
 
-      // Final status per file
+      // Count final statuses
       var counts={};statuses.forEach(function(s){counts[s]=0;});
       files.forEach(function(f){
         var best=null;var bestRank=999;
         projIv.forEach(function(iv){
           if(iv.key==='final')return;
-          var m=(projVisa[f.id]||{})[iv.key];
-          var st=m?m.status:null;
+          var mn=(projVisa[f.id]||{})[iv.key];
+          var st=mn?mn.status:null;
           if(!st){var a=(projAutoVisa[f.id]||{})[iv.key];st=a?(a.status||a):null;}
           if(!st)return;
           var rank=_FINAL_PRIORITY.indexOf(st);
@@ -1135,11 +1138,10 @@ async function openLodAllProjects(){
       grandQty+=files.length;
 
       var dn=deliv.code?'('+deliv.code+') '+deliv.name:deliv.name;
-      var num=(di+1)*100;
       var bg=di%2===0?'#ffffff':'#fafcff';
 
       html+='<tr style="background:'+bg+';border-bottom:1px solid rgba(34,79,147,0.07);">'
-        +'<td style="padding:7px 12px;font-size:11px;color:#8099b0;font-family:\'DM Mono\',monospace;white-space:nowrap;">'+num+'</td>'
+        +'<td style="padding:7px 12px;font-size:11px;color:#8099b0;font-family:\'DM Mono\',monospace;white-space:nowrap;">'+(di+1)*100+'</td>'
         +'<td style="padding:7px 12px;font-size:12px;color:#1a2a3a;font-weight:600;width:280px;min-width:280px;max-width:280px;word-break:break-word;white-space:normal;">'+dn+'</td>'
         +'<td style="padding:7px 12px;font-size:12px;color:#224F93;font-weight:700;text-align:center;">'+files.length+'</td>'
         +statuses.map(function(s){
@@ -1147,10 +1149,9 @@ async function openLodAllProjects(){
           return '<td style="padding:7px 12px;font-size:12px;text-align:center;color:'+(v>0?STATUS_COLORS[s]:'#d0dae6')+';font-weight:'+(v>0?'700':'400')+';">'+(v>0?v:'—')+'</td>';
         }).join('')
         +'</tr>';
-    }
-  }
+    });
+  });
 
-  // Grand total
   html+='<tr style="background:#f4f8fd;border-top:2px solid #224F93;">'
     +'<td colspan="2" style="padding:9px 12px;font-size:12px;font-weight:700;color:#224F93;">Total</td>'
     +'<td style="padding:9px 12px;font-size:13px;font-weight:700;color:#224F93;text-align:center;">'+grandQty+'</td>'
