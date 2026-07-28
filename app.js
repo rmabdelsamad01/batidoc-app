@@ -1030,22 +1030,26 @@ async function openDashboard(){
 
 async function renderDashboard(ivKey){
   _dashIvKey=ivKey;
+  var showExtra=_engPlanningActive||_detailedLodActive;
   var planCols=_engPlanningActive?_gedEngPlanningCols():[];
-  var totalCols=13+planCols.length;
+  var totalCols=13+(showExtra?1:0)+planCols.length;
   document.getElementById('dashboard-body').innerHTML='<tr><td colspan="'+totalCols+'" style="text-align:center;padding:32px;color:#8099b0;">Loading…</td></tr>';
 
-  // sync plan headers in thead
+  // sync dynamic headers in thead
   var tr=document.getElementById('dashboard-thead-row');
   if(tr){
-    tr.querySelectorAll('th.plan-th').forEach(function(th){th.remove();});
+    tr.querySelectorAll('th.plan-th,th.delayed-th').forEach(function(th){th.remove();});
+    if(showExtra){
+      var dth=document.createElement('th');
+      dth.className='delayed-th';
+      dth.setAttribute('style','padding:9px 8px;font-size:10px;font-weight:700;text-align:center;white-space:nowrap;min-width:72px;border-left:2px solid rgba(255,255,255,0.4);color:#fca5a5;');
+      dth.textContent='Delayed Submittal';
+      tr.appendChild(dth);
+    }
     if(_engPlanningActive){
       planCols.forEach(function(col,ci){
         var th=document.createElement('th');
         th.className='plan-th';
-        var borderLeft=ci===0?'border-left:2px solid #a0bce0;':'';
-        var borderLeft2=(!col.isMonth&&ci>0&&planCols[ci-1]&&planCols[ci-1].isMonth===false&&ci===8)?'border-left:2px solid #a0bce0;':'';
-        // separator: first month col (ci===8)
-        var sep=(ci===8)?'border-left:2px solid rgba(255,255,255,0.5);':'';
         th.setAttribute('style','padding:9px 8px;font-size:10px;font-weight:700;text-align:center;white-space:nowrap;min-width:52px;'+(ci===0?'border-left:2px solid rgba(255,255,255,0.4);':'')+(ci===8?'border-left:2px solid rgba(255,255,255,0.4);':''));
         th.textContent=col.label;
         tr.appendChild(th);
@@ -1055,9 +1059,11 @@ async function renderDashboard(ivKey){
 
   await loadVisaStatuses();
 
+  var today=new Date(); today.setHours(0,0,0,0);
   var statuses=['VSO','VAO','VAOB','REJ','EA','NC','PR','PI','Sou','NS'];
   var totals={};statuses.forEach(function(s){totals[s]=0;});
   var planTotals=planCols.map(function(){return 0;});
+  var delayedTotal=0;
   var totalQty=0;
   var rows=[];
 
@@ -1074,6 +1080,11 @@ async function renderDashboard(ivKey){
         return fd&&fd>=col.start&&fd<=col.end;
       }).length;
     });
+    var delayedCount=files.filter(function(f){
+      if(!f.date)return false;
+      var fd=_parseFileDate(f.date);
+      return fd&&fd<today;
+    }).length;
     files.forEach(function(f){
       var vs=ivKey==='final'?getFinalStatus(f.id):(_visaStatuses[f.id]||{})[ivKey]||{};
       var st=vs.status;
@@ -1081,8 +1092,9 @@ async function renderDashboard(ivKey){
     });
     statuses.forEach(function(s){totals[s]+=counts[s];});
     planCounts.forEach(function(v,ci){planTotals[ci]+=v;});
+    delayedTotal+=delayedCount;
     totalQty+=files.length;
-    rows.push({d:d,counts:counts,qty:files.length,num:(i+1)*100,planCounts:planCounts,files:files});
+    rows.push({d:d,counts:counts,qty:files.length,num:(i+1)*100,planCounts:planCounts,delayedCount:delayedCount,files:files});
   }
 
   var STATUS_COLORS={
@@ -1093,6 +1105,9 @@ async function renderDashboard(ivKey){
   var html=rows.map(function(r,ri){
     var bg=ri%2===0?'#ffffff':'#fafcff';
     var dn=r.d.code?'('+r.d.code+') '+r.d.name:r.d.name;
+    var delayedTd=showExtra
+      ?'<td style="padding:7px 8px;font-size:12px;text-align:center;border-left:2px solid #e0e8f4;color:'+(r.delayedCount>0?'#dc2626':'#d0dae6')+';font-weight:'+(r.delayedCount>0?'700':'400')+';">'+(r.delayedCount>0?r.delayedCount:'—')+'</td>'
+      :'';
     var parentRow='<tr style="background:'+bg+';border-bottom:1px solid rgba(34,79,147,0.07);">'
       +'<td style="padding:7px 12px;font-size:11px;color:#8099b0;font-family:\'DM Mono\',monospace;white-space:nowrap;">'+r.num+'</td>'
       +'<td style="padding:7px 12px;font-size:12px;color:#1a2a3a;font-weight:600;width:280px;min-width:280px;max-width:280px;word-break:break-word;white-space:normal;">'+dn+'</td>'
@@ -1102,6 +1117,7 @@ async function renderDashboard(ivKey){
         var col=v>0?STATUS_COLORS[s]:'#d0dae6';
         return '<td style="padding:7px 12px;font-size:12px;text-align:center;color:'+col+';font-weight:'+(v>0?'700':'400')+';">'+(v>0?v:'—')+'</td>';
       }).join('')
+      +delayedTd
       +r.planCounts.map(function(v,ci){
         return '<td style="padding:7px 8px;font-size:12px;text-align:center;color:'+(v>0?'#224F93':'#d0dae6')+';font-weight:'+(v>0?'700':'400')+';'+(ci===0?'border-left:2px solid #e0e8f4;':'')+(ci===8?'border-left:2px solid #e0e8f4;':'')+';">'+(v>0?v:'—')+'</td>';
       }).join('')
@@ -1113,6 +1129,10 @@ async function renderDashboard(ivKey){
       var fileNum=r.num+(fi+1);
       var vs=_dashIvKey==='final'?getFinalStatus(f.id):(_visaStatuses[f.id]||{})[_dashIvKey]||{};
       var st=vs.status;
+      var isDelayed=f.date?(function(){var fd=_parseFileDate(f.date);return fd&&fd<today;}()):false;
+      var subDelayedTd=showExtra
+        ?'<td style="padding:5px 8px;font-size:11px;text-align:center;border-left:2px solid #e0e8f4;color:'+(isDelayed?'#dc2626':'#d0dae6')+';font-weight:'+(isDelayed?'700':'400')+';">'+(isDelayed?'1':'—')+'</td>'
+        :'';
       return '<tr style="background:#f0f5ff;border-bottom:1px solid rgba(34,79,147,0.05);">'
         +'<td style="padding:5px 12px;font-size:10px;color:#a0b4cc;font-family:\'DM Mono\',monospace;white-space:nowrap;padding-left:20px;">'+fileNum+'</td>'
         +'<td style="padding:5px 12px 5px 24px;font-size:11px;color:#3a5070;width:280px;min-width:280px;max-width:280px;word-break:break-word;white-space:normal;">'+f.name+'</td>'
@@ -1121,6 +1141,7 @@ async function renderDashboard(ivKey){
           var hit=st===s;
           return '<td style="padding:5px 12px;font-size:11px;text-align:center;color:'+(hit?STATUS_COLORS[s]:'#d0dae6')+';font-weight:'+(hit?'700':'400')+';">'+(hit?'1':'—')+'</td>';
         }).join('')
+        +subDelayedTd
         +r.planCounts.map(function(_,ci){
           return '<td style="'+(ci===0?'border-left:2px solid #e0e8f4;':'')+(ci===8?'border-left:2px solid #e0e8f4;':'')+'"></td>';
         }).join('')
@@ -1130,12 +1151,17 @@ async function renderDashboard(ivKey){
     return parentRow+subRows;
   }).join('');
 
+  var delayedTotalTd=showExtra
+    ?'<td style="padding:9px 8px;font-size:12px;font-weight:700;text-align:center;color:'+(delayedTotal>0?'#dc2626':'#224F93')+';border-left:2px solid #c0d0e8;">'+delayedTotal+'</td>'
+    :'';
+
   html+='<tr style="background:#f4f8fd;border-top:2px solid #224F93;">'
     +'<td colspan="2" style="padding:9px 12px;font-size:12px;font-weight:700;color:#224F93;">Total</td>'
     +'<td style="padding:9px 12px;font-size:13px;font-weight:700;color:#224F93;text-align:center;">'+totalQty+'</td>'
     +statuses.map(function(s){
       return '<td style="padding:9px 12px;font-size:12px;font-weight:700;text-align:center;color:#224F93;">'+totals[s]+'</td>';
     }).join('')
+    +delayedTotalTd
     +planTotals.map(function(v,ci){
       return '<td style="padding:9px 8px;font-size:12px;font-weight:700;text-align:center;color:#224F93;'+(ci===0?'border-left:2px solid #c0d0e8;':'')+(ci===8?'border-left:2px solid #c0d0e8;':'')+';">'+v+'</td>';
     }).join('')
@@ -1147,6 +1173,7 @@ async function renderDashboard(ivKey){
       var pct=totalQty>0?Math.round(totals[s]/totalQty*100):0;
       return '<td style="padding:6px 12px;font-size:11px;text-align:center;color:#8099b0;">'+pct+'%</td>';
     }).join('')
+    +(showExtra?'<td></td>':'')
     +planCols.map(function(){return '<td></td>';}).join('')
     +'</tr>';
 
