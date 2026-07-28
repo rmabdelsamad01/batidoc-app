@@ -1289,6 +1289,7 @@ function renderLodAll(ivKey){
   document.getElementById('lod-all-body').innerHTML=html;
 }
 
+function emailToBet(){}
 function openDecompteAllProjects(){}
 
 async function openDashboard(){
