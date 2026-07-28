@@ -918,10 +918,6 @@ function actionsSVG(){
         +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="'+c+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="cursor:pointer;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
 }
 
-function _gedDateToInput(s){if(!s||!s.includes('/'))return '';var p=s.split('/');return p[2]+'-'+p[1]+'-'+p[0];}
-function _gedInputToDate(v){if(!v||!v.includes('-'))return '';var p=v.split('-');return p[2]+'/'+p[1]+'/'+p[0];}
-function updateDelivDate(id,val){var d=deliverables.find(function(x){return x.id==id;});if(d){d.date=_gedInputToDate(val);saveDeliv();}}
-
 function renderDeliverables(){
   var list=document.getElementById('deliverables-list');
   if(!list)return;
@@ -940,7 +936,7 @@ function renderDeliverables(){
       +'<span style="font-size:12px;color:#1a2a3a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;">'+label+'</span>'
       +'</div>'
       +'<div></div>'
-      +'<div style="padding-right:4px;"><input type="date" value="'+_gedDateToInput(d.date)+'" data-id="'+d.id+'" onchange="updateDelivDate(this.dataset.id,this.value)" onclick="event.stopPropagation()" style="width:100%;border:1px solid #e0e8f0;border-radius:5px;font-size:11px;font-family:\'DM Mono\',monospace;color:#5a7099;padding:3px 5px;background:transparent;cursor:pointer;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor=\'#224F93\'" onblur="this.style.borderColor=\'#e0e8f0\'"></div>'
+      +'<div style="font-size:11px;color:#8099b0;font-family:\'DM Mono\',monospace;text-align:right;padding-right:4px;">'+d.date+'</div>'
       +'<div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;">'+actionsSVG()+'</div>'
       +'</div>';
   }).join('');
@@ -1452,7 +1448,7 @@ function getFinalStatus(fileId){
 }
 
 function gedGridCols(){
-  var cols='36px minmax(220px,2fr) minmax(140px,1.5fr) 90px 100px ';
+  var cols='36px minmax(220px,2fr) minmax(140px,1.5fr) 90px 145px ';
   GED_INTERVENANTS.forEach(function(iv){
     cols+=(iv.key==='batiglobe'?'74px':iv.key==='final'?'72px':'62px')+' ';
   });
@@ -1483,13 +1479,19 @@ async function saveGedIntervenants(){
   try{await sb.from('project_info').upsert({project:currentProjectId,key:'intervenants',value:JSON.stringify(GED_INTERVENANTS)},{onConflict:'project,key'});}catch(e){}
 }
 
+async function updateFileExpectedDate(fileId,val){
+  var arr=folderFiles[currentFolderId];
+  if(arr){var f=arr.find(function(x){return x.id==fileId;});if(f)f.date=val;}
+  await sb.from('ged_files').update({expected_date:val||null}).eq('id',fileId);
+}
+
 function renderFolderHeader(){
   var el=document.getElementById('folder-col-header');
   if(!el) return;
   var dev=_gedIsDev();
   var grid=gedGridCols();
   // set min-width on the table container so the + button is never cut off
-  var minW=36+220+140+90+100+44;
+  var minW=36+220+140+90+145+44;
   GED_INTERVENANTS.forEach(function(iv){minW+=(iv.key==='batiglobe'?74:iv.key==='final'?72:62);});
   var inner=document.getElementById('folder-table-inner');
   if(inner) inner.style.minWidth=minW+'px';
@@ -1498,7 +1500,7 @@ function renderFolderHeader(){
   html+='<div class="del-hcell blue" onclick="sortFolderFiles(\'name\')" style="cursor:pointer;user-select:none;">Name<span id="fsort-icon-name" style="font-size:10px;margin-left:3px;">▲</span></div>';
   html+='<div class="del-hcell" style="color:#224F93;">Description</div>';
   html+='<div class="del-hcell" style="text-align:center;">Size</div>';
-  html+='<div class="del-hcell" onclick="sortFolderFiles(\'date\')" style="text-align:center;cursor:pointer;user-select:none;">Date<span id="fsort-icon-date" style="font-size:10px;opacity:0.4;margin-left:3px;"></span></div>';
+  html+='<div class="del-hcell" onclick="sortFolderFiles(\'date\')" style="text-align:center;cursor:pointer;user-select:none;line-height:1.3;">Expected Date of Submittal<span id="fsort-icon-date" style="font-size:10px;opacity:0.4;margin-left:3px;"></span></div>';
   GED_INTERVENANTS.forEach(function(iv){
     var parts=iv.label?iv.label.split('\n'):['',''];
     var line1=escHtml(parts[0]||'');
@@ -1736,7 +1738,7 @@ function gedFmtSize(b){return b<1024?b+' B':b<1048576?(b/1024).toFixed(1)+' KB':
 async function gedLoadFiles(folderId,folderType){
   var {data,error}=await sb.from('ged_files').select('*').eq('project',currentProjectId).eq('folder_id',String(folderId)).eq('folder_type',folderType).order('created_at');
   if(error||!data)return [];
-  return data.map(function(r){var d=new Date(r.created_at);var ds=('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear();return {id:r.id,name:r.name,size:r.size_label||'—',date:ds,storage_path:r.storage_path,mime_type:r.mime_type||'',created_at:r.created_at};});
+  return data.map(function(r){return {id:r.id,name:r.name,size:r.size_label||'—',date:r.expected_date||'',storage_path:r.storage_path,mime_type:r.mime_type||'',created_at:r.created_at};});
 }
 
 var GED_MAX_BYTES=50*1024*1024;
@@ -1751,7 +1753,7 @@ async function gedUploadFile(file,folderId,folderType){
   var ds=('0'+today.getDate()).slice(-2)+'/'+('0'+(today.getMonth()+1)).slice(-2)+'/'+today.getFullYear();
   var {data:row,error:dbErr}=await sb.from('ged_files').insert({project:currentProjectId,folder_id:String(folderId),folder_type:folderType,name:file.name,storage_path:path,size_bytes:file.size,size_label:gedFmtSize(file.size),mime_type:file.type||'',uploaded_by:(sbProfile&&(sbProfile.username||sbProfile.full_name))||''}).select().single();
   if(dbErr){console.error('DB insert error:',dbErr);return {_err:'DB: '+(dbErr.message||dbErr.code||JSON.stringify(dbErr))};}
-  return {id:row.id,name:row.name,size:row.size_label,date:ds,storage_path:row.storage_path,mime_type:file.type||'',created_at:row.created_at};
+  return {id:row.id,name:row.name,size:row.size_label,date:'',storage_path:row.storage_path,mime_type:file.type||'',created_at:row.created_at};
 }
 
 async function gedDeleteFiles(files){
@@ -1962,7 +1964,7 @@ function renderFolderFiles(){
         +'</div>'
         +_gedDescCell(lf.id)
         +'<div style="font-size:11px;color:#8099b0;text-align:center;">'+lf.size+'</div>'
-        +'<div style="font-size:11px;color:#8099b0;font-family:\'DM Mono\',monospace;text-align:center;">'+lf.date+'</div>'
+        +'<div onclick="event.stopPropagation()" style="padding:0 4px;"><input type="date" value="'+lf.date+'" onchange="updateFileExpectedDate(\''+lf.id+'\',this.value)" onclick="event.stopPropagation()" style="width:100%;border:1px solid #d4e2f5;border-radius:5px;font-size:11px;font-family:\'DM Mono\',monospace;color:#5a7099;padding:3px 4px;background:#fff;cursor:pointer;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor=\'#224F93\'" onblur="this.style.borderColor=\'#d4e2f5\'"></div>'
         +visaDisp
         +'<div></div>'
         +'</div>';
@@ -1994,7 +1996,7 @@ function renderFolderFiles(){
             +'</div>'
             +_gedDescCell(f.id)
             +'<div style="font-size:11px;color:#8099b0;text-align:center;">'+f.size+'</div>'
-            +'<div style="font-size:11px;color:#8099b0;font-family:\'DM Mono\',monospace;text-align:center;">'+f.date+'</div>'
+            +'<div style="padding:0 4px;"><input type="date" value="'+f.date+'" onchange="updateFileExpectedDate(\''+f.id+'\',this.value)" onclick="event.stopPropagation()" style="width:100%;border:1px solid #d4e2f5;border-radius:5px;font-size:11px;font-family:\'DM Mono\',monospace;color:#5a7099;padding:3px 4px;background:#fff;cursor:pointer;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor=\'#224F93\'" onblur="this.style.borderColor=\'#d4e2f5\'"></div>'
             +visaCells
             +'<div></div>'
             +'</div>';
@@ -2024,7 +2026,7 @@ function renderFolderFiles(){
         +'</div>'
         +_gedDescCell(f.id)
         +'<div style="font-size:11px;color:#8099b0;text-align:center;">'+f.size+'</div>'
-        +'<div style="font-size:11px;color:#8099b0;font-family:\'DM Mono\',monospace;text-align:center;">'+f.date+'</div>'
+        +'<div style="padding:0 4px;"><input type="date" value="'+f.date+'" onchange="updateFileExpectedDate(\''+f.id+'\',this.value)" onclick="event.stopPropagation()" style="width:100%;border:1px solid #d4e2f5;border-radius:5px;font-size:11px;font-family:\'DM Mono\',monospace;color:#5a7099;padding:3px 4px;background:#fff;cursor:pointer;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor=\'#224F93\'" onblur="this.style.borderColor=\'#d4e2f5\'"></div>'
         +visaCells
         +'<div></div>'
         +'</div>';
