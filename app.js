@@ -1060,6 +1060,8 @@ async function renderDashboard(ivKey){
   await loadVisaStatuses();
 
   var today=new Date(); today.setHours(0,0,0,0);
+  var _dow=today.getDay()||7;
+  var _weekStart=new Date(today); _weekStart.setDate(today.getDate()-(_dow-1)); _weekStart.setHours(0,0,0,0);
   var statuses=['VSO','VAO','VAOB','REJ','EA','NC','PR','PI','Sou','NS'];
   var totals={};statuses.forEach(function(s){totals[s]=0;});
   var planTotals=planCols.map(function(){return 0;});
@@ -1083,7 +1085,7 @@ async function renderDashboard(ivKey){
     var delayedCount=files.filter(function(f){
       if(!f.date)return false;
       var fd=_parseFileDate(f.date);
-      if(!fd||fd>=today)return false;
+      if(!fd||fd>=_weekStart)return false;
       var bgSt=getVisaStatus(f.id,'batiglobe').status;
       return !bgSt||bgSt==='NS';
     }).length;
@@ -1131,7 +1133,7 @@ async function renderDashboard(ivKey){
       var fileNum=r.num+(fi+1);
       var vs=_dashIvKey==='final'?getFinalStatus(f.id):(_visaStatuses[f.id]||{})[_dashIvKey]||{};
       var st=vs.status;
-      var isDelayed=f.date?(function(){var fd=_parseFileDate(f.date);if(!fd||fd>=today)return false;var bgSt=getVisaStatus(f.id,'batiglobe').status;return !bgSt||bgSt==='NS';}()):false;
+      var isDelayed=f.date?(function(){var fd=_parseFileDate(f.date);if(!fd||fd>=_weekStart)return false;var bgSt=getVisaStatus(f.id,'batiglobe').status;return !bgSt||bgSt==='NS';}()):false;
       var subDelayedTd=showExtra
         ?'<td style="padding:5px 8px;font-size:11px;text-align:center;border-left:2px solid #e0e8f4;color:'+(isDelayed?'#dc2626':'#d0dae6')+';font-weight:'+(isDelayed?'700':'400')+';">'+(isDelayed?'1':'—')+'</td>'
         :'';
