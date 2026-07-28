@@ -988,6 +988,11 @@ function _dashExpandModal(){
 }
 
 function toggleEngPlanning(){
+  if(_detailedLodActive){
+    _detailedLodActive=false;
+    renderDashboard(_dashIvKey);
+    return;
+  }
   if(_engPlanningActive)return;
   _engPlanningActive=true;
   _dashExpandModal();
@@ -997,6 +1002,7 @@ function toggleEngPlanning(){
 function toggleDetailedLod(){
   if(_detailedLodActive)return;
   _detailedLodActive=true;
+  _engPlanningActive=true;
   _dashExpandModal();
   renderDashboard(_dashIvKey);
 }
