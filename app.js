@@ -1299,16 +1299,18 @@ function emailToBet(){
   (_lodAllCache||[]).forEach(function(pd){
     var projLines=[];
     pd.delivRows.forEach(function(dr){
+      var desc=dr.deliv.code?'('+dr.deliv.code+') '+dr.deliv.name:dr.deliv.name;
       dr.files.forEach(function(f){
         if(!f.expected_date)return;
         var fd=_parseFileDate(f.expected_date);
         if(!fd||fd<week1.start||fd>week1.end)return;
-        // exclude if already submitted (Batiglobe status not empty/NS)
         var mn=(pd.projVisa[f.id]||{})[pd.bgKey];
         var bgSt=mn?mn.status:null;
         if(!bgSt){var a=(dr.autoVisa[f.id]||{})[pd.bgKey];bgSt=a?(a.status||a):null;}
         if(bgSt&&bgSt!=='NS')return;
-        projLines.push('- '+f.name);
+        var p=f.expected_date.split('-');
+        var dateStr=p[2]+'/'+p[1]+'/'+p[0];
+        projLines.push('- '+f.name+' | '+desc+' | '+dateStr);
       });
     });
     if(projLines.length){
@@ -1317,6 +1319,10 @@ function emailToBet(){
       lines.push('');
     }
   });
+
+  lines.push('Cordialement');
+  lines.push('');
+  lines.push('BatiGED');
 
   var ta=document.getElementById('email-bet-body');
   if(ta)ta.value=lines.join('\n');
