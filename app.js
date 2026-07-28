@@ -1078,7 +1078,7 @@ async function renderDashboard(ivKey){
     var dn=r.d.code?'('+r.d.code+') '+r.d.name:r.d.name;
     return '<tr style="background:'+bg+';border-bottom:1px solid rgba(34,79,147,0.07);">'
       +'<td style="padding:7px 12px;font-size:11px;color:#8099b0;font-family:\'DM Mono\',monospace;white-space:nowrap;">'+r.num+'</td>'
-      +'<td style="padding:7px 12px;font-size:12px;color:#1a2a3a;font-weight:600;">'+dn+'</td>'
+      +'<td style="padding:7px 12px;font-size:12px;color:#1a2a3a;font-weight:600;width:280px;min-width:280px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+dn+'</td>'
       +'<td style="padding:7px 12px;font-size:12px;color:#224F93;font-weight:700;text-align:center;">'+r.qty+'</td>'
       +statuses.map(function(s){
         var v=r.counts[s];
