@@ -1310,7 +1310,8 @@ function emailToBet(){
         if(bgSt&&bgSt!=='NS')return;
         var p=f.expected_date.split('-');
         var dateStr=p[2]+'/'+p[1]+'/'+p[0];
-        projLines.push('- '+f.name+' | '+desc+' | '+dateStr);
+        projLines.push('- '+f.name);
+        projLines.push('  '+desc+' — '+dateStr);
       });
     });
     if(projLines.length){
