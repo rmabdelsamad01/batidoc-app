@@ -1940,6 +1940,10 @@ function renderFolderFiles(){
   });
 
   // ── Render files & groups ──
+  var _tmr=new Date();_tmr.setDate(_tmr.getDate()+1);
+  var _tomorrowStr=_tmr.getFullYear()+'-'+('0'+(_tmr.getMonth()+1)).slice(-2)+'-'+('0'+_tmr.getDate()).slice(-2);
+  function _dateVal(f){return f.date?f.date:_tomorrowStr;}
+  function _dateAttrs(f){return f.date?'':' data-unset="true"';}
   var fileRowIdx=0;
   displayItems.forEach(function(item){
     if(item.type==='group'){
@@ -1964,7 +1968,7 @@ function renderFolderFiles(){
         +'</div>'
         +_gedDescCell(lf.id)
         +'<div style="font-size:11px;color:#8099b0;text-align:center;">'+lf.size+'</div>'
-        +'<div onclick="event.stopPropagation()" style="padding:0 4px;"><input type="date" value="'+lf.date+'" onchange="updateFileExpectedDate(\''+lf.id+'\',this.value)" onclick="event.stopPropagation()" style="width:100%;border:1px solid #d4e2f5;border-radius:5px;font-size:11px;font-family:\'DM Mono\',monospace;color:#5a7099;padding:3px 4px;background:#fff;cursor:pointer;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor=\'#224F93\'" onblur="this.style.borderColor=\'#d4e2f5\'"></div>'
+        +'<div onclick="event.stopPropagation()" style="padding:0 4px;"><input type="date" value="'+_dateVal(lf)+'"'+_dateAttrs(lf)+' onchange="updateFileExpectedDate(\''+lf.id+'\',this.value);this.removeAttribute(\'data-unset\')" onclick="event.stopPropagation()" style="width:100%;border:1px solid #d4e2f5;border-radius:5px;font-size:11px;font-family:\'DM Mono\',monospace;color:#5a7099;padding:3px 4px;background:#fff;cursor:pointer;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor=\'#224F93\'" onblur="this.style.borderColor=\'#d4e2f5\'"></div>'
         +visaDisp
         +'<div></div>'
         +'</div>';
@@ -1996,7 +2000,7 @@ function renderFolderFiles(){
             +'</div>'
             +_gedDescCell(f.id)
             +'<div style="font-size:11px;color:#8099b0;text-align:center;">'+f.size+'</div>'
-            +'<div style="padding:0 4px;"><input type="date" value="'+f.date+'" onchange="updateFileExpectedDate(\''+f.id+'\',this.value)" onclick="event.stopPropagation()" style="width:100%;border:1px solid #d4e2f5;border-radius:5px;font-size:11px;font-family:\'DM Mono\',monospace;color:#5a7099;padding:3px 4px;background:#fff;cursor:pointer;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor=\'#224F93\'" onblur="this.style.borderColor=\'#d4e2f5\'"></div>'
+            +'<div style="padding:0 4px;"><input type="date" value="'+_dateVal(f)+'"'+_dateAttrs(f)+' onchange="updateFileExpectedDate(\''+f.id+'\',this.value);this.removeAttribute(\'data-unset\')" onclick="event.stopPropagation()" style="width:100%;border:1px solid #d4e2f5;border-radius:5px;font-size:11px;font-family:\'DM Mono\',monospace;color:#5a7099;padding:3px 4px;background:#fff;cursor:pointer;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor=\'#224F93\'" onblur="this.style.borderColor=\'#d4e2f5\'"></div>'
             +visaCells
             +'<div></div>'
             +'</div>';
@@ -2026,7 +2030,7 @@ function renderFolderFiles(){
         +'</div>'
         +_gedDescCell(f.id)
         +'<div style="font-size:11px;color:#8099b0;text-align:center;">'+f.size+'</div>'
-        +'<div style="padding:0 4px;"><input type="date" value="'+f.date+'" onchange="updateFileExpectedDate(\''+f.id+'\',this.value)" onclick="event.stopPropagation()" style="width:100%;border:1px solid #d4e2f5;border-radius:5px;font-size:11px;font-family:\'DM Mono\',monospace;color:#5a7099;padding:3px 4px;background:#fff;cursor:pointer;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor=\'#224F93\'" onblur="this.style.borderColor=\'#d4e2f5\'"></div>'
+        +'<div style="padding:0 4px;"><input type="date" value="'+_dateVal(f)+'"'+_dateAttrs(f)+' onchange="updateFileExpectedDate(\''+f.id+'\',this.value);this.removeAttribute(\'data-unset\')" onclick="event.stopPropagation()" style="width:100%;border:1px solid #d4e2f5;border-radius:5px;font-size:11px;font-family:\'DM Mono\',monospace;color:#5a7099;padding:3px 4px;background:#fff;cursor:pointer;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor=\'#224F93\'" onblur="this.style.borderColor=\'#d4e2f5\'"></div>'
         +visaCells
         +'<div></div>'
         +'</div>';
