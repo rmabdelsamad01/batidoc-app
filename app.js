@@ -1289,7 +1289,50 @@ function renderLodAll(ivKey){
   document.getElementById('lod-all-body').innerHTML=html;
 }
 
-function emailToBet(){}
+function emailToBet(){
+  var week1=_gedEngPlanningCols()[0];
+  var lines=[];
+  lines.push('Bonjour l\'equipe,');
+  lines.push('merci de noter que les documents si dessous doivent etre finaliser pendant la semaine prochaine:');
+  lines.push('');
+
+  (_lodAllCache||[]).forEach(function(pd){
+    var projLines=[];
+    pd.delivRows.forEach(function(dr){
+      dr.files.forEach(function(f){
+        if(!f.expected_date)return;
+        var fd=_parseFileDate(f.expected_date);
+        if(!fd||fd<week1.start||fd>week1.end)return;
+        // exclude if already submitted (Batiglobe status not empty/NS)
+        var mn=(pd.projVisa[f.id]||{})[pd.bgKey];
+        var bgSt=mn?mn.status:null;
+        if(!bgSt){var a=(dr.autoVisa[f.id]||{})[pd.bgKey];bgSt=a?(a.status||a):null;}
+        if(bgSt&&bgSt!=='NS')return;
+        projLines.push('- '+f.name);
+      });
+    });
+    if(projLines.length){
+      lines.push(pd.proj.name+':');
+      projLines.forEach(function(l){lines.push(l);});
+      lines.push('');
+    }
+  });
+
+  var ta=document.getElementById('email-bet-body');
+  if(ta)ta.value=lines.join('\n');
+  document.getElementById('email-bet-modal').style.display='flex';
+}
+
+function copyEmailBet(){
+  var ta=document.getElementById('email-bet-body');
+  if(!ta)return;
+  navigator.clipboard.writeText(ta.value).then(function(){
+    var btn=document.querySelector('#email-bet-modal button');
+    var orig=btn.textContent;
+    btn.textContent='Copied!';
+    setTimeout(function(){btn.textContent=orig;},1500);
+  });
+}
 function openDecompteAllProjects(){}
 
 async function openDashboard(){
