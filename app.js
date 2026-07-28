@@ -1083,7 +1083,9 @@ async function renderDashboard(ivKey){
     var delayedCount=files.filter(function(f){
       if(!f.date)return false;
       var fd=_parseFileDate(f.date);
-      return fd&&fd<today;
+      if(!fd||fd>=today)return false;
+      var bgSt=getVisaStatus(f.id,'batiglobe').status;
+      return !bgSt||bgSt==='NS';
     }).length;
     files.forEach(function(f){
       var vs=ivKey==='final'?getFinalStatus(f.id):(_visaStatuses[f.id]||{})[ivKey]||{};
@@ -1129,7 +1131,7 @@ async function renderDashboard(ivKey){
       var fileNum=r.num+(fi+1);
       var vs=_dashIvKey==='final'?getFinalStatus(f.id):(_visaStatuses[f.id]||{})[_dashIvKey]||{};
       var st=vs.status;
-      var isDelayed=f.date?(function(){var fd=_parseFileDate(f.date);return fd&&fd<today;}()):false;
+      var isDelayed=f.date?(function(){var fd=_parseFileDate(f.date);if(!fd||fd>=today)return false;var bgSt=getVisaStatus(f.id,'batiglobe').status;return !bgSt||bgSt==='NS';}()):false;
       var subDelayedTd=showExtra
         ?'<td style="padding:5px 8px;font-size:11px;text-align:center;border-left:2px solid #e0e8f4;color:'+(isDelayed?'#dc2626':'#d0dae6')+';font-weight:'+(isDelayed?'700':'400')+';">'+(isDelayed?'1':'—')+'</td>'
         :'';
