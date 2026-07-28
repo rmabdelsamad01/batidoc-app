@@ -918,6 +918,10 @@ function actionsSVG(){
         +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="'+c+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="cursor:pointer;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
 }
 
+function _gedDateToInput(s){if(!s||!s.includes('/'))return '';var p=s.split('/');return p[2]+'-'+p[1]+'-'+p[0];}
+function _gedInputToDate(v){if(!v||!v.includes('-'))return '';var p=v.split('-');return p[2]+'/'+p[1]+'/'+p[0];}
+function updateDelivDate(id,val){var d=deliverables.find(function(x){return x.id==id;});if(d){d.date=_gedInputToDate(val);saveDeliv();}}
+
 function renderDeliverables(){
   var list=document.getElementById('deliverables-list');
   if(!list)return;
@@ -936,7 +940,7 @@ function renderDeliverables(){
       +'<span style="font-size:12px;color:#1a2a3a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;">'+label+'</span>'
       +'</div>'
       +'<div></div>'
-      +'<div style="font-size:11px;color:#8099b0;font-family:\'DM Mono\',monospace;text-align:right;padding-right:4px;">'+d.date+'</div>'
+      +'<div style="padding-right:4px;"><input type="date" value="'+_gedDateToInput(d.date)+'" data-id="'+d.id+'" onchange="updateDelivDate(this.dataset.id,this.value)" onclick="event.stopPropagation()" style="width:100%;border:1px solid #e0e8f0;border-radius:5px;font-size:11px;font-family:\'DM Mono\',monospace;color:#5a7099;padding:3px 5px;background:transparent;cursor:pointer;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor=\'#224F93\'" onblur="this.style.borderColor=\'#e0e8f0\'"></div>'
       +'<div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;">'+actionsSVG()+'</div>'
       +'</div>';
   }).join('');

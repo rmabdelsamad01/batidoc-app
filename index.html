@@ -58,10 +58,10 @@ body{font-family:var(--font);background:#f0f4f9;color:var(--text);font-size:13px
 .content{flex:1;overflow-y:auto;padding:28px 32px;background:#f0f4f9;}
 
 .del-table{background:#fff;border:1px solid rgba(34,79,147,0.12);border-radius:12px;overflow:hidden;}
-.del-head{display:grid;grid-template-columns:36px 1fr 140px 120px 100px;align-items:center;padding:0 14px;height:40px;background:#f4f8fd;border-bottom:1px solid rgba(34,79,147,0.12);}
+.del-head{display:grid;grid-template-columns:36px 1fr 140px 145px 100px;align-items:center;padding:0 14px;height:40px;background:#f4f8fd;border-bottom:1px solid rgba(34,79,147,0.12);}
 .del-hcell{font-size:10px;font-weight:700;color:#8099b0;text-transform:uppercase;letter-spacing:0.07em;}
 .del-hcell.blue{color:#224F93;display:flex;align-items:center;gap:4px;}
-.del-row{display:grid;grid-template-columns:36px 1fr 140px 120px 100px;align-items:center;padding:0 14px;height:46px;border-bottom:1px solid rgba(34,79,147,0.05);transition:background 0.1s;}
+.del-row{display:grid;grid-template-columns:36px 1fr 140px 145px 100px;align-items:center;padding:0 14px;height:46px;border-bottom:1px solid rgba(34,79,147,0.05);transition:background 0.1s;}
 .del-row:last-child{border-bottom:none;}
 .del-row:hover{background:#eef4ff !important;}
 
@@ -411,7 +411,7 @@ window._installPWA = async function() {
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#224F93" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div class="del-hcell" style="text-align:center;">Tags</div>
-            <div class="del-hcell" style="text-align:right;padding-right:4px;">Date</div>
+            <div class="del-hcell" style="text-align:right;padding-right:4px;line-height:1.3;">Expected Date of Submittal</div>
             <div class="del-hcell" style="display:flex;align-items:center;justify-content:flex-end;gap:5px;">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#224F93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#b0bec5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
