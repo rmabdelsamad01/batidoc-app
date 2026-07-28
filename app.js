@@ -1022,10 +1022,31 @@ function closeDashboard(){
 function closeLodAllModal(){
   var m=document.getElementById('lod-all-modal');
   if(m)m.style.display='none';
+  _lodEngPlanningActive=false;
+  _lodDetailedLodActive=false;
+  _lodAllCache=null;
+  var tr=document.getElementById('lod-all-thead-row');
+  if(tr)tr.querySelectorAll('th.lod-plan-th,th.lod-delayed-th').forEach(function(th){th.remove();});
 }
 
-// cached data for LOD All — avoids re-fetching on dropdown change
+function toggleLodEngPlanning(){
+  if(_lodDetailedLodActive){_lodDetailedLodActive=false;renderLodAll(_lodIvKey);return;}
+  if(_lodEngPlanningActive)return;
+  _lodEngPlanningActive=true;
+  renderLodAll(_lodIvKey);
+}
+
+function toggleLodDetailedLod(){
+  if(_lodDetailedLodActive)return;
+  _lodDetailedLodActive=true;
+  _lodEngPlanningActive=true;
+  renderLodAll(_lodIvKey);
+}
+
 var _lodAllCache=null;
+var _lodEngPlanningActive=false;
+var _lodDetailedLodActive=false;
+var _lodIvKey='final';
 
 async function openLodAllProjects(){
   var projects=_gedProjects.filter(function(p){
@@ -1041,6 +1062,9 @@ async function openLodAllProjects(){
   var titleEl=document.getElementById('lod-all-title');
   if(titleEl) titleEl.textContent='LOD — '+(_gedDirFilter?_GED_DIR_LABELS[_gedDirFilter]+' Projects':'All Projects');
 
+  _lodIvKey='final';
+  _lodEngPlanningActive=false;
+  _lodDetailedLodActive=false;
   var sel=document.getElementById('lod-all-iv-select');
   if(sel) sel.value='final';
 
@@ -1051,7 +1075,7 @@ async function openLodAllProjects(){
   // Bulk queries in parallel
   var results=await Promise.all([
     sb.from('project_info').select('project,key,value').in('project',projectIds).in('key',['deliverables','visa_statuses','intervenants']),
-    sb.from('ged_files').select('id,name,project,folder_id').in('project',projectIds).eq('folder_type','deliverable'),
+    sb.from('ged_files').select('id,name,project,folder_id,expected_date').in('project',projectIds).eq('folder_type','deliverable'),
     sb.from('ged_workflow_instances').select('id,document_names,applied_at').order('applied_at',{ascending:false})
   ]);
 
@@ -1124,14 +1148,58 @@ function renderLodAll(ivKey){
   var statuses=['VSO','VAO','VAOB','REJ','EA','NC','PR','PI','Sou','NS'];
   var grandTotals={};statuses.forEach(function(s){grandTotals[s]=0;});
   var grandQty=0;
+  var grandDelayed=0;
   var STATUS_COLORS={VSO:'#14532d',VAO:'#16a34a',VAOB:'#dc2626',REJ:'#991b1b',EA:'#ca8a04',NC:'#14532d',PR:'#0891b2',PI:'#0891b2',Sou:'#14532d',NS:'#6b7280'};
+  var showExtra=_lodEngPlanningActive||_lodDetailedLodActive;
+  var planCols=_lodEngPlanningActive?_gedEngPlanningCols():[];
+
+  // Sync thead dynamic columns
+  var tr=document.getElementById('lod-all-thead-row');
+  if(tr){
+    tr.querySelectorAll('th.lod-plan-th,th.lod-delayed-th').forEach(function(th){th.remove();});
+    if(showExtra){
+      var dth=document.createElement('th');
+      dth.className='lod-delayed-th';
+      dth.setAttribute('style','padding:9px 8px;font-size:10px;font-weight:700;text-align:center;white-space:nowrap;min-width:72px;border-left:2px solid rgba(255,255,255,0.4);color:#fca5a5;');
+      dth.textContent='Delayed Submittal';
+      tr.appendChild(dth);
+    }
+    if(_lodEngPlanningActive){
+      planCols.forEach(function(col,ci){
+        var th=document.createElement('th');
+        th.className='lod-plan-th';
+        th.setAttribute('style','padding:9px 8px;font-size:10px;font-weight:700;text-align:center;white-space:nowrap;min-width:52px;'+(ci===0?'border-left:2px solid rgba(255,255,255,0.4);':'')+(ci===8?'border-left:2px solid rgba(255,255,255,0.4);':''));
+        th.textContent=col.label;
+        tr.appendChild(th);
+      });
+    }
+  }
+
+  var today=new Date();today.setHours(0,0,0,0);
+  var dow=today.getDay()||7;
+  var weekStart=new Date(today);weekStart.setDate(today.getDate()-(dow-1));weekStart.setHours(0,0,0,0);
+
+  var planGrandTotals=planCols.map(function(){return 0;});
   var html='';
+  var totalCols=13+(showExtra?1:0)+planCols.length;
 
   _lodAllCache.forEach(function(pd){
-    html+='<tr style="background:#1a3a6e;"><td colspan="13" style="padding:10px 16px;font-size:13px;font-weight:700;color:#fff;letter-spacing:0.02em;">'+pd.proj.name+'</td></tr>';
+    html+='<tr style="background:#1a3a6e;"><td colspan="'+totalCols+'" style="padding:10px 16px;font-size:13px;font-weight:700;color:#fff;letter-spacing:0.02em;">'+pd.proj.name+'</td></tr>';
 
     pd.delivRows.forEach(function(dr,di){
       var counts={};statuses.forEach(function(s){counts[s]=0;});
+      var planCounts=planCols.map(function(col){
+        return dr.files.filter(function(f){var fd=_parseFileDate(f.expected_date);return fd&&fd>=col.start&&fd<=col.end;}).length;
+      });
+      var delayedCount=dr.files.filter(function(f){
+        if(!f.expected_date)return false;
+        var fd=_parseFileDate(f.expected_date);
+        if(!fd||fd>=weekStart)return false;
+        var mn=(pd.projVisa[f.id]||{})[pd.bgKey];
+        var bgSt=mn?mn.status:null;
+        if(!bgSt){var a=(dr.autoVisa[f.id]||{})[pd.bgKey];bgSt=a?(a.status||a):null;}
+        return !bgSt||bgSt==='NS';
+      }).length;
 
       dr.files.forEach(function(f){
         var st=null;
@@ -1156,29 +1224,66 @@ function renderLodAll(ivKey){
       });
 
       statuses.forEach(function(s){grandTotals[s]+=counts[s];});
+      planCounts.forEach(function(v,ci){planGrandTotals[ci]+=v;});
+      grandDelayed+=delayedCount;
       grandQty+=dr.files.length;
 
       var dn=dr.deliv.code?'('+dr.deliv.code+') '+dr.deliv.name:dr.deliv.name;
       var bg=di%2===0?'#ffffff':'#fafcff';
+      var delayedTd=showExtra?'<td style="padding:7px 8px;font-size:12px;text-align:center;border-left:2px solid #e0e8f4;color:'+(delayedCount>0?'#dc2626':'#d0dae6')+';font-weight:'+(delayedCount>0?'700':'400')+';">'+(delayedCount>0?delayedCount:'—')+'</td>':'';
 
-      html+='<tr style="background:'+bg+';border-bottom:1px solid rgba(34,79,147,0.07);">'
+      var parentRow='<tr style="background:'+bg+';border-bottom:1px solid rgba(34,79,147,0.07);">'
         +'<td style="padding:7px 12px;font-size:11px;color:#8099b0;font-family:\'DM Mono\',monospace;white-space:nowrap;">'+(di+1)*100+'</td>'
         +'<td style="padding:7px 12px;font-size:12px;color:#1a2a3a;font-weight:600;width:280px;min-width:280px;max-width:280px;word-break:break-word;white-space:normal;">'+dn+'</td>'
         +'<td style="padding:7px 12px;font-size:12px;color:#224F93;font-weight:700;text-align:center;">'+dr.files.length+'</td>'
-        +statuses.map(function(s){
-          var v=counts[s];
-          return '<td style="padding:7px 12px;font-size:12px;text-align:center;color:'+(v>0?STATUS_COLORS[s]:'#d0dae6')+';font-weight:'+(v>0?'700':'400')+';">'+(v>0?v:'—')+'</td>';
-        }).join('')
+        +statuses.map(function(s){var v=counts[s];return '<td style="padding:7px 12px;font-size:12px;text-align:center;color:'+(v>0?STATUS_COLORS[s]:'#d0dae6')+';font-weight:'+(v>0?'700':'400')+';">'+(v>0?v:'—')+'</td>';}).join('')
+        +delayedTd
+        +planCounts.map(function(v,ci){return '<td style="padding:7px 8px;font-size:12px;text-align:center;color:'+(v>0?'#224F93':'#d0dae6')+';font-weight:'+(v>0?'700':'400')+';'+(ci===0?'border-left:2px solid #e0e8f4;':'')+(ci===8?'border-left:2px solid #e0e8f4;':'')+';">'+(v>0?v:'—')+'</td>';}).join('')
         +'</tr>';
+
+      if(!_lodDetailedLodActive){html+=parentRow;return;}
+
+      var subRows=dr.files.map(function(f,fi){
+        var st=null;
+        if(ivKey==='final'){
+          var best=null;var bestRank=999;
+          pd.projIv.forEach(function(iv){
+            if(iv.key==='final')return;
+            var mn=(pd.projVisa[f.id]||{})[iv.key];
+            var s2=mn?mn.status:null;
+            if(!s2){var a=(dr.autoVisa[f.id]||{})[iv.key];s2=a?(a.status||a):null;}
+            if(!s2)return;
+            var rank=_FINAL_PRIORITY.indexOf(s2);
+            if(rank!==-1&&rank<bestRank){bestRank=rank;best=s2;}
+          });
+          st=best;
+        } else {
+          var mn2=(pd.projVisa[f.id]||{})[ivKey];
+          st=mn2?mn2.status:null;
+          if(!st){var a2=(dr.autoVisa[f.id]||{})[ivKey];st=a2?(a2.status||a2):null;}
+        }
+        var isDelayed=f.expected_date?(function(){var fd=_parseFileDate(f.expected_date);if(!fd||fd>=weekStart)return false;var mn=(pd.projVisa[f.id]||{})[pd.bgKey];var bgSt=mn?mn.status:null;if(!bgSt){var a=(dr.autoVisa[f.id]||{})[pd.bgKey];bgSt=a?(a.status||a):null;}return !bgSt||bgSt==='NS';}()):false;
+        var subDelayedTd=showExtra?'<td style="padding:5px 8px;font-size:11px;text-align:center;border-left:2px solid #e0e8f4;color:'+(isDelayed?'#dc2626':'#d0dae6')+';font-weight:'+(isDelayed?'700':'400')+';">'+(isDelayed?'1':'—')+'</td>':'';
+        return '<tr style="background:#f0f5ff;border-bottom:1px solid rgba(34,79,147,0.05);">'
+          +'<td style="padding:5px 12px;font-size:10px;color:#a0b4cc;font-family:\'DM Mono\',monospace;white-space:nowrap;padding-left:20px;">'+(di+1)*100+(fi+1)+'</td>'
+          +'<td style="padding:5px 12px 5px 24px;font-size:11px;color:#3a5070;width:280px;min-width:280px;max-width:280px;word-break:break-word;white-space:normal;">'+f.name+'</td>'
+          +'<td style="padding:5px 12px;font-size:11px;color:#7090b0;text-align:center;">1</td>'
+          +statuses.map(function(s){var hit=st===s;return '<td style="padding:5px 12px;font-size:11px;text-align:center;color:'+(hit?STATUS_COLORS[s]:'#d0dae6')+';font-weight:'+(hit?'700':'400')+';">'+(hit?'1':'—')+'</td>';}).join('')
+          +subDelayedTd
+          +planCols.map(function(_,ci){return '<td style="'+(ci===0?'border-left:2px solid #e0e8f4;':'')+(ci===8?'border-left:2px solid #e0e8f4;':'')+'"></td>';}).join('')
+          +'</tr>';
+      }).join('');
+      html+=parentRow+subRows;
     });
   });
 
+  var delayedTotalTd=showExtra?'<td style="padding:9px 8px;font-size:12px;font-weight:700;text-align:center;color:'+(grandDelayed>0?'#dc2626':'#224F93')+';border-left:2px solid #c0d0e8;">'+grandDelayed+'</td>':'';
   html+='<tr style="background:#f4f8fd;border-top:2px solid #224F93;">'
     +'<td colspan="2" style="padding:9px 12px;font-size:12px;font-weight:700;color:#224F93;">Total</td>'
     +'<td style="padding:9px 12px;font-size:13px;font-weight:700;color:#224F93;text-align:center;">'+grandQty+'</td>'
-    +statuses.map(function(s){
-      return '<td style="padding:9px 12px;font-size:12px;font-weight:700;text-align:center;color:#224F93;">'+grandTotals[s]+'</td>';
-    }).join('')
+    +statuses.map(function(s){return '<td style="padding:9px 12px;font-size:12px;font-weight:700;text-align:center;color:#224F93;">'+grandTotals[s]+'</td>';}).join('')
+    +delayedTotalTd
+    +planGrandTotals.map(function(v,ci){return '<td style="padding:9px 8px;font-size:12px;font-weight:700;text-align:center;color:#224F93;'+(ci===0?'border-left:2px solid #c0d0e8;':'')+(ci===8?'border-left:2px solid #c0d0e8;':'')+';">'+v+'</td>';}).join('')
     +'</tr>';
 
   document.getElementById('lod-all-body').innerHTML=html;
