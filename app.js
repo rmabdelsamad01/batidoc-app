@@ -1145,7 +1145,8 @@ async function openLodAllProjects(){
 
 function renderLodAll(ivKey){
   if(!_lodAllCache)return;
-  var statuses=['VSO','VAO','VAOB','REJ','EA','NC','PR','PI','Sou','NS'];
+  var allStatuses=['VSO','VAO','VAOB','REJ','EA','NC','PR','PI','Sou','NS'];
+  var statuses=ivKey==='batiglobe'?['Sou','NS']:allStatuses;
   var grandTotals={};statuses.forEach(function(s){grandTotals[s]=0;});
   var grandQty=0;
   var grandDelayed=0;
@@ -1153,8 +1154,15 @@ function renderLodAll(ivKey){
   var showExtra=_lodEngPlanningActive||_lodDetailedLodActive;
   var planCols=_lodEngPlanningActive?_gedEngPlanningCols():[];
 
-  // Sync thead dynamic columns
+  // Show/hide VSO-PI header columns
   var tr=document.getElementById('lod-all-thead-row');
+  if(tr){
+    tr.querySelectorAll('th[data-iv-col]').forEach(function(th){
+      th.style.display=ivKey==='batiglobe'?'none':'';
+    });
+  }
+
+  // Sync thead dynamic columns
   if(tr){
     tr.querySelectorAll('th.lod-plan-th,th.lod-delayed-th').forEach(function(th){th.remove();});
     if(showExtra){
@@ -1181,7 +1189,7 @@ function renderLodAll(ivKey){
 
   var planGrandTotals=planCols.map(function(){return 0;});
   var html='';
-  var totalCols=13+(showExtra?1:0)+planCols.length;
+  var totalCols=3+statuses.length+(showExtra?1:0)+planCols.length;
 
   _lodAllCache.forEach(function(pd){
     html+='<tr style="background:#1a3a6e;"><td colspan="'+totalCols+'" style="padding:10px 16px;font-size:13px;font-weight:700;color:#fff;letter-spacing:0.02em;">'+pd.proj.name+'</td></tr>';
