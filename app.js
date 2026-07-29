@@ -1417,8 +1417,11 @@ async function sendEmailBet(){
   var bodyHtml=div.innerHTML.replace(/\n/g,'<br>');
   var html='<!DOCTYPE html><html><body style="font-family:Barlow,Arial,sans-serif;font-size:14px;color:#1a2a3a;line-height:1.7;padding:24px;">'+bodyHtml+'</body></html>';
   var from='BatiGED <ged@batimon.com>';
-  var to=['R.balla@batiglobe.com','N.nadir@batiglobe.com'];
-  var cc=['w.benani@batiglobe.com','obt@batiglobe.com','y.sbyk@batiglobe.com','a.filali@batiglobe.com','r.abdelsamad@batiglobe.com'];
+  var toInput=document.getElementById('email-bet-to');
+  var ccInput=document.getElementById('email-bet-cc');
+  var to=(toInput?toInput.value:'').split(',').map(function(e){return e.trim();}).filter(Boolean);
+  var cc=(ccInput?ccInput.value:'').split(',').map(function(e){return e.trim();}).filter(Boolean);
+  if(to.length===0){showToast('Please enter at least one recipient');return;}
   var sendBtn=document.querySelector('#email-bet-modal button[onclick="sendEmailBet()"]');
   if(sendBtn){sendBtn.textContent='Sending…';sendBtn.disabled=true;}
   try{

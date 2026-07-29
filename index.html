@@ -1496,20 +1496,20 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
     </div>
     <!-- Email header fields -->
     <div style="padding:10px 20px;border-bottom:1px solid rgba(34,79,147,0.10);background:#fafcff;font-family:'Barlow',sans-serif;font-size:12px;">
-      <div style="display:flex;align-items:baseline;gap:8px;padding:5px 0;border-bottom:1px solid rgba(34,79,147,0.07);">
-        <span style="color:#8099b0;font-weight:600;min-width:28px;">From</span>
+      <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(34,79,147,0.07);">
+        <span style="color:#8099b0;font-weight:600;min-width:28px;flex-shrink:0;">From</span>
         <span style="color:#1a2a3a;">BatiGED &lt;ged@batimon.com&gt;</span>
       </div>
-      <div style="display:flex;align-items:baseline;gap:8px;padding:5px 0;border-bottom:1px solid rgba(34,79,147,0.07);">
-        <span style="color:#8099b0;font-weight:600;min-width:28px;">To</span>
-        <span style="color:#1a2a3a;">R.balla@batiglobe.com &nbsp;·&nbsp; N.nadir@batiglobe.com</span>
+      <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(34,79,147,0.07);">
+        <span style="color:#8099b0;font-weight:600;min-width:28px;flex-shrink:0;">To</span>
+        <input id="email-bet-to" type="text" value="R.balla@batiglobe.com, N.nadir@batiglobe.com" style="flex:1;border:none;outline:none;font-size:12px;font-family:'Barlow',sans-serif;color:#1a2a3a;background:transparent;padding:2px 0;">
       </div>
-      <div style="display:flex;align-items:baseline;gap:8px;padding:5px 0;border-bottom:1px solid rgba(34,79,147,0.07);">
-        <span style="color:#8099b0;font-weight:600;min-width:28px;">CC</span>
-        <span style="color:#1a2a3a;">w.benani@batiglobe.com &nbsp;·&nbsp; obt@batiglobe.com &nbsp;·&nbsp; y.sbyk@batiglobe.com &nbsp;·&nbsp; a.filali@batiglobe.com &nbsp;·&nbsp; r.abdelsamad@batiglobe.com</span>
+      <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(34,79,147,0.07);">
+        <span style="color:#8099b0;font-weight:600;min-width:28px;flex-shrink:0;">CC</span>
+        <input id="email-bet-cc" type="text" value="w.benani@batiglobe.com, obt@batiglobe.com, y.sbyk@batiglobe.com, a.filali@batiglobe.com, r.abdelsamad@batiglobe.com" style="flex:1;border:none;outline:none;font-size:12px;font-family:'Barlow',sans-serif;color:#1a2a3a;background:transparent;padding:2px 0;">
       </div>
-      <div style="display:flex;align-items:baseline;gap:8px;padding:5px 0;">
-        <span style="color:#8099b0;font-weight:600;min-width:28px;">Subj</span>
+      <div style="display:flex;align-items:center;gap:8px;padding:5px 0;">
+        <span style="color:#8099b0;font-weight:600;min-width:28px;flex-shrink:0;">Subj</span>
         <span id="email-bet-subject" style="color:#1a2a3a;font-style:italic;"></span>
       </div>
     </div>
