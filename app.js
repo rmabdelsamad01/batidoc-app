@@ -1075,7 +1075,7 @@ async function openLodAllProjects(){
   // Bulk queries in parallel
   var results=await Promise.all([
     sb.from('project_info').select('project,key,value').in('project',projectIds).in('key',['deliverables','visa_statuses','intervenants']),
-    sb.from('ged_files').select('id,name,description,project,folder_id,expected_date').in('project',projectIds).eq('folder_type','deliverable'),
+    sb.from('ged_files').select('id,name,project,folder_id,expected_date').in('project',projectIds).eq('folder_type','deliverable'),
     sb.from('ged_workflow_instances').select('id,document_names,applied_at').order('applied_at',{ascending:false})
   ]);
 
