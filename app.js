@@ -1196,6 +1196,7 @@ function renderLodAll(ivKey){
     html+='<tr style="background:#1a3a6e;"><td colspan="'+totalCols+'" style="padding:10px 16px;font-size:13px;font-weight:700;color:#fff;letter-spacing:0.02em;">'+pd.proj.name+'</td></tr>';
 
     pd.delivRows.forEach(function(dr,di){
+      if(!_lodDetailedLodActive&&(di+1)*100>=600)return;
       var counts={};statuses.forEach(function(s){counts[s]=0;});
       var planCounts=planCols.map(function(col){
         return dr.files.filter(function(f){var fd=_parseFileDate(f.expected_date);return fd&&fd>=col.start&&fd<=col.end;}).length;
