@@ -1289,6 +1289,16 @@ function renderLodAll(ivKey){
   document.getElementById('lod-all-body').innerHTML=html;
 }
 
+function _betLinesToHtml(lines){
+  return lines.map(function(line){
+    var esc=line.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    if(line.trim()&&!line.startsWith(' ')&&line.endsWith(':')&&!/^\d/.test(line)&&line!=='Cordialement'&&line!=='BatiGED'){
+      return '<strong><u>'+esc+'</u></strong>';
+    }
+    return esc;
+  }).join('\n');
+}
+
 function emailToBet(){
   var week1=_gedEngPlanningCols()[0];
   var lines=[];
@@ -1336,8 +1346,8 @@ function emailToBet(){
   if(subEl)subEl.textContent=subj;
   var titleEl=document.getElementById('email-bet-modal-title');
   if(titleEl)titleEl.textContent='Email to BET for Next week';
-  var ta=document.getElementById('email-bet-body');
-  if(ta)ta.value=lines.join('\n');
+  var div=document.getElementById('email-bet-body');
+  if(div)div.innerHTML=_betLinesToHtml(lines);
   document.getElementById('email-bet-modal').style.display='flex';
 }
 
@@ -1383,15 +1393,15 @@ function emailToBetDelayed(){
   if(titleEl)titleEl.textContent='Email to BET delayed';
   var subEl=document.getElementById('email-bet-subject');
   if(subEl)subEl.textContent='[BatiGED] Documents en retard';
-  var ta=document.getElementById('email-bet-body');
-  if(ta)ta.value=lines.join('\n');
+  var div=document.getElementById('email-bet-body');
+  if(div)div.innerHTML=_betLinesToHtml(lines);
   document.getElementById('email-bet-modal').style.display='flex';
 }
 
 function copyEmailBet(){
-  var ta=document.getElementById('email-bet-body');
-  if(!ta)return;
-  navigator.clipboard.writeText(ta.value).then(function(){
+  var div=document.getElementById('email-bet-body');
+  if(!div)return;
+  navigator.clipboard.writeText(div.innerText).then(function(){
     var btn=document.querySelector('#email-bet-modal button');
     var orig=btn.textContent;
     btn.textContent='Copied!';
@@ -1400,16 +1410,11 @@ function copyEmailBet(){
 }
 
 async function sendEmailBet(){
-  var ta=document.getElementById('email-bet-body');
-  if(!ta||!ta.value.trim()){showToast('No email content to send');return;}
+  var div=document.getElementById('email-bet-body');
+  if(!div||!div.innerText.trim()){showToast('No email content to send');return;}
   var subEl=document.getElementById('email-bet-subject');
   var subject=subEl&&subEl.textContent.trim()?subEl.textContent.trim():'[BatiGED] Email BET';
-  var bodyHtml=ta.value.split('\n').map(function(line){
-    var esc=line.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    if(/^[A-Za-zÀ-ɏ\s\-]+:$/.test(line.trim()))
-      return '<strong><u>'+esc+'</u></strong>';
-    return esc;
-  }).join('<br>');
+  var bodyHtml=div.innerHTML.replace(/\n/g,'<br>');
   var html='<!DOCTYPE html><html><body style="font-family:Barlow,Arial,sans-serif;font-size:14px;color:#1a2a3a;line-height:1.7;padding:24px;">'+bodyHtml+'</body></html>';
   var from='BatiGED <ged@batimon.com>';
   var to=['R.balla@batiglobe.com','N.nadir@batiglobe.com'];
