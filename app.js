@@ -1298,6 +1298,7 @@ function emailToBet(){
 
   (_lodAllCache||[]).forEach(function(pd){
     var projLines=[];
+    var docNum=0;
     pd.delivRows.forEach(function(dr){
       var desc=dr.deliv.code?'('+dr.deliv.code+') '+dr.deliv.name:dr.deliv.name;
       dr.files.forEach(function(f){
@@ -1310,7 +1311,8 @@ function emailToBet(){
         if(bgSt&&bgSt!=='NS')return;
         var p=f.expected_date.split('-');
         var dateStr=p[2]+'/'+p[1]+'/'+p[0];
-        projLines.push('- '+f.name);
+        docNum++;
+        projLines.push(docNum+' '+f.name);
         projLines.push('  '+desc);
         projLines.push('  Date de soumission : '+dateStr);
       });
