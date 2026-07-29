@@ -1296,9 +1296,9 @@ function emailToBet(){
   lines.push('merci de noter que les documents si dessous doivent etre finaliser pendant la semaine prochaine:');
   lines.push('');
 
+  var docNum=0;
   (_lodAllCache||[]).forEach(function(pd){
     var projLines=[];
-    var docNum=0;
     pd.delivRows.forEach(function(dr){
       var desc=dr.deliv.code?'('+dr.deliv.code+') '+dr.deliv.name:dr.deliv.name;
       dr.files.forEach(function(f){
