@@ -1358,8 +1358,12 @@ async function sendEmailBet(){
   var dd=('0'+d.getDate()).slice(-2);
   var mm=('0'+(d.getMonth()+1)).slice(-2);
   var subject='[BatiGED] Documents à finaliser — Semaine du '+dd+'/'+mm+'/'+d.getFullYear();
-  var bodyHtml=ta.value.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/\n/g,'<br>');
+  var bodyHtml=ta.value.split('\n').map(function(line){
+    var esc=line.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    if(/^[A-Za-zÀ-ɏ\s\-]+:$/.test(line.trim()))
+      return '<strong><u>'+esc+'</u></strong>';
+    return esc;
+  }).join('<br>');
   var html='<!DOCTYPE html><html><body style="font-family:Barlow,Arial,sans-serif;font-size:14px;color:#1a2a3a;line-height:1.7;padding:24px;">'+bodyHtml+'</body></html>';
   var from='BatiGED <ged@batimon.com>';
   var to=['R.balla@batiglobe.com','N.nadir@batiglobe.com'];
