@@ -1332,7 +1332,7 @@ function emailToBet(){
         var dateStr=p[2]+'/'+p[1]+'/'+p[0];
         docNum++;
         projLines.push(docNum+' '+f.name);
-        var fileDesc=pd.fileDesc&&pd.fileDesc[f.id]?pd.fileDesc[f.id]:dr.deliv.name;
+        var fileDesc=pd.fileDesc&&(pd.fileDesc[f.id]||pd.fileDesc[String(f.id)])||(dr.deliv.name);
         var desc=_dcode?'('+_dcode+') - '+fileDesc:fileDesc;
         projLines.push('  '+desc);
         projLines.push('  Date de soumission : '+dateStr);
@@ -1387,7 +1387,7 @@ function emailToBetDelayed(){
         var dateStr=p[2]+'/'+p[1]+'/'+p[0];
         docNum++;
         projLines.push(docNum+' '+f.name);
-        var fileDesc=pd.fileDesc&&pd.fileDesc[f.id]?pd.fileDesc[f.id]:dr.deliv.name;
+        var fileDesc=pd.fileDesc&&(pd.fileDesc[f.id]||pd.fileDesc[String(f.id)])||(dr.deliv.name);
         var desc=_dcode?'('+_dcode+') - '+fileDesc:fileDesc;
         projLines.push('  '+desc);
         projLines.push('  Date de soumission : '+dateStr);
