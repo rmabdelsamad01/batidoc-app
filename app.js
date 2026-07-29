@@ -1303,7 +1303,7 @@ function emailToBet(){
   var week1=_gedEngPlanningCols()[0];
   var lines=[];
   lines.push('Bonjour l\'equipe,');
-  lines.push('merci de noter que les documents si dessous doivent etre finaliser pendant la semaine prochaine:');
+  lines.push('Merci de noter que les documents si dessous doivent etre finaliser pendant la semaine prochaine:');
   lines.push('');
 
   var docNum=0;
