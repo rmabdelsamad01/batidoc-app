@@ -1318,7 +1318,7 @@ function emailToBet(){
   (_lodAllCache||[]).forEach(function(pd){
     var projLines=[];
     pd.delivRows.forEach(function(dr){
-      var desc=dr.deliv.code?'('+dr.deliv.code+') '+dr.deliv.name:dr.deliv.name;
+      var desc=dr.deliv.code?'('+dr.deliv.code+') - '+dr.deliv.name:dr.deliv.name;
       dr.files.forEach(function(f){
         if(!f.expected_date)return;
         var fd=_parseFileDate(f.expected_date);
@@ -1371,7 +1371,7 @@ function emailToBetDelayed(){
   (_lodAllCache||[]).forEach(function(pd){
     var projLines=[];
     pd.delivRows.forEach(function(dr){
-      var desc=dr.deliv.code?'('+dr.deliv.code+') '+dr.deliv.name:dr.deliv.name;
+      var desc=dr.deliv.code?'('+dr.deliv.code+') - '+dr.deliv.name:dr.deliv.name;
       dr.files.forEach(function(f){
         if(!f.expected_date)return;
         var fd=_parseFileDate(f.expected_date);
