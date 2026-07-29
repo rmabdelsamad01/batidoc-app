@@ -1425,7 +1425,7 @@ async function sendEmailBet(){
   var sendBtn=document.querySelector('#email-bet-modal button[onclick="sendEmailBet()"]');
   if(sendBtn){sendBtn.textContent='Sending…';sendBtn.disabled=true;}
   try{
-    var res=await fetch('/send-email',{
+    var res=await fetch('/.netlify/functions/send-email',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({to:to,cc:cc,subject:subject,html:html,from:from})
