@@ -1334,6 +1334,55 @@ function emailToBet(){
   var subj='[BatiGED] Documents à finaliser — Semaine du '+dd+'/'+mm+'/'+week1s.getFullYear();
   var subEl=document.getElementById('email-bet-subject');
   if(subEl)subEl.textContent=subj;
+  var titleEl=document.getElementById('email-bet-modal-title');
+  if(titleEl)titleEl.textContent='Email to BET for Next week';
+  var ta=document.getElementById('email-bet-body');
+  if(ta)ta.value=lines.join('\n');
+  document.getElementById('email-bet-modal').style.display='flex';
+}
+
+function emailToBetDelayed(){
+  var today=new Date(); today.setHours(0,0,0,0);
+  var dow=today.getDay()||7;
+  var weekStart=new Date(today); weekStart.setDate(today.getDate()-(dow-1)); weekStart.setHours(0,0,0,0);
+  var lines=[];
+  lines.push('Bonjour l\'equipe,');
+  lines.push('merci de noter que les documents si dessous sont en retard et doivent etre soumis le plus tot possible:');
+  lines.push('');
+  var docNum=0;
+  (_lodAllCache||[]).forEach(function(pd){
+    var projLines=[];
+    pd.delivRows.forEach(function(dr){
+      var desc=dr.deliv.code?'('+dr.deliv.code+') '+dr.deliv.name:dr.deliv.name;
+      dr.files.forEach(function(f){
+        if(!f.expected_date)return;
+        var fd=_parseFileDate(f.expected_date);
+        if(!fd||fd>=weekStart)return;
+        var mn=(pd.projVisa[f.id]||{})[pd.bgKey];
+        var bgSt=mn?mn.status:null;
+        if(!bgSt){var a=(dr.autoVisa[f.id]||{})[pd.bgKey];bgSt=a?(a.status||a):null;}
+        if(bgSt&&bgSt!=='NS')return;
+        var p=f.expected_date.split('-');
+        var dateStr=p[2]+'/'+p[1]+'/'+p[0];
+        docNum++;
+        projLines.push(docNum+' '+f.name);
+        projLines.push('  '+desc);
+        projLines.push('  Date de soumission : '+dateStr);
+      });
+    });
+    if(projLines.length){
+      lines.push(pd.proj.name+':');
+      projLines.forEach(function(l){lines.push(l);});
+      lines.push('');
+    }
+  });
+  lines.push('Cordialement');
+  lines.push('');
+  lines.push('BatiGED');
+  var titleEl=document.getElementById('email-bet-modal-title');
+  if(titleEl)titleEl.textContent='Email to BET delayed';
+  var subEl=document.getElementById('email-bet-subject');
+  if(subEl)subEl.textContent='[BatiGED] Documents en retard';
   var ta=document.getElementById('email-bet-body');
   if(ta)ta.value=lines.join('\n');
   document.getElementById('email-bet-modal').style.display='flex';
@@ -1353,11 +1402,8 @@ function copyEmailBet(){
 async function sendEmailBet(){
   var ta=document.getElementById('email-bet-body');
   if(!ta||!ta.value.trim()){showToast('No email content to send');return;}
-  var week1=_gedEngPlanningCols()[0];
-  var d=week1.start;
-  var dd=('0'+d.getDate()).slice(-2);
-  var mm=('0'+(d.getMonth()+1)).slice(-2);
-  var subject='[BatiGED] Documents à finaliser — Semaine du '+dd+'/'+mm+'/'+d.getFullYear();
+  var subEl=document.getElementById('email-bet-subject');
+  var subject=subEl&&subEl.textContent.trim()?subEl.textContent.trim():'[BatiGED] Email BET';
   var bodyHtml=ta.value.split('\n').map(function(line){
     var esc=line.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     if(/^[A-Za-zÀ-ɏ\s\-]+:$/.test(line.trim()))
