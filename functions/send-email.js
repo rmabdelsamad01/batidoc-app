@@ -10,7 +10,13 @@ export async function onRequest(context) {
   }
 
   try {
-    const { to, subject, html, from } = await context.request.json();
+    const { to, cc, subject, html, from } = await context.request.json();
+
+    const toArr = Array.isArray(to) ? to : [to];
+    const ccArr = cc ? (Array.isArray(cc) ? cc : [cc]) : undefined;
+
+    const payload = { from, to: toArr, subject, html };
+    if (ccArr && ccArr.length > 0) payload.cc = ccArr;
 
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -18,7 +24,7 @@ export async function onRequest(context) {
         'Authorization': `Bearer ${context.env.RESEND_API_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ from, to: [to], subject, html }),
+      body: JSON.stringify(payload),
     });
 
     const data = await res.json();
