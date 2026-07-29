@@ -1075,7 +1075,7 @@ async function openLodAllProjects(){
   // Bulk queries in parallel
   var results=await Promise.all([
     sb.from('project_info').select('project,key,value').in('project',projectIds).in('key',['deliverables','visa_statuses','intervenants']),
-    sb.from('ged_files').select('id,name,project,folder_id,expected_date').in('project',projectIds).eq('folder_type','deliverable'),
+    sb.from('ged_files').select('id,name,description,project,folder_id,expected_date').in('project',projectIds).eq('folder_type','deliverable'),
     sb.from('ged_workflow_instances').select('id,document_names,applied_at').order('applied_at',{ascending:false})
   ]);
 
@@ -1318,7 +1318,7 @@ function emailToBet(){
   (_lodAllCache||[]).forEach(function(pd){
     var projLines=[];
     pd.delivRows.forEach(function(dr){
-      var desc=dr.deliv.code?'('+dr.deliv.code+') - '+dr.deliv.name:dr.deliv.name;
+      var _dcode=dr.deliv.code;
       dr.files.forEach(function(f){
         if(!f.expected_date)return;
         var fd=_parseFileDate(f.expected_date);
@@ -1331,6 +1331,7 @@ function emailToBet(){
         var dateStr=p[2]+'/'+p[1]+'/'+p[0];
         docNum++;
         projLines.push(docNum+' '+f.name);
+        var desc=_dcode?'('+_dcode+') - '+(f.description||dr.deliv.name):(f.description||dr.deliv.name);
         projLines.push('  '+desc);
         projLines.push('  Date de soumission : '+dateStr);
       });
@@ -1371,7 +1372,7 @@ function emailToBetDelayed(){
   (_lodAllCache||[]).forEach(function(pd){
     var projLines=[];
     pd.delivRows.forEach(function(dr){
-      var desc=dr.deliv.code?'('+dr.deliv.code+') - '+dr.deliv.name:dr.deliv.name;
+      var _dcode=dr.deliv.code;
       dr.files.forEach(function(f){
         if(!f.expected_date)return;
         var fd=_parseFileDate(f.expected_date);
@@ -1384,6 +1385,7 @@ function emailToBetDelayed(){
         var dateStr=p[2]+'/'+p[1]+'/'+p[0];
         docNum++;
         projLines.push(docNum+' '+f.name);
+        var desc=_dcode?'('+_dcode+') - '+(f.description||dr.deliv.name):(f.description||dr.deliv.name);
         projLines.push('  '+desc);
         projLines.push('  Date de soumission : '+dateStr);
       });
