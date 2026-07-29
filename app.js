@@ -1414,30 +1414,28 @@ async function sendEmailBet(){
   if(!div||!div.innerText.trim()){showToast('No email content to send');return;}
   var subEl=document.getElementById('email-bet-subject');
   var subject=subEl&&subEl.textContent.trim()?subEl.textContent.trim():'[BatiGED] Email BET';
-  var bodyHtml=div.innerHTML.replace(/\n/g,'<br>');
-  var html='<!DOCTYPE html><html><body style="font-family:Barlow,Arial,sans-serif;font-size:14px;color:#1a2a3a;line-height:1.7;padding:24px;">'+bodyHtml+'</body></html>';
+  var bodyHtml='<!DOCTYPE html><html><body style="font-family:Barlow,Arial,sans-serif;font-size:14px;color:#1a2a3a;line-height:1.7;padding:24px;">'+div.innerHTML.replace(/\n/g,'<br>')+'</body></html>';
   var from='BatiGED <ged@batimon.com>';
   var toInput=document.getElementById('email-bet-to');
   var ccInput=document.getElementById('email-bet-cc');
-  var to=(toInput?toInput.value:'').split(',').map(function(e){return e.trim();}).filter(Boolean);
-  var cc=(ccInput?ccInput.value:'').split(',').map(function(e){return e.trim();}).filter(Boolean);
-  if(to.length===0){showToast('Please enter at least one recipient');return;}
+  var toList=(toInput?toInput.value:'').split(',').map(function(e){return e.trim();}).filter(Boolean);
+  var ccList=(ccInput?ccInput.value:'').split(',').map(function(e){return e.trim();}).filter(Boolean);
+  if(toList.length===0){showToast('Please enter at least one recipient');return;}
   var sendBtn=document.querySelector('#email-bet-modal button[onclick="sendEmailBet()"]');
   if(sendBtn){sendBtn.textContent='Sending…';sendBtn.disabled=true;}
-  try{
-    var res=await fetch('/.netlify/functions/send-email',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({to:to,cc:cc,subject:subject,html:html,from:from})
-    });
-    if(res.ok){
-      showToast('✓ Email sent to BET team');
-      document.getElementById('email-bet-modal').style.display='none';
-    }else{
-      showToast('Failed to send email');
-    }
-  }catch(e){showToast('Failed to send email');}
+  var allRecipients=toList.concat(ccList);
+  var sent=0,failed=0;
+  for(var i=0;i<allRecipients.length;i++){
+    var ok=await sendResendEmail(allRecipients[i],subject,bodyHtml,from);
+    if(ok)sent++;else failed++;
+  }
   if(sendBtn){sendBtn.textContent='Send';sendBtn.disabled=false;}
+  if(failed===0){
+    showToast('✓ Email sent to '+sent+' recipient'+(sent>1?'s':''));
+    document.getElementById('email-bet-modal').style.display='none';
+  }else{
+    showToast('Sent: '+sent+' · Failed: '+failed);
+  }
 }
 
 function openDecompteAllProjects(){}
