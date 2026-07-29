@@ -1291,11 +1291,11 @@ function renderLodAll(ivKey){
 
 function _betLinesToHtml(lines){
   return lines.map(function(line){
-    var esc=line.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    if(line.trim()&&!line.startsWith(' ')&&line.endsWith(':')&&!/^\d/.test(line)&&line!=='Cordialement'&&line!=='BatiGED'){
+    if(line.startsWith('\x02')){
+      var esc=line.slice(1).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
       return '<strong><u>'+esc+'</u></strong>';
     }
-    return esc;
+    return line.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }).join('\n');
 }
 
@@ -1328,7 +1328,7 @@ function emailToBet(){
       });
     });
     if(projLines.length){
-      lines.push(pd.proj.name+':');
+      lines.push('\x02'+pd.proj.name+':');
       projLines.forEach(function(l){lines.push(l);});
       lines.push('');
     }
@@ -1381,7 +1381,7 @@ function emailToBetDelayed(){
       });
     });
     if(projLines.length){
-      lines.push(pd.proj.name+':');
+      lines.push('\x02'+pd.proj.name+':');
       projLines.forEach(function(l){lines.push(l);});
       lines.push('');
     }
