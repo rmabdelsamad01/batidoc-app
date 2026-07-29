@@ -1531,10 +1531,12 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
         </select>
         <button onclick="toggleLodEngPlanning()" id="lod-eng-planning-btn" style="font-size:11px;font-weight:600;color:#1a3d72;border:1px solid rgba(34,79,147,0.3);border-radius:8px;padding:5px 12px;background:#e8f0fb;cursor:pointer;font-family:'Barlow',sans-serif;white-space:nowrap;">Engineering Planning</button>
         <button onclick="toggleLodDetailedLod()" id="lod-detailed-btn" style="font-size:11px;font-weight:600;color:#1a3d72;border:1px solid rgba(34,79,147,0.3);border-radius:8px;padding:5px 12px;background:#e8f0fb;cursor:pointer;font-family:'Barlow',sans-serif;white-space:nowrap;">Detailed LOD</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
         <button onclick="emailToBet()" id="lod-email-bet-btn" style="font-size:11px;font-weight:600;color:#fff;border:none;border-radius:8px;padding:5px 12px;background:#1a7a3a;cursor:pointer;font-family:'Barlow',sans-serif;white-space:nowrap;">Email to BET for Next week</button>
         <button onclick="emailToBetDelayed()" id="lod-email-bet-delayed-btn" style="font-size:11px;font-weight:600;color:#fff;border:none;border-radius:8px;padding:5px 12px;background:#b91c1c;cursor:pointer;font-family:'Barlow',sans-serif;white-space:nowrap;">Email to BET delayed</button>
+        <button onclick="closeLodAllModal()" style="background:none;border:none;cursor:pointer;font-size:20px;color:#8099b0;line-height:1;padding:2px 6px;">&times;</button>
       </div>
-      <button onclick="closeLodAllModal()" style="background:none;border:none;cursor:pointer;font-size:20px;color:#8099b0;line-height:1;padding:2px 6px;">&times;</button>
     </div>
     <div style="overflow:auto;flex:1;">
       <table style="width:100%;border-collapse:collapse;min-width:700px;">
