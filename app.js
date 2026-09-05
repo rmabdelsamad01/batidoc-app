@@ -3040,14 +3040,19 @@ function _exBuildRevGroups(files){
 
 function _exAddDataRow(ws,rowData,altBg){
   var row=ws.addRow(rowData);
-  row.height=20;
   var bg=altBg?'FFF4F8FD':'FFFFFFFF';
   var totalCols=5+GED_INTERVENANTS.length;
+  var hasDate=false;
   for(var ci=1;ci<=totalCols;ci++){
     var cell=row.getCell(ci);
     var isVisa=ci>5;
-    var st=isVisa?cell.value:'';
-    cell.alignment={horizontal:(ci===2||ci===4||ci===5||isVisa)?'center':'left',vertical:'middle'};
+    var rawVal=isVisa?cell.value:'';
+    var st='',dt='';
+    if(isVisa&&rawVal&&typeof rawVal==='object'){st=rawVal.s||'';dt=rawVal.d||'';}
+    else if(isVisa){st=rawVal||'';}
+    if(dt) hasDate=true;
+    if(isVisa) cell.value=st+(dt?'\n'+dt:'');
+    cell.alignment={horizontal:(ci===2||ci===4||ci===5||isVisa)?'center':'left',vertical:'middle',wrapText:isVisa&&!!dt};
     cell.border={bottom:{style:'hair',color:{argb:'FFD4E2F5'}}};
     if(isVisa&&st&&_VISA_FILL[st]){
       cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:_VISA_FILL[st]}};
@@ -3057,6 +3062,7 @@ function _exAddDataRow(ws,rowData,altBg){
       cell.font={color:{argb:isVisa?'FF8099B0':'FF1A2A3A'},size:isVisa?9:10,name:'Arial'};
     }
   }
+  row.height=hasDate?30:20;
   return row;
 }
 
@@ -3068,13 +3074,13 @@ function _exAddFiles(ws,files,altStart){
       item.files.forEach(function(e){
         var f=e.file;
         var rd=[item.base,e.revStr,_fileDescriptions[f.id]||'',f.size||'',f.date||''];
-        GED_INTERVENANTS.forEach(function(iv){rd.push(getVisaStatus(f.id,iv.key).status||'');});
+        GED_INTERVENANTS.forEach(function(iv){var vs=getVisaStatus(f.id,iv.key);rd.push(vs.status?{s:vs.status,d:vs.date||''}:'');});
         _exAddDataRow(ws,rd,alt);alt=!alt;
       });
     } else {
       var f=item.file;
       var rd=[f.name,'',_fileDescriptions[f.id]||'',f.size||'',f.date||''];
-      GED_INTERVENANTS.forEach(function(iv){rd.push(getVisaStatus(f.id,iv.key).status||'');});
+      GED_INTERVENANTS.forEach(function(iv){var vs=getVisaStatus(f.id,iv.key);rd.push(vs.status?{s:vs.status,d:vs.date||''}:'');});
       _exAddDataRow(ws,rd,alt);alt=!alt;
     }
   });
