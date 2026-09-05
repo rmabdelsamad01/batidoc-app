@@ -3060,7 +3060,7 @@ function _exStyleHeaderRow(row){
   row.eachCell({includeEmpty:true},function(cell){
     cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF224F93'}};
     cell.font={bold:true,color:{argb:'FFFFFFFF'},size:10,name:'Arial'};
-    cell.alignment={horizontal:'center',vertical:'middle',wrapText:false};
+    cell.alignment={horizontal:'center',vertical:'middle',wrapText:true};
   });
 }
 
