@@ -2383,7 +2383,7 @@ var folderFiles={};     // keyed by folderId: array of {id,name,size,date,storag
 var folderSubs={};      // keyed by folderId: array of {id,name,date}
 var currentFolderId=null;
 var folderStack=[];     // navigation stack [{id, label}]
-var _fileSortCol='created_at';
+var _fileSortCol='name';
 var _fileSortAsc=true;
 function sortFolderFiles(col){
   if(_fileSortCol===col){_fileSortAsc=!_fileSortAsc;}
@@ -2481,11 +2481,10 @@ function renderFolderFiles(){
 
   // Sort files
   var sortedFiles=files.slice().sort(function(a,b){
-    var va=(a[_fileSortCol]||'').toLowerCase();
-    var vb=(b[_fileSortCol]||'').toLowerCase();
-    if(va<vb)return _fileSortAsc?-1:1;
-    if(va>vb)return _fileSortAsc?1:-1;
-    return 0;
+    var va=a[_fileSortCol]||'';
+    var vb=b[_fileSortCol]||'';
+    var cmp=va.localeCompare(vb,undefined,{numeric:true,sensitivity:'base'});
+    return _fileSortAsc?cmp:-cmp;
   });
 
   // Update sort icons
@@ -3110,7 +3109,8 @@ function _exAddDataRow(ws,rowData,altBg){
 
 function _exAddFiles(ws,files,altStart){
   var alt=!!altStart;
-  var items=_exBuildRevGroups(files);
+  var sorted=files.slice().sort(function(a,b){return a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'});});
+  var items=_exBuildRevGroups(sorted);
   items.forEach(function(item){
     if(item.type==='group'){
       item.files.forEach(function(e){
