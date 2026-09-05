@@ -3106,6 +3106,43 @@ async function exportFolderToExcel(){
   showToast('Exported: '+label+'.xlsx');
 }
 
+async function _buildExportAutoStatuses(allFiles){
+  var map={};
+  if(!allFiles||!allFiles.length) return map;
+  try{
+    var {data:instances}=await sb.from('ged_workflow_instances').select('id,document_names,applied_at').order('applied_at',{ascending:false});
+    if(!instances||!instances.length) return map;
+    var names=allFiles.map(function(f){return f.name.toLowerCase();});
+    var relevant=instances.filter(function(inst){
+      return inst.document_names&&names.some(function(n){return inst.document_names.toLowerCase().indexOf(n)!==-1;});
+    });
+    if(!relevant.length) return map;
+    var ids=relevant.map(function(i){return i.id;});
+    var {data:recips}=await sb.from('ged_workflow_recipients').select('instance_id,company,status,responded_at').in('instance_id',ids).neq('status','pending').neq('status','noted');
+    allFiles.forEach(function(f){
+      var fname=f.name.toLowerCase();
+      relevant.forEach(function(inst){
+        if(!inst.document_names||inst.document_names.toLowerCase().indexOf(fname)===-1) return;
+        var bgKey='batiglobe';
+        if(!(map[f.id]&&map[f.id][bgKey])){
+          if(!map[f.id]) map[f.id]={};
+          map[f.id][bgKey]={status:'Sou',date:_fmtAutoDate(inst.applied_at)};
+        }
+        if(!recips) return;
+        recips.filter(function(r){return r.instance_id===inst.id;}).forEach(function(r){
+          var iv=GED_INTERVENANTS.find(function(x){return x.company&&x.company===(r.company||'');});
+          var visa=VISA_STATUSES.includes(r.status)?r.status:null;
+          if(iv&&visa){
+            if(!map[f.id]) map[f.id]={};
+            if(!map[f.id][iv.key]) map[f.id][iv.key]={status:visa,date:_fmtAutoDate(r.responded_at)};
+          }
+        });
+      });
+    });
+  }catch(e){console.error('_buildExportAutoStatuses',e);}
+  return map;
+}
+
 async function exportAllDeliverablesToExcel(){
   if(!deliverables.length){showToast('No folders to export');return;}
   var proj=_gedProjects.find(function(p){return p.id===currentProjectId;});
@@ -3115,6 +3152,10 @@ async function exportAllDeliverablesToExcel(){
     var d=deliverables[i];
     if(!folderFiles[d.id]) folderFiles[d.id]=await gedLoadFiles(d.id,'deliverable');
   }
+  var allFiles=[];
+  deliverables.forEach(function(d){allFiles=allFiles.concat(folderFiles[d.id]||[]);});
+  var savedAutoStatuses=_visaAutoStatuses;
+  _visaAutoStatuses=await _buildExportAutoStatuses(allFiles);
   var wb=new ExcelJS.Workbook();
   var ws=wb.addWorksheet('Deliverables');
   ws.views=[{state:'frozen',ySplit:1}];
@@ -3145,6 +3186,7 @@ async function exportAllDeliverablesToExcel(){
     var sep=ws.addRow([]);sep.height=6;
   });
   await _exDownload(wb,projName+' - List of Deliverables.xlsx');
+  _visaAutoStatuses=savedAutoStatuses;
   showToast('Exported: List of Deliverables');
 }
 
