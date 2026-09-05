@@ -3039,19 +3039,20 @@ function _exBuildRevGroups(files){
 }
 
 function _exAddDataRow(ws,rowData,altBg){
-  var row=ws.addRow(rowData);
+  // Pass plain strings to addRow (ExcelJS stringifies objects to [object Object])
+  var flatData=rowData.map(function(v){return (v&&typeof v==='object')?v.s||'':v;});
+  var row=ws.addRow(flatData);
   var bg=altBg?'FFF4F8FD':'FFFFFFFF';
   var totalCols=5+GED_INTERVENANTS.length;
   var hasDate=false;
   for(var ci=1;ci<=totalCols;ci++){
     var cell=row.getCell(ci);
     var isVisa=ci>5;
-    var rawVal=isVisa?cell.value:'';
-    var st='',dt='';
-    if(isVisa&&rawVal&&typeof rawVal==='object'){st=rawVal.s||'';dt=rawVal.d||'';}
-    else if(isVisa){st=rawVal||'';}
+    var orig=rowData[ci-1];
+    var st=isVisa?(orig&&typeof orig==='object'?orig.s||'':orig||''):'';
+    var dt=isVisa&&orig&&typeof orig==='object'?orig.d||'':'';
     if(dt) hasDate=true;
-    if(isVisa) cell.value=st+(dt?'\n'+dt:'');
+    if(isVisa&&dt) cell.value=st+'\n'+dt;
     cell.alignment={horizontal:(ci===2||ci===4||ci===5||isVisa)?'center':'left',vertical:'middle',wrapText:isVisa&&!!dt};
     cell.border={bottom:{style:'hair',color:{argb:'FFD4E2F5'}}};
     if(isVisa&&st&&_VISA_FILL[st]){
@@ -3154,6 +3155,7 @@ async function exportAllDeliverablesToExcel(){
   var proj=_gedProjects.find(function(p){return p.id===currentProjectId;});
   var projName=proj?proj.name:currentProjectId;
   showToast('Loading all folders...');
+  await loadVisaStatuses();
   for(var i=0;i<deliverables.length;i++){
     var d=deliverables[i];
     folderFiles[d.id]=await gedLoadFiles(d.id,'deliverable');
