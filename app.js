@@ -3156,7 +3156,7 @@ async function exportAllDeliverablesToExcel(){
   showToast('Loading all folders...');
   for(var i=0;i<deliverables.length;i++){
     var d=deliverables[i];
-    if(!folderFiles[d.id]) folderFiles[d.id]=await gedLoadFiles(d.id,'deliverable');
+    folderFiles[d.id]=await gedLoadFiles(d.id,'deliverable');
   }
   var allFiles=[];
   deliverables.forEach(function(d){allFiles=allFiles.concat(folderFiles[d.id]||[]);});
