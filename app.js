@@ -3193,9 +3193,18 @@ async function exportAllDeliverablesToExcel(){
     }
     var sep=ws.addRow([]);sep.height=6;
   });
-  await _exDownload(wb,projName+' - List of Deliverables.xlsx');
+  var _today=new Date();
+  var _dateStr=_today.getFullYear()+'-'+('0'+(_today.getMonth()+1)).slice(-2)+'-'+('0'+_today.getDate()).slice(-2);
+  var _revKey='batidoc_export_rev_'+currentProjectId;
+  var _stored;
+  try{_stored=JSON.parse(localStorage.getItem(_revKey));}catch(e){}
+  var _rev=(_stored&&_stored.date===_dateStr)?(_stored.rev||0)+1:0;
+  try{localStorage.setItem(_revKey,JSON.stringify({date:_dateStr,rev:_rev}));}catch(e){}
+  var _revStr=('0'+_rev).slice(-2);
+  var _filename=_dateStr+'-'+projName+'-liste des deliverables-rev.'+_revStr+'.xlsx';
+  await _exDownload(wb,_filename);
   _visaAutoStatuses=savedAutoStatuses;
-  showToast('Exported: List of Deliverables');
+  showToast('Exported: '+_filename);
 }
 
 var _pendingFileDelete=null;
