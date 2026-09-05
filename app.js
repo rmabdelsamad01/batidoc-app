@@ -2383,7 +2383,7 @@ var folderFiles={};     // keyed by folderId: array of {id,name,size,date,storag
 var folderSubs={};      // keyed by folderId: array of {id,name,date}
 var currentFolderId=null;
 var folderStack=[];     // navigation stack [{id, label}]
-var _fileSortCol='name';
+var _fileSortCol='created_at';
 var _fileSortAsc=true;
 function sortFolderFiles(col){
   if(_fileSortCol===col){_fileSortAsc=!_fileSortAsc;}
@@ -3100,8 +3100,7 @@ function _exAddDataRow(ws,rowData,altBg){
 
 function _exAddFiles(ws,files,altStart){
   var alt=!!altStart;
-  var sorted=files.slice().sort(function(a,b){return a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'});});
-  var items=_exBuildRevGroups(sorted);
+  var items=_exBuildRevGroups(files);
   items.forEach(function(item){
     if(item.type==='group'){
       item.files.forEach(function(e){
