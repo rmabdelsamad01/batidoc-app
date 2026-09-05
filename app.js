@@ -2983,67 +2983,169 @@ function downloadFile(){
   document.getElementById('download-modal').style.display='flex';
 }
 
-function exportFolderToExcel(){
-  var files=folderFiles[currentFolderId]||[];
-  if(!files.length){showToast('No files to export');return;}
-  var folderLabel=folderStack.length?folderStack[folderStack.length-1].label:'Export';
+// ── Excel Export ──────────────────────────────────────────────
+var _VISA_FILL={Sou:'FFDCFCE7',PR:'FFECFEFF',PI:'FFECFEFF',VSO:'FFDCFCE7',VAO:'FFF0FDF4',VAOB:'FFFEE2E2',REJ:'FFFECACA',NS:'FFF3F4F6',NC:'FFDCFCE7',EA:'FFFEF9C3'};
+var _VISA_FONT={Sou:'FF14532D',PR:'FF0891B2',PI:'FF0891B2',VSO:'FF14532D',VAO:'FF16A34A',VAOB:'FFDC2626',REJ:'FF991B1B',NS:'FF6B7280',NC:'FF14532D',EA:'FFCA8A04'};
 
-  // Build headers
-  var headers=['Name','Revision','Description','Size','Expected Date of Submittal'];
+function _exHeaders(){
+  var h=['Name','Rev','Description','Size','Expected Date of Submittal'];
   GED_INTERVENANTS.forEach(function(iv){
-    var parts=iv.label?iv.label.split('\n'):[iv.key];
-    headers.push(parts.join(' '));
+    var p=iv.label?iv.label.split('\n'):[iv.key];
+    h.push(p.join(' '));
   });
+  return h;
+}
 
-  // Group revisions (same logic as render)
-  var _revMap={};
-  files.forEach(function(f){
-    var dot=f.name.lastIndexOf('.');
-    var noExt=dot!==-1?f.name.slice(0,dot):f.name;
-    var m=noExt.match(/^(.+)_([0-9]{2})$/);
-    if(m){if(!_revMap[m[1]])_revMap[m[1]]=[];_revMap[m[1]].push({file:f,rev:parseInt(m[2],10),revStr:m[2]});}
+function _exSetColumns(ws){
+  ws.getColumn(1).width=42;
+  ws.getColumn(2).width=6;
+  ws.getColumn(3).width=28;
+  ws.getColumn(4).width=10;
+  ws.getColumn(5).width=22;
+  GED_INTERVENANTS.forEach(function(iv,i){
+    var p=iv.label?iv.label.split('\n'):[iv.key];
+    ws.getColumn(6+i).width=Math.max((p[0]||'').length,(p[1]||'').length,8)+2;
   });
-  var _seenBases={},displayItems=[];
+}
+
+function _exStyleHeaderRow(row){
+  row.height=26;
+  row.eachCell({includeEmpty:true},function(cell){
+    cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF224F93'}};
+    cell.font={bold:true,color:{argb:'FFFFFFFF'},size:10,name:'Arial'};
+    cell.alignment={horizontal:'center',vertical:'middle',wrapText:false};
+  });
+}
+
+function _exBuildRevGroups(files){
+  var rm={};
   files.forEach(function(f){
     var dot=f.name.lastIndexOf('.');
     var noExt=dot!==-1?f.name.slice(0,dot):f.name;
     var m=noExt.match(/^(.+)_([0-9]{2})$/);
-    var base=m?m[1]:null,grp=base?_revMap[base]:null;
+    if(m){if(!rm[m[1]])rm[m[1]]=[];rm[m[1]].push({file:f,rev:parseInt(m[2],10),revStr:m[2]});}
+  });
+  var seen={},items=[];
+  files.forEach(function(f){
+    var dot=f.name.lastIndexOf('.');
+    var noExt=dot!==-1?f.name.slice(0,dot):f.name;
+    var m=noExt.match(/^(.+)_([0-9]{2})$/);
+    var base=m?m[1]:null,grp=base?rm[base]:null;
     if(grp&&grp.length>=1){
-      if(!_seenBases[base]){_seenBases[base]=true;var sg=grp.slice().sort(function(a,b){return b.rev-a.rev;});displayItems.push({type:'group',base:base,files:sg});}
-    } else {displayItems.push({type:'file',file:f});}
+      if(!seen[base]){seen[base]=true;items.push({type:'group',base:base,files:grp.slice().sort(function(a,b){return b.rev-a.rev;})});}
+    } else {items.push({type:'file',file:f});}
   });
+  return items;
+}
 
-  // Build rows
-  var rows=[headers];
-  displayItems.forEach(function(item){
+function _exAddDataRow(ws,rowData,altBg){
+  var row=ws.addRow(rowData);
+  row.height=20;
+  var bg=altBg?'FFF4F8FD':'FFFFFFFF';
+  var totalCols=5+GED_INTERVENANTS.length;
+  for(var ci=1;ci<=totalCols;ci++){
+    var cell=row.getCell(ci);
+    var isVisa=ci>5;
+    var st=isVisa?cell.value:'';
+    cell.alignment={horizontal:(ci===2||ci===4||ci===5||isVisa)?'center':'left',vertical:'middle'};
+    cell.border={bottom:{style:'hair',color:{argb:'FFD4E2F5'}}};
+    if(isVisa&&st&&_VISA_FILL[st]){
+      cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:_VISA_FILL[st]}};
+      cell.font={bold:true,color:{argb:_VISA_FONT[st]},size:9,name:'Arial'};
+    } else {
+      cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:bg}};
+      cell.font={color:{argb:isVisa?'FF8099B0':'FF1A2A3A'},size:isVisa?9:10,name:'Arial'};
+    }
+  }
+  return row;
+}
+
+function _exAddFiles(ws,files,altStart){
+  var alt=!!altStart;
+  var items=_exBuildRevGroups(files);
+  items.forEach(function(item){
     if(item.type==='group'){
-      item.files.forEach(function(entry){
-        var f=entry.file;
-        var row=[item.base,entry.revStr,_fileDescriptions[f.id]||'',f.size||'',f.date||''];
-        GED_INTERVENANTS.forEach(function(iv){row.push(getVisaStatus(f.id,iv.key).status||'');});
-        rows.push(row);
+      item.files.forEach(function(e){
+        var f=e.file;
+        var rd=[item.base,e.revStr,_fileDescriptions[f.id]||'',f.size||'',f.date||''];
+        GED_INTERVENANTS.forEach(function(iv){rd.push(getVisaStatus(f.id,iv.key).status||'');});
+        _exAddDataRow(ws,rd,alt);alt=!alt;
       });
     } else {
       var f=item.file;
-      var row=[f.name,'',_fileDescriptions[f.id]||'',f.size||'',f.date||''];
-      GED_INTERVENANTS.forEach(function(iv){row.push(getVisaStatus(f.id,iv.key).status||'');});
-      rows.push(row);
+      var rd=[f.name,'',_fileDescriptions[f.id]||'',f.size||'',f.date||''];
+      GED_INTERVENANTS.forEach(function(iv){rd.push(getVisaStatus(f.id,iv.key).status||'');});
+      _exAddDataRow(ws,rd,alt);alt=!alt;
     }
   });
+  return alt;
+}
 
-  var wb=XLSX.utils.book_new();
-  var ws=XLSX.utils.aoa_to_sheet(rows);
-  // Auto column widths
-  var colWidths=headers.map(function(h,hi){
-    var max=h.length;
-    rows.slice(1).forEach(function(r){var v=String(r[hi]||'');if(v.length>max)max=v.length;});
-    return {wch:Math.min(max+2,60)};
+async function _exDownload(wb,filename){
+  var buf=await wb.xlsx.writeBuffer();
+  var blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;a.download=filename;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+async function exportFolderToExcel(){
+  var files=folderFiles[currentFolderId]||[];
+  if(!files.length){showToast('No files to export');return;}
+  var label=folderStack.length?folderStack[folderStack.length-1].label:'Export';
+  showToast('Preparing export...');
+  var wb=new ExcelJS.Workbook();
+  var ws=wb.addWorksheet(label.slice(0,31));
+  ws.views=[{state:'frozen',ySplit:1}];
+  _exSetColumns(ws);
+  _exStyleHeaderRow(ws.addRow(_exHeaders()));
+  _exAddFiles(ws,files,false);
+  await _exDownload(wb,label+'.xlsx');
+  showToast('Exported: '+label+'.xlsx');
+}
+
+async function exportAllDeliverablesToExcel(){
+  if(!deliverables.length){showToast('No folders to export');return;}
+  var proj=_gedProjects.find(function(p){return p.id===currentProjectId;});
+  var projName=proj?proj.name:currentProjectId;
+  showToast('Loading all folders...');
+  for(var i=0;i<deliverables.length;i++){
+    var d=deliverables[i];
+    if(!folderFiles[d.id]) folderFiles[d.id]=await gedLoadFiles(d.id,'deliverable');
+  }
+  var wb=new ExcelJS.Workbook();
+  var ws=wb.addWorksheet('Deliverables');
+  ws.views=[{state:'frozen',ySplit:1}];
+  var headers=_exHeaders();
+  var totalCols=headers.length;
+  _exSetColumns(ws);
+  _exStyleHeaderRow(ws.addRow(headers));
+  var alt=false;
+  deliverables.forEach(function(d){
+    var dn=d.num||d.id;
+    var flabel=d.code?dn+'. ('+d.code+') '+d.name:dn+'. '+d.name;
+    var fhr=ws.addRow([flabel]);
+    fhr.height=22;
+    var fc=fhr.getCell(1);
+    fc.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1A2A3A'}};
+    fc.font={bold:true,color:{argb:'FFFFFFFF'},size:10,name:'Arial'};
+    fc.alignment={horizontal:'left',vertical:'middle'};
+    ws.mergeCells(fhr.number,1,fhr.number,totalCols);
+    var files=folderFiles[d.id]||[];
+    if(files.length){
+      alt=_exAddFiles(ws,files,alt);
+    } else {
+      var er=ws.addRow(['(No documents)']);
+      er.height=18;
+      er.getCell(1).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFAFCFF'}};
+      er.getCell(1).font={italic:true,size:10,color:{argb:'FF8099B0'},name:'Arial'};
+    }
+    var sep=ws.addRow([]);sep.height=6;
   });
-  ws['!cols']=colWidths;
-  XLSX.utils.book_append_sheet(wb,ws,folderLabel.slice(0,31));
-  XLSX.writeFile(wb,folderLabel+'.xlsx');
-  showToast('Exported: '+folderLabel+'.xlsx');
+  await _exDownload(wb,projName+' - List of Deliverables.xlsx');
+  showToast('Exported: List of Deliverables');
 }
 
 var _pendingFileDelete=null;
