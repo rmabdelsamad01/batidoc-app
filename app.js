@@ -3100,7 +3100,8 @@ function _exAddDataRow(ws,rowData,altBg){
 
 function _exAddFiles(ws,files,altStart){
   var alt=!!altStart;
-  var items=_exBuildRevGroups(files);
+  var sorted=files.slice().sort(function(a,b){return a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'});});
+  var items=_exBuildRevGroups(sorted);
   items.forEach(function(item){
     if(item.type==='group'){
       item.files.forEach(function(e){
