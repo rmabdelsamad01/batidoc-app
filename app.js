@@ -2983,6 +2983,69 @@ function downloadFile(){
   document.getElementById('download-modal').style.display='flex';
 }
 
+function exportFolderToExcel(){
+  var files=folderFiles[currentFolderId]||[];
+  if(!files.length){showToast('No files to export');return;}
+  var folderLabel=folderStack.length?folderStack[folderStack.length-1].label:'Export';
+
+  // Build headers
+  var headers=['Name','Revision','Description','Size','Expected Date of Submittal'];
+  GED_INTERVENANTS.forEach(function(iv){
+    var parts=iv.label?iv.label.split('\n'):[iv.key];
+    headers.push(parts.join(' '));
+  });
+
+  // Group revisions (same logic as render)
+  var _revMap={};
+  files.forEach(function(f){
+    var dot=f.name.lastIndexOf('.');
+    var noExt=dot!==-1?f.name.slice(0,dot):f.name;
+    var m=noExt.match(/^(.+)_([0-9]{2})$/);
+    if(m){if(!_revMap[m[1]])_revMap[m[1]]=[];_revMap[m[1]].push({file:f,rev:parseInt(m[2],10),revStr:m[2]});}
+  });
+  var _seenBases={},displayItems=[];
+  files.forEach(function(f){
+    var dot=f.name.lastIndexOf('.');
+    var noExt=dot!==-1?f.name.slice(0,dot):f.name;
+    var m=noExt.match(/^(.+)_([0-9]{2})$/);
+    var base=m?m[1]:null,grp=base?_revMap[base]:null;
+    if(grp&&grp.length>=1){
+      if(!_seenBases[base]){_seenBases[base]=true;var sg=grp.slice().sort(function(a,b){return b.rev-a.rev;});displayItems.push({type:'group',base:base,files:sg});}
+    } else {displayItems.push({type:'file',file:f});}
+  });
+
+  // Build rows
+  var rows=[headers];
+  displayItems.forEach(function(item){
+    if(item.type==='group'){
+      item.files.forEach(function(entry){
+        var f=entry.file;
+        var row=[item.base,entry.revStr,_fileDescriptions[f.id]||'',f.size||'',f.date||''];
+        GED_INTERVENANTS.forEach(function(iv){row.push(getVisaStatus(f.id,iv.key).status||'');});
+        rows.push(row);
+      });
+    } else {
+      var f=item.file;
+      var row=[f.name,'',_fileDescriptions[f.id]||'',f.size||'',f.date||''];
+      GED_INTERVENANTS.forEach(function(iv){row.push(getVisaStatus(f.id,iv.key).status||'');});
+      rows.push(row);
+    }
+  });
+
+  var wb=XLSX.utils.book_new();
+  var ws=XLSX.utils.aoa_to_sheet(rows);
+  // Auto column widths
+  var colWidths=headers.map(function(h,hi){
+    var max=h.length;
+    rows.slice(1).forEach(function(r){var v=String(r[hi]||'');if(v.length>max)max=v.length;});
+    return {wch:Math.min(max+2,60)};
+  });
+  ws['!cols']=colWidths;
+  XLSX.utils.book_append_sheet(wb,ws,folderLabel.slice(0,31));
+  XLSX.writeFile(wb,folderLabel+'.xlsx');
+  showToast('Exported: '+folderLabel+'.xlsx');
+}
+
 var _pendingFileDelete=null;
 
 function deleteFile(){
