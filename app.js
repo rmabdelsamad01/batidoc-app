@@ -3195,6 +3195,7 @@ async function exportAllDeliverablesToExcel(){
   var _dateStr=_today.getFullYear()+'-'+('0'+(_today.getMonth()+1)).slice(-2)+'-'+('0'+_today.getDate()).slice(-2);
   showToast('Loading all folders...');
   await loadVisaStatuses();
+  await loadFileDescriptions();
   for(var i=0;i<deliverables.length;i++){
     var d=deliverables[i];
     folderFiles[d.id]=await gedLoadFiles(d.id,'deliverable');
