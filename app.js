@@ -3117,9 +3117,7 @@ function _exAddFiles(ws,files,altStart){
         var f=e.file;
         var rd=[item.base,e.revStr,_fileDescriptions[f.id]||'',f.size||'',f.date||''];
         GED_INTERVENANTS.forEach(function(iv){var vs=getVisaStatus(f.id,iv.key);rd.push(vs.status?{s:vs.status,d:vs.date||''}:'');});
-        var row=_exAddDataRow(ws,rd,alt);
-        if(idx>0) row.outlineLevel=1; // older revisions grouped under latest
-        alt=!alt;
+        _exAddDataRow(ws,rd,alt);alt=!alt;
       });
     } else {
       var f=item.file;
@@ -3152,7 +3150,6 @@ async function exportFolderToExcel(){
   var _dateStr=_today.getFullYear()+'-'+('0'+(_today.getMonth()+1)).slice(-2)+'-'+('0'+_today.getDate()).slice(-2);
   var wb=new ExcelJS.Workbook();
   var ws=wb.addWorksheet(label.slice(0,31));
-  ws.properties={outlineLevelRow:1};
   ws.views=[{state:'frozen',ySplit:4}];
   _exSetColumns(ws);
   var _headers=_exHeaders();
@@ -3219,7 +3216,6 @@ async function exportAllDeliverablesToExcel(){
   _visaAutoStatuses=await _buildExportAutoStatuses(allFiles);
   var wb=new ExcelJS.Workbook();
   var ws=wb.addWorksheet('Deliverables');
-  ws.properties={outlineLevelRow:1};
   ws.views=[{state:'frozen',ySplit:4}];
   var headers=_exHeaders();
   var totalCols=headers.length;
