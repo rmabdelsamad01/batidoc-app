@@ -3191,6 +3191,8 @@ async function exportAllDeliverablesToExcel(){
   if(!deliverables.length){showToast('No folders to export');return;}
   var proj=_gedProjects.find(function(p){return p.id===currentProjectId;});
   var projName=proj?proj.name:currentProjectId;
+  var _today=new Date();
+  var _dateStr=_today.getFullYear()+'-'+('0'+(_today.getMonth()+1)).slice(-2)+'-'+('0'+_today.getDate()).slice(-2);
   showToast('Loading all folders...');
   await loadVisaStatuses();
   for(var i=0;i<deliverables.length;i++){
@@ -3231,8 +3233,6 @@ async function exportAllDeliverablesToExcel(){
     }
     var sep=ws.addRow([]);sep.height=6;
   });
-  var _today=new Date();
-  var _dateStr=_today.getFullYear()+'-'+('0'+(_today.getMonth()+1)).slice(-2)+'-'+('0'+_today.getDate()).slice(-2);
   var _revKey='batidoc_export_rev_'+currentProjectId;
   var _stored;
   try{_stored=JSON.parse(localStorage.getItem(_revKey));}catch(e){}
