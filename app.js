@@ -2996,9 +2996,6 @@ function _exAddHeader(wb,ws,projName,dateStr,totalCols){
   // Batiglobe logo left (rows 1-2, col A)
   var bgImgId=wb.addImage({base64:_LOGO_B64,extension:'png'});
   ws.addImage(bgImgId,{tl:{col:0,row:0},ext:{width:130,height:55}});
-  // Batiged logo right (row 2)
-  var bgdImgId=wb.addImage({base64:_BATIGED_LOGO_B64,extension:'png'});
-  ws.addImage(bgdImgId,{tl:{col:totalCols-rCols,row:1},ext:{width:90,height:24}});
   // Row 1: project name from col C | "Automatically generated from:" right
   var r1=ws.addRow([]);r1.height=32;
   for(var c=1;c<=totalCols;c++) r1.getCell(c).fill={type:'pattern',pattern:'solid',fgColor:{argb:bg}};
@@ -3013,24 +3010,21 @@ function _exAddHeader(wb,ws,projName,dateStr,totalCols){
   autoCell.font={size:8,name:'Arial',color:{argb:'FF6B7280'},italic:true};
   autoCell.alignment={vertical:'bottom',horizontal:'right'};
   if(totalCols>rStart) ws.mergeCells(r1.number,rStart,r1.number,totalCols);
-  // Row 2: date from col C | [Batiged image overlaid right]
-  var r2=ws.addRow([]);r2.height=28;
+  // Row 2: date from col C | hyperlink right
+  var r2=ws.addRow([]);r2.height=26;
   for(var c=1;c<=totalCols;c++) r2.getCell(c).fill={type:'pattern',pattern:'solid',fgColor:{argb:bg}};
   var dtCell=r2.getCell(3);
   dtCell.value='Date of export: '+dateStr;
   dtCell.font={size:9,name:'Arial',color:{argb:'FF6B7280'}};
   dtCell.alignment={vertical:'middle'};
-  // Row 3: hyperlink below the Batiged image
-  var r3=ws.addRow([]);r3.height=16;
-  for(var c=1;c<=totalCols;c++) r3.getCell(c).fill={type:'pattern',pattern:'solid',fgColor:{argb:bg}};
-  var lkCell=r3.getCell(rStart);
+  var lkCell=r2.getCell(rStart);
   lkCell.value={text:'ged.batimon.com',hyperlink:'https://ged.batimon.com'};
-  lkCell.font={size:8,name:'Arial',color:{argb:'FF1A5276'},underline:true};
-  lkCell.alignment={vertical:'top',horizontal:'right'};
-  if(totalCols>rStart) ws.mergeCells(r3.number,rStart,r3.number,totalCols);
-  // Row 4: spacer
-  var r4=ws.addRow([]);r4.height=8;
-  for(var c=1;c<=totalCols;c++) r4.getCell(c).fill={type:'pattern',pattern:'solid',fgColor:{argb:bg}};
+  lkCell.font={size:9,name:'Arial',color:{argb:'FF1A5276'},underline:true};
+  lkCell.alignment={vertical:'middle',horizontal:'right'};
+  if(totalCols>rStart) ws.mergeCells(r2.number,rStart,r2.number,totalCols);
+  // Row 3: spacer
+  var r3=ws.addRow([]);r3.height=8;
+  for(var c=1;c<=totalCols;c++) r3.getCell(c).fill={type:'pattern',pattern:'solid',fgColor:{argb:bg}};
 }
 
 
@@ -3156,7 +3150,7 @@ async function exportFolderToExcel(){
   var _dateStr=_today.getFullYear()+'-'+('0'+(_today.getMonth()+1)).slice(-2)+'-'+('0'+_today.getDate()).slice(-2);
   var wb=new ExcelJS.Workbook();
   var ws=wb.addWorksheet(label.slice(0,31));
-  ws.views=[{state:'frozen',ySplit:5}];
+  ws.views=[{state:'frozen',ySplit:4}];
   _exSetColumns(ws);
   var _headers=_exHeaders();
   _exAddHeader(wb,ws,projName,_dateStr,_headers.length);
@@ -3222,7 +3216,7 @@ async function exportAllDeliverablesToExcel(){
   _visaAutoStatuses=await _buildExportAutoStatuses(allFiles);
   var wb=new ExcelJS.Workbook();
   var ws=wb.addWorksheet('Deliverables');
-  ws.views=[{state:'frozen',ySplit:5}];
+  ws.views=[{state:'frozen',ySplit:4}];
   var headers=_exHeaders();
   var totalCols=headers.length;
   _exSetColumns(ws);
