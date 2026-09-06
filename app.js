@@ -1489,6 +1489,7 @@ async function openDashboard(){
     allFiles=allFiles.concat(folderFiles[d.id]||[]);
   }
   _visaAutoStatuses=await _buildExportAutoStatuses(allFiles);
+  await loadFileDescriptions();
   await renderDashboard('final');
 }
 
