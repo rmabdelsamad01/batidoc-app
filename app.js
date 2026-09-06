@@ -1466,6 +1466,14 @@ async function openDashboard(){
     }).join('');
     sel.value='final';
   }
+  // Pre-load all folder files and build auto-statuses so dashboard shows correct data immediately
+  var allFiles=[];
+  for(var i=0;i<deliverables.length;i++){
+    var d=deliverables[i];
+    if(!folderFiles[d.id]) folderFiles[d.id]=await gedLoadFiles(d.id,'deliverable');
+    allFiles=allFiles.concat(folderFiles[d.id]||[]);
+  }
+  _visaAutoStatuses=await _buildExportAutoStatuses(allFiles);
   await renderDashboard('final');
 }
 
