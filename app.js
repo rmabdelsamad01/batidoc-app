@@ -128,6 +128,10 @@ function openProject(id){
   var allowed = window._allowedProjects;
   if(Array.isArray(allowed) && !allowed.includes(id)) return;
   currentProjectId = id;
+  folderFiles={};
+  _visaAutoStatuses={};
+  _visaStatuses={};
+  _fileDescriptions={};
   var proj = _gedProjects.find(function(p){return p.id===id;});
   var projName = proj ? proj.name : (id==='shift-tower'?'Shift Tower':id);
   var sbNameEl = document.querySelector('.sb-name');
