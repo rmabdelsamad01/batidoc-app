@@ -3,7 +3,7 @@ var currentProjectId = 'shift-tower';
 var _gedProjects = [];
 var _gedDirFilter = null;
 
-const _GED_DIR_LABELS = {raed:'Raed Abdel Samad', anas:'Anas Filali', nabil:'Nabil Gaich'};
+const _GED_DIR_LABELS = {raed:'Raed Abdel Samad', anas:'Anas Filali'};
 
 async function loadGedProjects(){
   try{
