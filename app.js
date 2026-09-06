@@ -1599,8 +1599,10 @@ async function renderDashboard(ivKey){
           return '<td style="padding:5px 12px;font-size:11px;text-align:center;color:'+(hit?STATUS_COLORS[s]:'#d0dae6')+';font-weight:'+(hit?'700':'400')+';">'+(hit?'1':'—')+'</td>';
         }).join('')
         +subDelayedTd
-        +r.planCounts.map(function(_,ci){
-          return '<td style="'+(ci===0?'border-left:2px solid #e0e8f4;':'')+(ci===8?'border-left:2px solid #e0e8f4;':'')+'"></td>';
+        +planCols.map(function(col,ci){
+          var fd=f.date?_parseFileDate(f.date):null;
+          var hit=fd&&fd>=col.start&&fd<=col.end;
+          return '<td style="padding:5px 8px;font-size:11px;text-align:center;color:'+(hit?'#224F93':'#d0dae6')+';font-weight:'+(hit?'700':'400')+';'+(ci===0?'border-left:2px solid #e0e8f4;':'')+(ci===8?'border-left:2px solid #e0e8f4;':'')+';">'+(hit?'1':'—')+'</td>';
         }).join('')
         +'</tr>';
     }).join('');
