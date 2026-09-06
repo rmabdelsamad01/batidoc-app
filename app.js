@@ -948,6 +948,7 @@ function renderDeliverables(){
 
 var _engPlanningActive=false;
 var _detailedLodActive=false;
+var _showDocNameCol=false;
 var _dashIvKey='final';
 
 function _parseFileDate(ds){
@@ -1011,11 +1012,21 @@ function toggleDetailedLod(){
   renderDashboard(_dashIvKey);
 }
 
+function toggleDocNameCol(){
+  _showDocNameCol=!_showDocNameCol;
+  var btn=document.getElementById('docname-toggle-btn');
+  if(btn)btn.textContent=_showDocNameCol?'−':'+';
+  renderDashboard(_dashIvKey);
+}
+
 function closeDashboard(){
   var m=document.getElementById('dashboard-modal');
   if(m)m.style.display='none';
   _engPlanningActive=false;
   _detailedLodActive=false;
+  _showDocNameCol=false;
+  var btn=document.getElementById('docname-toggle-btn');
+  if(btn)btn.textContent='+';
   var inner=document.querySelector('#dashboard-modal > div');
   if(inner){inner.style.width='95%';inner.style.maxWidth='980px';inner.style.maxHeight='85vh';}
   // remove plan headers
@@ -1485,13 +1496,21 @@ async function renderDashboard(ivKey){
   _dashIvKey=ivKey;
   var showExtra=_engPlanningActive||_detailedLodActive;
   var planCols=_engPlanningActive?_gedEngPlanningCols():[];
-  var totalCols=13+(showExtra?1:0)+planCols.length;
+  var showDocName=_showDocNameCol&&_detailedLodActive;
+  var totalCols=13+(showDocName?1:0)+(showExtra?1:0)+planCols.length;
   document.getElementById('dashboard-body').innerHTML='<tr><td colspan="'+totalCols+'" style="text-align:center;padding:32px;color:#8099b0;">Loading…</td></tr>';
 
   // sync dynamic headers in thead
   var tr=document.getElementById('dashboard-thead-row');
   if(tr){
-    tr.querySelectorAll('th.plan-th,th.delayed-th').forEach(function(th){th.remove();});
+    tr.querySelectorAll('th.plan-th,th.delayed-th,th.docname-th').forEach(function(th){th.remove();});
+    if(showDocName){
+      var dnth=document.createElement('th');
+      dnth.className='docname-th';
+      dnth.setAttribute('style','padding:9px 12px;font-size:11px;font-weight:700;text-align:left;white-space:nowrap;min-width:240px;border-left:2px solid rgba(255,255,255,0.25);');
+      dnth.textContent='Titre du document';
+      tr.insertBefore(dnth,tr.children[2]);
+    }
     if(showExtra){
       var dth=document.createElement('th');
       dth.className='delayed-th';
@@ -1568,6 +1587,7 @@ async function renderDashboard(ivKey){
     var parentRow='<tr style="background:'+bg+';border-bottom:1px solid rgba(34,79,147,0.07);">'
       +'<td style="padding:7px 12px;font-size:11px;color:#8099b0;font-family:\'DM Mono\',monospace;white-space:nowrap;">'+r.num+'</td>'
       +'<td style="padding:7px 12px;font-size:12px;color:#1a2a3a;font-weight:600;width:280px;min-width:280px;max-width:280px;word-break:break-word;white-space:normal;">'+dn+'</td>'
+      +(showDocName?'<td style="padding:7px 12px;font-size:11px;color:#8099b0;border-left:2px solid #e0e8f4;"></td>':'')
       +'<td style="padding:7px 12px;font-size:12px;color:#224F93;font-weight:700;text-align:center;">'+r.qty+'</td>'
       +statuses.map(function(s){
         var v=r.counts[s];
@@ -1590,9 +1610,11 @@ async function renderDashboard(ivKey){
       var subDelayedTd=showExtra
         ?'<td style="padding:5px 8px;font-size:11px;text-align:center;border-left:2px solid #e0e8f4;color:'+(isDelayed?'#dc2626':'#d0dae6')+';font-weight:'+(isDelayed?'700':'400')+';">'+(isDelayed?'1':'—')+'</td>'
         :'';
+      var docTitle=showDocName?(_fileDescriptions[f.id]||'—'):'';
       return '<tr style="background:#f0f5ff;border-bottom:1px solid rgba(34,79,147,0.05);">'
         +'<td style="padding:5px 12px;font-size:10px;color:#a0b4cc;font-family:\'DM Mono\',monospace;white-space:nowrap;padding-left:20px;">'+fileNum+'</td>'
         +'<td style="padding:5px 12px 5px 24px;font-size:11px;color:#3a5070;width:280px;min-width:280px;max-width:280px;word-break:break-word;white-space:normal;">'+f.name+'</td>'
+        +(showDocName?'<td style="padding:5px 12px;font-size:11px;color:#3a5070;border-left:2px solid #e0e8f4;word-break:break-word;white-space:normal;max-width:300px;">'+docTitle+'</td>':'')
         +'<td style="padding:5px 12px;font-size:11px;color:#7090b0;text-align:center;">1</td>'
         +statuses.map(function(s){
           var hit=st===s;
@@ -1615,7 +1637,7 @@ async function renderDashboard(ivKey){
     :'';
 
   html+='<tr style="background:#f4f8fd;border-top:2px solid #224F93;">'
-    +'<td colspan="2" style="padding:9px 12px;font-size:12px;font-weight:700;color:#224F93;">Total</td>'
+    +'<td colspan="'+(showDocName?3:2)+'" style="padding:9px 12px;font-size:12px;font-weight:700;color:#224F93;">Total</td>'
     +'<td style="padding:9px 12px;font-size:13px;font-weight:700;color:#224F93;text-align:center;">'+totalQty+'</td>'
     +statuses.map(function(s){
       return '<td style="padding:9px 12px;font-size:12px;font-weight:700;text-align:center;color:#224F93;">'+totals[s]+'</td>';
