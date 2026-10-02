@@ -2398,11 +2398,30 @@ async function gedDeleteFiles(files){
 }
 
 async function gedDownloadFiles(files){
+  if(files.length===1){
+    var f=files[0];if(!f.storage_path)return;
+    var {data}=await sb.storage.from(GED_BUCKET).createSignedUrl(f.storage_path,300);
+    if(data&&data.signedUrl){var a=document.createElement('a');a.href=data.signedUrl;a.target='_blank';document.body.appendChild(a);a.click();document.body.removeChild(a);}
+    return;
+  }
+  // Multiple files → ZIP
+  var zip=new JSZip();
+  var usedNames={};
   for(var i=0;i<files.length;i++){
     var f=files[i];if(!f.storage_path)continue;
-    var {data,error}=await sb.storage.from(GED_BUCKET).createSignedUrl(f.storage_path,300);
-    if(data&&data.signedUrl){var a=document.createElement('a');a.href=data.signedUrl;a.download=f.name;document.body.appendChild(a);a.click();document.body.removeChild(a);}
+    var {data}=await sb.storage.from(GED_BUCKET).createSignedUrl(f.storage_path,300);
+    if(!data||!data.signedUrl)continue;
+    var resp=await fetch(data.signedUrl);
+    var blob=await resp.blob();
+    var name=f.name||('file_'+i);
+    if(usedNames[name]){usedNames[name]++;var dot=name.lastIndexOf('.');name=dot!==-1?name.slice(0,dot)+' ('+usedNames[f.name]+')'+name.slice(dot):name+' ('+usedNames[f.name]+')';}
+    else usedNames[name]=1;
+    zip.file(name,blob);
   }
+  var zipBlob=await zip.generateAsync({type:'blob'});
+  var url=URL.createObjectURL(zipBlob);
+  var a=document.createElement('a');a.href=url;a.download='documents.zip';document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),5000);
 }
 
 async function gedDuplicateFile(origFile,folderId,folderType){
