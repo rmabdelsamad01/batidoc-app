@@ -2424,7 +2424,12 @@ async function gedDownloadFiles(files){
   }
   var zipBlob=await zip.generateAsync({type:'blob'});
   var url=URL.createObjectURL(zipBlob);
-  var a=document.createElement('a');a.href=url;a.download='documents.zip';document.body.appendChild(a);a.click();document.body.removeChild(a);
+  var _date=new Date().toISOString().slice(0,10);
+  var _proj=(_gedProjects.find(function(p){return p.id===currentProjectId;})||{}).name||currentProjectId;
+  var _folder=(folderStack[0]||{}).label||'';
+  var _folderClean=_folder.replace(/^\d+\.\s*/,'').replace(/\([^)]*\)\s*/,'').trim();
+  var _zipName=(_date+'-'+_proj+(_folderClean?'-'+_folderClean:'')).replace(/[/\\:*?"<>|]/g,'-')+'.zip';
+  var a=document.createElement('a');a.href=url;a.download=_zipName;document.body.appendChild(a);a.click();document.body.removeChild(a);
   setTimeout(()=>URL.revokeObjectURL(url),5000);
 }
 
