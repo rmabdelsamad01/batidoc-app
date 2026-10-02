@@ -2413,9 +2413,13 @@ async function gedDownloadFiles(files){
     if(!data||!data.signedUrl)continue;
     var resp=await fetch(data.signedUrl);
     var blob=await resp.blob();
-    var name=f.name||('file_'+i);
-    if(usedNames[name]){usedNames[name]++;var dot=name.lastIndexOf('.');name=dot!==-1?name.slice(0,dot)+' ('+usedNames[f.name]+')'+name.slice(dot):name+' ('+usedNames[f.name]+')';}
-    else usedNames[name]=1;
+    var base=f.name||('file_'+i);
+    var pathExt=(f.storage_path||'').match(/(\.[^.]+)$/);
+    var baseExt=base.match(/(\.[^.]+)$/);
+    if(pathExt&&!baseExt) base=base+pathExt[1];
+    var name=base;
+    if(usedNames[base]){usedNames[base]++;var dot=name.lastIndexOf('.');name=dot!==-1?name.slice(0,dot)+' ('+usedNames[base]+')'+name.slice(dot):name+' ('+usedNames[base]+')';}
+    else usedNames[base]=1;
     zip.file(name,blob);
   }
   var zipBlob=await zip.generateAsync({type:'blob'});
