@@ -1812,12 +1812,11 @@ function downloadSelected(){
 }
 function closeDownloadModal(){document.getElementById('download-modal').style.display='none';}
 async function confirmDownload(){
-  var btn=document.getElementById('download-confirm-btn');
-  btn.textContent='Downloading…';btn.style.background='#1a9458';
-  await gedDownloadFiles(_downloadFileRefs);
-  closeDownloadModal();
-  btn.textContent='Download';btn.style.background='#224F93';
+  var files=_downloadFileRefs.slice();
   _downloadFileRefs=[];
+  closeDownloadModal();
+  if(files.length>1) showToast('Preparing ZIP…');
+  await gedDownloadFiles(files);
 }
 
 // ── move ─────────────────────────────────────────────────────
@@ -2404,15 +2403,20 @@ async function gedDownloadFiles(files){
     if(data&&data.signedUrl){var a=document.createElement('a');a.href=data.signedUrl;a.target='_blank';document.body.appendChild(a);a.click();document.body.removeChild(a);}
     return;
   }
-  // Multiple files → ZIP
+  // Multiple files → ZIP (parallel fetch)
+  var validFiles=files.filter(function(f){return !!f.storage_path;});
+  var urlResults=await Promise.all(validFiles.map(function(f){
+    return sb.storage.from(GED_BUCKET).createSignedUrl(f.storage_path,300);
+  }));
+  var blobResults=await Promise.all(urlResults.map(function(r){
+    if(!r.data||!r.data.signedUrl)return Promise.resolve(null);
+    return fetch(r.data.signedUrl).then(function(resp){return resp.blob();});
+  }));
   var zip=new JSZip();
   var usedNames={};
-  for(var i=0;i<files.length;i++){
-    var f=files[i];if(!f.storage_path)continue;
-    var {data}=await sb.storage.from(GED_BUCKET).createSignedUrl(f.storage_path,300);
-    if(!data||!data.signedUrl)continue;
-    var resp=await fetch(data.signedUrl);
-    var blob=await resp.blob();
+  for(var i=0;i<validFiles.length;i++){
+    var blob=blobResults[i];if(!blob)continue;
+    var f=validFiles[i];
     var base=f.name||('file_'+i);
     var pathExt=(f.storage_path||'').match(/(\.[^.]+)$/);
     var baseExt=base.match(/(\.[^.]+)$/);
